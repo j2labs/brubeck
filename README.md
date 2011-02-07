@@ -18,4 +18,4 @@ It is also [BSD licensed](http://en.wikipedia.org/wiki/BSD_licenses).
 
 Still coming together as I figure out how to do this.
 
-For now, the documentation for [MongrEvent] is close to sufficient. Also check out the code in `demo.py` for an example of how to respond to a message for an HTTP request.
+For now, the documentation for [MongrEvent](https://github.com/j2labs/mongrevent) is close to sufficient. Also check out the code in `demo.py` for an example of how to respond to a message for an HTTP request.
