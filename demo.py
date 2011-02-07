@@ -50,6 +50,7 @@ class DemoHandler(WebRequestHandler):
         rev_msg = ''.join(reversed(self.request.path))
         logging.debug('  responding with: %s' % rev_msg)
         response = http_response(rev_msg, 200, rev_msg, {})        
+        logging.debug('  HTTP msg ]--------------------\n%s' % response)
         self.set_status(200)
         return response
     
