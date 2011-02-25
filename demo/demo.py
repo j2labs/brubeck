@@ -7,10 +7,10 @@
 import sys
 import uuid
 
-from brubeck import (Brubeck,
-                     WebRequestHandler)
-from mongrel2 import (Mongrel2Connection,
-                      http_response)
+from brubeck.brubeck import (Brubeck,
+                             WebRequestHandler)
+from brubeck.mongrel2 import (Mongrel2Connection,
+                              http_response)
 
 import logging
 log_config = dict(#filename='brubeck.log',
