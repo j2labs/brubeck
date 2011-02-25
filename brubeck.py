@@ -1,32 +1,5 @@
 #!/usr/bin/env python
 
-# Copyright 2011 J2 Labs LLC. All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-#   1. Redistributions of source code must retain the above copyright notice,
-#      this list of conditions and the following disclaimer.
-#
-#   2. Redistributions in binary form must reproduce the above copyright notice,
-#      this list of conditions and the following disclaimer in the documentation
-#      and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY J2 Labs LLC ``AS IS'' AND ANY EXPRESS OR IMPLIED
-# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-# EVENT SHALL J2 Labs LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# The views and conclusions contained in the software and documentation are
-# those of the authors and should not be interpreted as representing official
-# policies, either expressed or implied, of J2 Labs LLC.
-
 
 """Brubeck is a coroutine oriented zmq message handling framework. I learn by
 doing and this code base represents where my mind has wandered with regard to
@@ -163,6 +136,14 @@ class RequestHandler(Exception):
         self.add_to_payload(self.STATUS_CODE, status_code)
         self.add_to_payload(self.STATUS_MSG, status_msg)
 
+    @property
+    def status_code(self):
+        return self._payload[self.STATUS_CODE]
+    
+    @property
+    def status_msg(self):
+        return self._payload[self.STATUS_MSG]
+
     def set_timestamp(self, timestamp):
         """Sets the timestamp to given timestamp
         """
@@ -242,7 +223,7 @@ class WebRequestHandler(RequestHandler):
 
     def unsupported(self):
         self.set_status(405)
-        raise
+        raise self
 
     _ARG_DEFAULT = list()
     def get_argument(self, name, default=_ARG_DEFAULT, strip=True):
@@ -299,15 +280,14 @@ class WebRequestHandler(RequestHandler):
         return None
 
     def render(self, **kwargs):
-        return '%s' % (self._payload)
-
+        return self.render_http('%s' % (self._payload['status_msg']), {})
+    
     http_format = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
-    def render_http(self, headers, http_200=False, **kwargs):
+    def render_http(self, body, headers, http_200=False, **kwargs):
         """Renders payload and prepares HTTP response.
 
         Allows forcing HTTP status to be 200 regardless of request status.
         """
-        body = self.render(**kwargs)
         payload = dict(code=self.status_code,
                        status=self.status_msg,
                        body=body)
@@ -323,8 +303,6 @@ class JSONRequest(WebRequestHandler):
     """JSONRequest is a system for maintaining a payload until the request is
     handled to completion. It offers rendering functions for printing the
     payload into JSON format.
-
-    If an error is returned, the payload is cleared before rendering.
     """
 
     def render(self, **kwargs):
