@@ -18,12 +18,15 @@ logging.basicConfig(**log_config)
 class DemoHandler(WebMessageHandler):
     def get(self):
         logging.debug('DemoHandler.get called()')
+        
         rev_msg = ''.join(reversed(self.message.path))
         logging.debug('  responding with: %s' % rev_msg)
-        response = http_response(rev_msg, 200, rev_msg, {})        
-        logging.debug('  HTTP msg ]--------------------\n%s' % response)
+        self.set_body(rev_msg)
         self.set_status(200)
-        return self.render()
+
+        response = self.render()
+        logging.debug('  HTTP msg ]--------------------\n%s' % response)
+        return response
     
         
 if __name__ == '__main__':

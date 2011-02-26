@@ -83,10 +83,10 @@ class MessageHandler(Exception):
     Contains the general payload mechanism used for storing key-value pairs
     to answer requests.
     """
-    STATUS_CODE = 'status_code'
-    STATUS_MSG = 'status_msg'
-    TIMESTAMP = 'timestamp'
-    DEFAULT_STATUS = -1 # default to error, earn success
+    _STATUS_CODE = 'status_code'
+    _STATUS_MSG = 'status_msg'
+    _TIMESTAMP = 'timestamp'
+    _DEFAULT_STATUS = -1 # default to error, earn success
 
     _response_codes = {
         0: 'OK',
@@ -101,7 +101,7 @@ class MessageHandler(Exception):
         super(MessageHandler, self).__init__(*args, **kwargs)
         self._payload = dict()
         self._finished = False
-        self.set_status(self.DEFAULT_STATUS)
+        self.set_status(self._DEFAULT_STATUS)
         self.initialize()
 
     def initialize(self):
@@ -134,21 +134,21 @@ class MessageHandler(Exception):
         status_msg = self._response_codes[status_code]
         if extra_txt:
             status_msg = '%s - %s' % (status_msg, extra_txt)
-        self.add_to_payload(self.STATUS_CODE, status_code)
-        self.add_to_payload(self.STATUS_MSG, status_msg)
+        self.add_to_payload(self._STATUS_CODE, status_code)
+        self.add_to_payload(self._STATUS_MSG, status_msg)
 
     @property
     def status_code(self):
-        return self._payload[self.STATUS_CODE]
+        return self._payload[self._STATUS_CODE]
     
     @property
     def status_msg(self):
-        return self._payload[self.STATUS_MSG]
+        return self._payload[self._STATUS_MSG]
 
     def set_timestamp(self, timestamp):
         """Sets the timestamp to given timestamp
         """
-        self.add_to_payload(self.TIMESTAMP, timestamp)
+        self.add_to_payload(self._TIMESTAMP, timestamp)
         self.timestamp = timestamp
 
     def render(self, *kwargs):
@@ -193,7 +193,7 @@ class WebMessageHandler(MessageHandler):
     Tornado's design inspired this design.
     """
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PUT", "OPTIONS")
-    DEFAULT_STATUS = 500 # default to server error
+    _DEFAULT_STATUS = 500 # default to server error
 
     _response_codes = {
         200: 'OK',
@@ -204,7 +204,38 @@ class WebMessageHandler(MessageHandler):
         500: 'Server error',
     }
 
-    # override these to implement handling of HTTP method types
+    
+    ###
+    ### Payload extension
+    ###
+    
+    _BODY = 'body'
+    _HEADERS = 'headers'
+
+    def initialize(self):
+        """WebMessageHandler extends the payload for body and headers. It
+        also provides both fields as properties to mask storage in payload
+        """
+        self._payload[self._BODY] = None
+        self._payload[self._HEADERS] = dict()
+
+    @property
+    def body(self):
+        return self._payload[self._BODY]
+
+    @property
+    def headers(self):
+        return self._payload[self._HEADERS]
+
+    def set_body(self, body, headers=None):
+        self._payload[self._BODY] = body
+        if headers is not None:
+            self._payload[self._HEADERS] = headers
+        
+    ###
+    ### Request types supported are mapped to HTTP request methods
+    ###
+
     def head(self, *args, **kwargs):
         self.unsupported()
 
@@ -229,6 +260,10 @@ class WebMessageHandler(MessageHandler):
         self.set_status(405)
         raise self
 
+    ###
+    ### Helpers for accessing request variables
+    ###
+    
     _ARG_DEFAULT = list()
     def get_argument(self, name, default=_ARG_DEFAULT, strip=True):
         """Returns the value of the argument with the given name.
@@ -264,6 +299,10 @@ class WebMessageHandler(MessageHandler):
             values = [x.strip() for x in values]
         return values    
 
+    ###
+    ### Authentication skeleton. Fill in the details.
+    ###
+    
     @property
     def current_user(self):
         """The authenticated user for this message.
@@ -283,23 +322,28 @@ class WebMessageHandler(MessageHandler):
         """Override to determine the current user from, e.g., a cookie."""
         return None
 
-    def render(self, **kwargs):
-        return self.render_http('%s' % (self._payload['status_msg']), {})
-    
+    ### Rendering assumes HTTP
+
     http_format = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
-    def render_http(self, body, headers, http_200=False, **kwargs):
+    def render(self, http_200=False, **kwargs):
         """Renders payload and prepares HTTP response.
 
         Allows forcing HTTP status to be 200 regardless of request status.
         """
         payload = dict(code=self.status_code,
                        status=self.status_msg,
-                       body=body)
+                       body=self.body)
+
+        # Some API's send error messages in the payload rather than over
+        # HTTP. Not by ideal, but supported.
         if http_200:
             payload['code'] = 200
-        headers['Content-Length'] = len(body)
+            
+        self.headers['Content-Length'] = len(self.body)
+        
         payload['headers'] = "\r\n".join('%s: %s' % (k,v)
-                                         for k,v in headers.items())
+                                         for k,v in self.headers.items())
+        
         return self.http_format % payload    
 
 
