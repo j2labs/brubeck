@@ -1,7 +1,7 @@
 from eventlet.green import zmq
 import time
 import json
-
+from uuid import uuid4
 
 ###
 ### Request handling code
@@ -84,21 +84,24 @@ def http_response(body, code, status, headers):
 
 class Mongrel2Connection(object):
 
-    def __init__(self, sender_id, pull_addr, pub_addr):
-        """sender_id = uuid.uuid1() or anything unique
+    def __init__(self, pull_addr, pub_addr):
+        """sender_id = uuid.uuid4() or anything unique
         pull_addr = pull socket used for incoming messages
         pub_addr = publish socket used for outgoing messages
 
         The class encapsulates socket tupe by referring to it's pull socket
         as in_sock and it's publish socket as out_sock.
         """
-        self.sender_id = sender_id
+
+        # Each Brubeck instance uniquely identifies itself. Mongrel2 requires
+        # this for the request handler's pub socket as a subscriber id.
+        self.sender_id = uuid4().hex
 
         in_sock = CTX.socket(zmq.PULL)
         in_sock.connect(pull_addr)
 
         out_sock = CTX.socket(zmq.PUB)
-        out_sock.setsockopt(zmq.IDENTITY, sender_id)
+        out_sock.setsockopt(zmq.IDENTITY, self.sender_id)
         out_sock.connect(pub_addr)
 
         self.in_addr = pull_addr
@@ -125,6 +128,7 @@ class Mongrel2Connection(object):
     def reply(self, req, msg):
         """Does a reply based on the given Request object and message.
         """
+
         self.send(req.sender, req.conn_id, msg)
 
     def reply_bulk(self, uuid, idents, data):

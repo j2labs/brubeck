@@ -5,12 +5,9 @@
 """
 
 import sys
-import uuid
 
-from brubeck.brubeck import (Brubeck,
-                             WebRequestHandler)
-from brubeck.mongrel2 import (Mongrel2Connection,
-                              http_response)
+from brubeck.request_handling import Brubeck, WebMessageHandler
+from brubeck.mongrel2 import Mongrel2Connection, http_response
 
 import logging
 log_config = dict(#filename='brubeck.log',
@@ -18,10 +15,10 @@ log_config = dict(#filename='brubeck.log',
 
 logging.basicConfig(**log_config)
 
-class DemoHandler(WebRequestHandler):
+class DemoHandler(WebMessageHandler):
     def get(self):
         logging.debug('DemoHandler.get called()')
-        rev_msg = ''.join(reversed(self.request.path))
+        rev_msg = ''.join(reversed(self.message.path))
         logging.debug('  responding with: %s' % rev_msg)
         response = http_response(rev_msg, 200, rev_msg, {})        
         logging.debug('  HTTP msg ]--------------------\n%s' % response)
@@ -35,16 +32,11 @@ if __name__ == '__main__':
         print usage
         sys.exit(1)
 
-    #sender_id = '82209006-86FF-4982-B5EA-D1E29E55D481'
-    sender_id = uuid.uuid4().hex
     pull_addr = sys.argv[1]
     pub_addr = sys.argv[2]
 
-    m2conn = Mongrel2Connection(sender_id, pull_addr, pub_addr)
+    # Make sure mongrel2's config is in sync with this.
+    handler_tuples = ((r'^/brubeck/$', DemoHandler),)
 
-    # This part should match, at least, what mongrel2 is configured
-    # to send
-    request_handlers = ((r'^/brubeck/$', DemoHandler),)
-
-    app = Brubeck(m2conn, request_handlers)
+    app = Brubeck((pull_addr, pub_addr), handler_tuples)
     app.run()

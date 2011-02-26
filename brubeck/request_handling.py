@@ -5,6 +5,9 @@
 doing and this code base represents where my mind has wandered with regard to
 concurrency.
 
+If you are building a message handling system you should import this class
+before anything else to guarantee the eventlet code is run first.
+
 See github.com/j2labs/brubeck for more information.
 """
 
@@ -14,7 +17,9 @@ from eventlet.green import zmq
 from eventlet.hubs import get_hub, use_hub
 use_hub('zeromq')
 
-from uuid import uuid1
+from . import version
+
+from uuid import uuid4
 import os
 import sys
 import re
@@ -38,24 +43,19 @@ def curtime():
 ### Message handling coroutines
 ###
 
-def route_request(application, request):
+def route_message(application, message):
     """This is the first of the three coroutines called. It looks at the
-    request, determines which handler will be used to execute it, and
+    message, determines which handler will be used to process it, and
     spawns a coroutine to run that handler.
     """
-    handler = None
-    for h in application.request_handlers:
-        (p, rh) = h
-        regex = re.compile(p)
-        if regex.search(request.path):
-            handler = rh(application, request)
-            
-    if handler is None:
-        handler = WebRequestHandler(application, request)
+    handler = application.route_message(message)
 
-    handler.request = request
-    handler.application = application
-    spawn_n(request_handler, handler)
+    if handler is None:
+        print 'EGAD! No route found. Bug J2 to build a 404 system'
+    else:
+        handler.message = message
+        handler.application = application
+        spawn_n(request_handler, handler)
 
     
 def request_handler(handler):
@@ -70,14 +70,14 @@ def result_handler(handler, response):
     """The request has been processed and this is called to do any post
     processing and then send the data back to mongrel2.
     """
-    handler.application.m2conn.reply(handler.request, response)
+    handler.application.m2conn.reply(handler.message, response)
 
 
 ###
-### Request handling
+### Message handling
 ###
 
-class RequestHandler(Exception):
+class MessageHandler(Exception):
     """A base class for exceptions used by bott^N^N^N^Nbrubeck.
 
     Contains the general payload mechanism used for storing key-value pairs
@@ -90,14 +90,15 @@ class RequestHandler(Exception):
 
     _response_codes = {
         0: 'OK',
-        -1: 'Server error',
-        -2: 'Method unsupported',
-        -3: 'Authentication failed',
-        -4: 'Missing argument',
+        -1: 'Bad request',
+        -2: 'Authentication failed',
+        -3: 'Not found',
+        -4: 'Method not allowed',
+        -5: 'Server error',
     }
 
     def __init__(self, *args, **kwargs):
-        super(RequestHandler, self).__init__(*args, **kwargs)
+        super(MessageHandler, self).__init__(*args, **kwargs)
         self._payload = dict()
         self._finished = False
         self.set_status(self.DEFAULT_STATUS)
@@ -172,20 +173,21 @@ class RequestHandler(Exception):
         """
         self.prepare()
         if not self._finished:
-            fun = getattr(self, self.request.method.lower())
+            fun = getattr(self, self.message.method.lower())
             # I got this neat technique from defnull's bottle
             try:
                 # a function is expected to render itself
                 response = fun(*args, **kwargs)
-            except RequestHandler, rh:
+            except MessageHandler, rh:
                 # unless it's an error
                 response = rh.render()
             except Exception, e:
                 raise
+            self._finished = True
             return response
 
 
-class WebRequestHandler(RequestHandler):
+class WebMessageHandler(MessageHandler):
     """A base class for common functionality in a request handler.
 
     Tornado's design inspired this design.
@@ -219,6 +221,8 @@ class WebRequestHandler(RequestHandler):
         self.unsupported()
 
     def options(self, *args, **kwargs):
+        """Should probably implement this in this class. Got any ideas?
+        """
         self.unsupported()
 
     def unsupported(self):
@@ -240,7 +244,7 @@ class WebRequestHandler(RequestHandler):
         args = self.get_arguments(name, strip=strip)
         if not args:
             if default is self._ARG_DEFAULT:
-                self.set_status(-4, extra_txt=name)
+                self.set_status(404, extra_txt=name)
                 raise 
             return default
         return args[-1]
@@ -252,7 +256,7 @@ class WebRequestHandler(RequestHandler):
 
         The returned values are always unicode.
         """
-        values = self.request.data.get(name, [])
+        values = self.message.data.get(name, [])
         # Get rid of any weird control chars
         values = [re.sub(r"[\x00-\x08\x0e-\x1f]", " ", x) for x in values]
         values = [_unicode(x) for x in values]
@@ -262,7 +266,7 @@ class WebRequestHandler(RequestHandler):
 
     @property
     def current_user(self):
-        """The authenticated user for this request.
+        """The authenticated user for this message.
 
         Determined by either get_current_user, which you can override to
         set the user based on, e.g., a cookie. If that method is not
@@ -299,10 +303,10 @@ class WebRequestHandler(RequestHandler):
         return self.http_format % payload    
 
 
-class JSONRequest(WebRequestHandler):
-    """JSONRequest is a system for maintaining a payload until the request is
-    handled to completion. It offers rendering functions for printing the
-    payload into JSON format.
+class JSONMessageHandler(WebMessageHandler):
+    """JSONRequestHandler is a system for maintaining a payload until the
+    request is handled to completion. It offers rendering functions for
+    printing the payload into JSON format.
     """
 
     def render(self, **kwargs):
@@ -316,23 +320,80 @@ class JSONRequest(WebRequestHandler):
 ###
 
 class Brubeck(object):
-    def __init__(self, m2conn=None, request_handlers=None, pool=None,
+    def __init__(self, m2_sockets, handler_tuples=None, pool=None,
                  *args, **kwargs):
-        """Container for app details"""
-        self.m2conn = m2conn
-        self.request_handlers = request_handlers
+        """Brubeck is a class for managing connections to Mongrel2 servers
+        while providing an asynchronous system for managing message handling.
+
+        m2_sockets should be a 2-tuple consisting of the pull socket address
+        and the pub socket address for communicating with Mongrel2. Brubeck
+        creates and manages a Mongrel2Connection instance from there.
+
+        request_handlers is a list of two-tuples. The first item is a regex
+        for matching the URL requested. The second is the class instantiated
+        to handle the message.
+        """
+
+        # A Mongrel2Connection is currently just a way to manage
+        # the sockets we need to open with a Mongrel2 instance and
+        # identify this particular Brubeck instance as the sender
+        (pull_addr, pub_addr) = m2_sockets
+        self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
+
+        # The details of the routing aren't exposed
+        self.init_routes(handler_tuples)
+
+        # I am interested in making the app compatible with existing eventlet
+        # apps already running with a scheduler. I am not sure if this is the
+        # right way...
         self.pool = pool
         if self.pool is None:
             self.pool = eventlet.GreenPool()
 
+
+    ###
+    ### Message routing funcitons
+    ###
+    
+    def init_routes(self, handler_tuples):
+        """Creates the _routes variable and compile route patterns
+        """
+        self._routes = list()
+        for ht in handler_tuples:
+            (pattern, cls) = ht
+            regex = re.compile(pattern)
+            self._routes.append((regex, cls))
+
+    def route_message(self, message):
+        """Factory funciton that instantiates a request handler based on
+        path requested.
+        """
+        handler = None
+        for (regex, handler_cls) in self._routes:
+            if regex.search(message.path):
+                handler = handler_cls(self, message)
+
+        if handler is None:
+            pass # TODO 404 system
+
+        return handler
+
+    
+    ###
+    ### Application running functions
+    ###
+
     def run(self):
-        print 'Brubeck v0.1 online ]-----------------------------------'
+        """This method turns on the message handling system and puts Brubeck
+        in a never ending loop waiting for messages.
+        """
+        greeting = 'Brubeck v%s online ]-----------------------------------'
+        print greeting % version
+        
         try:
             while True:
-            #request = self.m2conn.recv()
-            #self.pool.spawn_n(route_request, self, request)
                 request = self.m2conn.recv()
-                self.pool.spawn_n(route_request, self, request)
+                self.pool.spawn_n(route_message, self, request)
         except KeyboardInterrupt, ki:
             # Put a newline after ^C
             print '\nBrubeck going down...'
