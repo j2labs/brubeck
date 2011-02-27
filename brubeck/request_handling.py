@@ -62,9 +62,9 @@ def request_handler(handler):
     """Coroutine for handling the request itself. It simply returns the request
     path in reverse for now.
     """
-    response = handler._execute()
-    spawn_n(result_handler, handler, response)
-
+    if callable(handler):
+        response = handler()
+        spawn_n(result_handler, handler, response)
     
 def result_handler(handler, response):
     """The request has been processed and this is called to do any post
@@ -167,7 +167,7 @@ class MessageHandler(Exception):
         self.set_status(status_code, **kwargs)
         raise self
 
-    def _execute(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         """This function handles mapping the request type to a function on
         the request handler.
 
