@@ -83,6 +83,7 @@ class MessageHandler(Exception):
     Contains the general payload mechanism used for storing key-value pairs
     to answer requests.
     """
+    SUPPORTED_METHODS = ()
     _STATUS_CODE = 'status_code'
     _STATUS_MSG = 'status_msg'
     _TIMESTAMP = 'timestamp'
@@ -176,7 +177,10 @@ class MessageHandler(Exception):
         """
         self.prepare()
         if not self._finished:
-            fun = getattr(self, self.message.method.lower())
+            method = self.message.method
+            fun = lambda *a,**kv: 'HUH?'
+            if method in self.SUPPORTED_METHODS:
+                fun = getattr(self, method.lower())
             # I got this neat technique from defnull's bottle
             try:
                 # a function is expected to render itself
@@ -299,7 +303,7 @@ class WebMessageHandler(MessageHandler):
         values = [unicode(x) for x in values]
         if strip:
             values = [x.strip() for x in values]
-        return values    
+        return values
 
     ###
     ### Authentication skeleton. Fill in the details.
