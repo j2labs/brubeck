@@ -25,10 +25,7 @@ class DemoHandler(WebMessageHandler):
 
     def post(self):
         logging.debug('DemoHandler.post() called')
-        name = self.get_argument('name', 'whomever you are')
-        self.set_body('Take five, %s!' % name)
-        self.set_status(200)
-        return self.render()
+        return self.get()
 
         
 if __name__ == '__main__':
