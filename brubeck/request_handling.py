@@ -305,30 +305,6 @@ class WebMessageHandler(MessageHandler):
             values = [x.strip() for x in values]
         return values
 
-    ###
-    ### Authentication skeleton. Fill in the details.
-    ###
-    
-    @property
-    def current_user(self):
-        """The authenticated user for this message.
-
-        Determined by either get_current_user, which you can override to
-        set the user based on, e.g., a cookie. If that method is not
-        overridden, this method always returns None.
-
-        We lazy-load the current user the first time this method is called
-        and cache the result after that.
-        """
-        if not hasattr(self, "_current_user"):
-            self._current_user = self.get_current_user()
-        return self._current_user        
-
-    def get_current_user(self):
-        """Override to determine the current user from, e.g., a cookie."""
-        return None
-
-    ### Rendering assumes HTTP
 
     http_format = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
     def render(self, http_200=False, **kwargs):
