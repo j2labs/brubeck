@@ -23,6 +23,7 @@ from uuid import uuid4
 import os
 import sys
 import re
+import time
 
 from mongrel2 import Mongrel2Connection, http_response
 from functools import partial
