@@ -29,13 +29,8 @@ class DemoHandler(WebMessageHandler):
 
         
 if __name__ == '__main__':
-    usage = 'usage: handling <pull address> <pub address>'
-    if len (sys.argv) != 3:
-        print usage
-        sys.exit(1)
-
-    pull_addr = sys.argv[1]
-    pub_addr = sys.argv[2]
+    pull_addr = 'ipc://127.0.0.1:9999'
+    pub_addr = 'ipc://127.0.0.1:9998'
 
     # Make sure mongrel2's config is in sync with this.
     handler_tuples = ((r'^/brubeck/$', DemoHandler),)
