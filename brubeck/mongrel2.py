@@ -2,6 +2,7 @@ from eventlet.green import zmq
 import time
 import json
 from uuid import uuid4
+import cgi
 
 ###
 ### Request handling code
@@ -23,15 +24,43 @@ class Request(object):
         self.conn_id = conn_id
         self.headers = headers
         self.body = body
-        
-        if self.headers['METHOD'] == 'JSON':
-            self.data = json.loads(body)
-        else:
-            self.data = {}
+
+        # populate arguments with QUERY string
+        self.arguments = {}
+        if 'QUERY' in self.headers:
+            query = self.headers['QUERY']
+            arguments = cgi.parse_qs(query)
+            for name, values in arguments.iteritems():
+                values = [v for v in values if v]
+                if values: self.arguments[name] = values
+
+        # handle data, multipart or not
+        if self.method in ("POST", "PUT"):
+            form_encoding = "application/x-www-form-urlencoded"
+            if self.content_type.startswith(form_encoding):
+                arguments = cgi.parse_qs(self.body)
+                for name, values in arguments.iteritems():
+                    values = [v for v in values if v]
+                    if values:
+                        self.arguments.setdefault(name, []).extend(values)
+            # Not ready for this, but soon
+#            elif content_type.startswith("multipart/form-data"):
+#                fields = content_type.split(";")
+#                for field in fields:
+#                    k, sep, v = field.strip().partition("=")
+#                    if k == "boundary" and v:
+#                        self._parse_mime_body(v, data)
+#                        break
+#                else:
+#                    logging.warning("Invalid multipart/form-data")
 
     @property
     def method(self):
         return self.headers.get('METHOD')
+
+    @property
+    def content_type(self):
+        return self.headers.get("content-type")
 
     @property
     def version(self):
@@ -123,7 +152,8 @@ class Mongrel2Connection(object):
         """
         header = "%s %d:%s," % (uuid, len(str(conn_id)), str(conn_id))
         #self.out_sock.send_pyobj(header + ' ' + msg)
-        self.out_sock.send(header + ' ' + msg)
+        #self.out_sock.send(header + ' ' + msg)
+        self.out_sock.send_unicode(header + ' ' + msg)        
 
     def reply(self, req, msg):
         """Does a reply based on the given Request object and message.

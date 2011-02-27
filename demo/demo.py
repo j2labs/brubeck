@@ -17,17 +17,19 @@ logging.basicConfig(**log_config)
 
 class DemoHandler(WebMessageHandler):
     def get(self):
-        logging.debug('DemoHandler.get called()')
-        
-        rev_msg = ''.join(reversed(self.message.path))
-        logging.debug('  responding with: %s' % rev_msg)
-        self.set_body(rev_msg)
+        logging.debug('DemoHandler.get() called')
+        name = self.get_argument('name', 'whomever you are')
+        self.set_body('Take five, %s!' % name)
         self.set_status(200)
+        return self.render()
 
-        response = self.render()
-        logging.debug('  HTTP msg ]--------------------\n%s' % response)
-        return response
-    
+    def post(self):
+        logging.debug('DemoHandler.post() called')
+        name = self.get_argument('name', 'whomever you are')
+        self.set_body('Take five, %s!' % name)
+        self.set_status(200)
+        return self.render()
+
         
 if __name__ == '__main__':
     usage = 'usage: handling <pull address> <pub address>'

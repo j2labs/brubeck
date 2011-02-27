@@ -125,7 +125,10 @@ class MessageHandler(Exception):
     def clear_payload(self):
         """Resets the payload.
         """
-        self._payload[key] = dict() # beware of mutable default values
+        status_code = self.status_code
+        self._payload = dict() # beware of mutable default values
+        self.set_status(status_code)
+        self.initialize()
 
     def set_status(self, status_code, extra_txt=None):
         """Sets the status code of the payload to <status_code> and sets
@@ -162,7 +165,7 @@ class MessageHandler(Exception):
         """
         self.clear_payload()
         self.set_status(status_code, **kwargs)
-        raise
+        raise self
 
     def _execute(self, *args, **kwargs):
         """This function handles mapping the request type to a function on
@@ -181,8 +184,9 @@ class MessageHandler(Exception):
             except MessageHandler, rh:
                 # unless it's an error
                 response = rh.render()
+                print rh
             except Exception, e:
-                raise
+                raise e
             self._finished = True
             return response
 
@@ -264,8 +268,7 @@ class WebMessageHandler(MessageHandler):
     ### Helpers for accessing request variables
     ###
     
-    _ARG_DEFAULT = list()
-    def get_argument(self, name, default=_ARG_DEFAULT, strip=True):
+    def get_argument(self, name, default=None, strip=True):
         """Returns the value of the argument with the given name.
 
         If default is not provided, the argument is considered to be
@@ -278,9 +281,8 @@ class WebMessageHandler(MessageHandler):
         """
         args = self.get_arguments(name, strip=strip)
         if not args:
-            if default is self._ARG_DEFAULT:
-                self.set_status(404, extra_txt=name)
-                raise 
+            if default is None:
+                self.render_error(404, extra_txt=name)
             return default
         return args[-1]
 
@@ -291,10 +293,10 @@ class WebMessageHandler(MessageHandler):
 
         The returned values are always unicode.
         """
-        values = self.message.data.get(name, [])
+        values = self.message.arguments.get(name, [])
         # Get rid of any weird control chars
         values = [re.sub(r"[\x00-\x08\x0e-\x1f]", " ", x) for x in values]
-        values = [_unicode(x) for x in values]
+        values = [unicode(x) for x in values]
         if strip:
             values = [x.strip() for x in values]
         return values    
@@ -338,8 +340,11 @@ class WebMessageHandler(MessageHandler):
         # HTTP. Not by ideal, but supported.
         if http_200:
             payload['code'] = 200
-            
-        self.headers['Content-Length'] = len(self.body)
+
+        content_length = 0
+        if self.body:
+            content_length = len(self.body)
+        self.headers['Content-Length'] = content_length
         
         payload['headers'] = "\r\n".join('%s: %s' % (k,v)
                                          for k,v in self.headers.items())
