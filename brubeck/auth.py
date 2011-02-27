@@ -1,4 +1,12 @@
-"""Authentication functions are offered here.
+"""Authentication functions are offered here in three groups.
+
+    1. The mechanics of auth, like generating a hex digest or assembling the
+       data.
+
+    2. Tools for applying auth requirements to functions, eg. decorators.
+
+    3. Mixins for adding authenticaiton handling to MessageHandler's and
+       Document classes
 """
 
 import bcrypt
