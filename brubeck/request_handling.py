@@ -24,6 +24,7 @@ import os
 import sys
 import re
 import time
+import logging
 
 from mongrel2 import Mongrel2Connection, http_response
 from functools import partial
@@ -189,7 +190,7 @@ class MessageHandler(Exception):
             except MessageHandler, rh:
                 # unless it's an error
                 response = rh.render()
-                print rh
+                logging.error('%s - %s' % (rh.status_code, rh.status_msg))
             except Exception, e:
                 raise e
             self._finished = True
@@ -225,7 +226,7 @@ class WebMessageHandler(MessageHandler):
         """WebMessageHandler extends the payload for body and headers. It
         also provides both fields as properties to mask storage in payload
         """
-        self._payload[self._BODY] = None
+        self._payload[self._BODY] = ''
         self._payload[self._HEADERS] = dict()
 
     @property
@@ -323,13 +324,13 @@ class WebMessageHandler(MessageHandler):
             payload['code'] = 200
 
         content_length = 0
-        if self.body:
+        if self.body is not None:
             content_length = len(self.body)
         self.headers['Content-Length'] = content_length
         
         payload['headers'] = "\r\n".join('%s: %s' % (k,v)
                                          for k,v in self.headers.items())
-        
+
         return self.http_format % payload    
 
 
