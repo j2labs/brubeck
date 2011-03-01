@@ -10,6 +10,8 @@
 """
 
 import bcrypt
+import functools
+import logging
 
 
 ###
@@ -26,11 +28,11 @@ def gen_hexdigest(raw_password, algorithm=BCRYPT, salt=None):
     """
     if raw_password is None:
         raise ValueError('No empty passwords, fool')
-    if algorithm is BCRYPT:
+    if algorithm == BCRYPT:
         # bcrypt has a special salt
         if salt is None:
             salt = bcrypt.gensalt()
-        return (salt, bcrypt.hashpw(raw_password, salt))
+        return (algorithm, salt, bcrypt.hashpw(raw_password, salt))
     raise ValueError('Unknown password algorithm')
 
 def build_passwd_line(algorithm, salt, digest):
@@ -63,9 +65,9 @@ def authenticated(method, error_status=-2):
     return wrapper
 
 def web_authenticated(method):
-    """Same as authenticated but uses a 403 error status
+    """Same as authenticated but uses a 401 error status
     """
-    return authenticated(method, error_status=403)
+    return authenticated(method, error_status=401)
 
 
 ###
