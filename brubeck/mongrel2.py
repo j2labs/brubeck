@@ -35,7 +35,7 @@ class Request(object):
                 if values: self.arguments[name] = values
 
         # handle data, multipart or not
-        if self.method in ("POST", "PUT"):
+        if self.method in ("POST", "PUT") and self.content_type:
             form_encoding = "application/x-www-form-urlencoded"
             if self.content_type.startswith(form_encoding):
                 arguments = cgi.parse_qs(self.body)
