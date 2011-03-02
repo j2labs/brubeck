@@ -79,7 +79,7 @@ def result_handler(handler, response):
 ### Message handling
 ###
 
-class MessageHandler(Exception):
+class MessageHandler(object):
     """A base class for exceptions used by bott^N^N^N^Nbrubeck.
 
     Contains the general payload mechanism used for storing key-value pairs
@@ -168,7 +168,7 @@ class MessageHandler(Exception):
         """
         self.clear_payload()
         self.set_status(status_code, **kwargs)
-        raise self
+        return self.render()
 
     def __call__(self, *args, **kwargs):
         """This function handles mapping the request type to a function on
@@ -180,19 +180,17 @@ class MessageHandler(Exception):
         self.prepare()
         if not self._finished:
             method = self.message.method
+            
             fun = lambda *a,**kv: 'HUH?'
             if method in self.SUPPORTED_METHODS:
                 fun = getattr(self, method.lower())
-            # I got this neat technique from defnull's bottle
+                
             try:
-                # a function is expected to render itself
                 response = fun(*args, **kwargs)
-            except MessageHandler, rh:
-                # unless it's an error
-                response = rh.render()
-                logging.error('%s - %s' % (rh.status_code, rh.status_msg))
             except Exception, e:
-                raise e
+                logging.error(e)
+                # generate a server error response
+                response = 'ERROR'
             self._finished = True
             return response
 
@@ -214,7 +212,6 @@ class WebMessageHandler(MessageHandler):
         500: 'Server error',
     }
 
-    
     ###
     ### Payload extension
     ###
@@ -267,8 +264,7 @@ class WebMessageHandler(MessageHandler):
         self.unsupported()
 
     def unsupported(self):
-        self.set_status(405)
-        raise self
+        return self.render_error(405)
 
     ###
     ### Helpers for accessing request variables
@@ -288,7 +284,7 @@ class WebMessageHandler(MessageHandler):
         args = self.get_arguments(name, strip=strip)
         if not args:
             if default is None:
-                self.render_error(404, extra_txt=name)
+                return self.render_error(404, extra_txt=name)
             return default
         return args[-1]
 
@@ -352,7 +348,7 @@ class JSONMessageHandler(WebMessageHandler):
 
 class Brubeck(object):
     def __init__(self, m2_sockets, handler_tuples=None, pool=None,
-                 *args, **kwargs):
+                 no_handler=None, *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
 
@@ -381,7 +377,6 @@ class Brubeck(object):
         if self.pool is None:
             self.pool = eventlet.GreenPool()
 
-
     ###
     ### Message routing funcitons
     ###
@@ -409,7 +404,6 @@ class Brubeck(object):
 
         return handler
 
-    
     ###
     ### Application running functions
     ###

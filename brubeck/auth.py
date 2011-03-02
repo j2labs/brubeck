@@ -59,8 +59,7 @@ def authenticated(method, error_status=-2):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
-            self.set_status(error_status)
-            raise self
+            return self.render_error(error_status)
         return method(self, *args, **kwargs)
     return wrapper
 
