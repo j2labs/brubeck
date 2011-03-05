@@ -31,19 +31,19 @@ from request_handling import curtime
 class User(Document):
     """Bare minimum to have the concept of a User.
     """
-    _private_fields = [
-        'password', 'is_active',
-    ]
-
-    username_regex = re.compile('[^a-zA-Z0-9._]')
-    username_min_length = 2
-
     username = StringField(max_length=30, required=True)
     email = EmailField(max_length=100)
     password = StringField(max_length=128)
     is_active = BooleanField(default=False)
     last_login = LongField(default=curtime)
     date_joined = LongField(default=curtime)
+
+    _private_fields = [
+        'password', 'is_active',
+    ]
+
+    username_regex = re.compile('[^a-zA-Z0-9._]')
+    username_min_length = 2
 
     def __unicode__(self):
         return u'%s' % (self.username)
