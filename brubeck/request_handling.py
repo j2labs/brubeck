@@ -49,15 +49,13 @@ def route_message(application, message):
     """This is the first of the three coroutines called. It looks at the
     message, determines which handler will be used to process it, and
     spawns a coroutine to run that handler.
+
+    The application is responsible for handling misconfigured routes.
     """
     handler = application.route_message(message)
-
-    if handler is None:
-        print 'EGAD! No route found. Bug J2 to build a 404 system'
-    else:
-        handler.message = message
-        handler.application = application
-        spawn_n(request_handler, handler)
+    handler.message = message
+    handler.application = application
+    spawn_n(request_handler, handler)
 
     
 def request_handler(handler):
@@ -80,10 +78,13 @@ def result_handler(handler, response):
 ###
 
 class MessageHandler(object):
-    """A base class for exceptions used by bott^N^N^N^Nbrubeck.
+    """A base class for request handling
 
     Contains the general payload mechanism used for storing key-value pairs
     to answer requests.
+
+    No render function is defined here so this class should not actually be
+    used. 
     """
     SUPPORTED_METHODS = ()
     _STATUS_CODE = 'status_code'
@@ -101,7 +102,6 @@ class MessageHandler(object):
     }
 
     def __init__(self, *args, **kwargs):
-        super(MessageHandler, self).__init__(*args, **kwargs)
         self._payload = dict()
         self._finished = False
         self.set_status(self._DEFAULT_STATUS)
@@ -120,6 +120,11 @@ class MessageHandler(object):
         """
         pass
 
+    def unsupported(self):
+        """Called anytime an unsupported request is made
+        """
+        return self.render_error(-1)
+
     def add_to_payload(self, key, value):
         """Upserts key-value pair into payload.
         """
@@ -129,7 +134,7 @@ class MessageHandler(object):
         """Resets the payload.
         """
         status_code = self.status_code
-        self._payload = dict() # beware of mutable default values
+        self._payload = dict() 
         self.set_status(status_code)
         self.initialize()
 
@@ -174,25 +179,39 @@ class MessageHandler(object):
         """This function handles mapping the request type to a function on
         the request handler.
 
-        If an error occurs, render is called to handle the exception bubbling
-        up from anywhere in the stack.
+        It requires a method attribute to indicate which function on the handler
+        should be called. If that function is not supported, call the handlers
+        unsupported function.
+
+        In the event that an error has already occurred, _finished will be
+        set to true before this funciton call indicating we should render
+        the handler and nothing else.
+
+        In all cases, generating a response for mongrel2 is attempted.
         """
         self.prepare()
         if not self._finished:
-            method = self.message.method
-            
-            fun = lambda *a,**kv: 'HUH?'
-            if method in self.SUPPORTED_METHODS:
-                fun = getattr(self, method.lower())
-                
+            # M-E-T-H-O-D MAN!
+            mef = self.message.method
+            if mef in self.SUPPORTED_METHODS:
+                mef = mef.lower()
+                fun = getattr(self, mef)
+            else:
+                fun = self.unsupported
+
             try:
+                print 'ENTERED'
                 response = fun(*args, **kwargs)
+                print 'RESP: ', response
+                print 'LEAVING'
             except Exception, e:
                 logging.error(e)
-                # generate a server error response
-                response = 'ERROR'
+                response = self.unsupported()
+                
             self._finished = True
             return response
+        else:
+            return self.render()
 
 
 class WebMessageHandler(MessageHandler):
@@ -263,8 +282,11 @@ class WebMessageHandler(MessageHandler):
         """
         self.unsupported()
 
-    def unsupported(self):
-        return self.render_error(405)
+    def unsupported(self, *args, **kwargs):
+        print 'entered'
+        resp = self.render_error(404)
+        print 'leaving, sending: ', resp
+        return resp
 
     ###
     ### Helpers for accessing request variables
@@ -327,7 +349,7 @@ class WebMessageHandler(MessageHandler):
         payload['headers'] = "\r\n".join('%s: %s' % (k,v)
                                          for k,v in self.headers.items())
 
-        return self.http_format % payload    
+        return self.http_format % payload
 
 
 class JSONMessageHandler(WebMessageHandler):
@@ -348,7 +370,7 @@ class JSONMessageHandler(WebMessageHandler):
 
 class Brubeck(object):
     def __init__(self, m2_sockets, handler_tuples=None, pool=None,
-                 no_handler=None, *args, **kwargs):
+                 no_handler=None, base_handler=None, *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
 
@@ -377,6 +399,11 @@ class Brubeck(object):
         if self.pool is None:
             self.pool = eventlet.GreenPool()
 
+        # Set a base_handler for handling errors (eg. missing handler)
+        self.base_handler = base_handler
+        if self.base_handler is None:
+            self.base_handler = WebMessageHandler
+
     ###
     ### Message routing funcitons
     ###
@@ -400,7 +427,7 @@ class Brubeck(object):
                 handler = handler_cls(self, message)
 
         if handler is None:
-            pass # TODO 404 system
+            handler = self.base_handler()
 
         return handler
 
