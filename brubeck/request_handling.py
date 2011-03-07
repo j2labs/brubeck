@@ -200,10 +200,7 @@ class MessageHandler(object):
                 fun = self.unsupported
 
             try:
-                print 'ENTERED'
                 response = fun(*args, **kwargs)
-                print 'RESP: ', response
-                print 'LEAVING'
             except Exception, e:
                 logging.error(e)
                 response = self.unsupported()
@@ -263,30 +260,27 @@ class WebMessageHandler(MessageHandler):
     ###
 
     def head(self, *args, **kwargs):
-        self.unsupported()
+        return self.unsupported()
 
     def get(self, *args, **kwargs):
-        self.unsupported()
+        return self.unsupported()
 
     def post(self, *args, **kwargs):
-        self.unsupported()
+        return self.unsupported()
 
     def delete(self, *args, **kwargs):
-        self.unsupported()
+        return self.unsupported()
 
     def put(self, *args, **kwargs):
-        self.unsupported()
+        return self.unsupported()
 
     def options(self, *args, **kwargs):
         """Should probably implement this in this class. Got any ideas?
         """
-        self.unsupported()
+        return self.unsupported()
 
     def unsupported(self, *args, **kwargs):
-        print 'entered'
-        resp = self.render_error(404)
-        print 'leaving, sending: ', resp
-        return resp
+        return self.render_error(404)
 
     ###
     ### Helpers for accessing request variables
