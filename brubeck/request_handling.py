@@ -232,8 +232,8 @@ class WebMessageHandler(MessageHandler):
     ### Payload extension
     ###
     
-    _BODY = 'body'
-    _HEADERS = 'headers'
+    _BODY = '_body'
+    _HEADERS = '_headers'
 
     def initialize(self):
         """WebMessageHandler extends the payload for body and headers. It
@@ -355,7 +355,9 @@ class JSONMessageHandler(WebMessageHandler):
     def render(self, **kwargs):
         """Renders payload as json
         """
-        return json.dumps(self._payload)
+        self.body = json.dumps(self._payload)
+        rendered = super(self, JSONRequestHandler).render(**kwargs)
+        return rendered
     
 
 ###
