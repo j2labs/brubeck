@@ -34,7 +34,7 @@ Authentication can be provided by decorating functions, similar to Tornado.
         def post(self):
             ...
 
-Jinja2 templates are supported with the Jinja2Rendering Mixin.
+Jinja2 templates are supported with the Jinja2Rendering Mixin. Tornado templates are supported by the TornadoRendering mixin.
 
     from brubeck.templating import Jinja2Rendering
     
