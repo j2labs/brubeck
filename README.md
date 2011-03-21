@@ -57,6 +57,19 @@ In practice, this is what your code looks like.
         def post(self):
             ...
 
+The `User` model in brubeck.auth will probably serve as a good basis for your needs. A Brubeck user looks like below.
+
+    class User(Document):
+        """Bare minimum to have the concept of a User.
+        """
+        username = StringField(max_length=30, required=True)
+        email = EmailField(max_length=100)
+        password = StringField(max_length=128)
+        is_active = BooleanField(default=False)
+        last_login = LongField(default=curtime)
+        date_joined = LongField(default=curtime)
+        ...
+
 ## Templates
 
 Templates are supported by implementing a *Rendering Mixin. This Mixin will attach a `render_template` function and overwrite the `render_error` template to produce errors messages via the template engine.
