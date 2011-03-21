@@ -39,3 +39,40 @@ class Jinja2Rendering():
         call.
         """
         return self.render_template('errors.html', **{'error_code': error_code})
+
+
+###
+### Tornado
+###
+
+def load_tornado_env(template_dir):
+    """Returns a function that loads the Tornado template environment.
+    """
+    def loader():
+        from tornado.template import Loader
+        if template_dir is not None:
+            return Loader(template_dir or '.')
+        else:
+            return None
+    return loader
+
+class TornadoRendering():
+    """TornadoRendering is a mixin for for loading a Tornado rendering
+    environment.
+
+    Follows usual convention: 200 => success and 500 => failure
+    """
+    def render_template(self, template_file, **context):
+        """Renders payload as a tornado template
+        """
+        tornado_env = self.application.template_env
+        template = tornado_env.load(template_file)
+        body = template.generate(**context or {})
+        self.set_body(body)
+        return self.render()
+
+    def render_error(self, error_code):
+        """Receives error calls and sends them through a templated renderer
+        call.
+        """
+        return self.render_template('errors.html', **{'error_code': error_code})
