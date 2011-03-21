@@ -30,7 +30,7 @@ The loop waits on the ZeroMQ socket is uses to connect to Mongrel2. When a messa
 
 The URL map is list of url pattern and handler class pairs. This is how we map `localhost:6767/brubeck` to the `DemoHandler` class.
 
-    handler_tuples = [(r'^/brubeck$', DemoHandler)]
+    handler_tuples = [(r'^/brubeck', DemoHandler)]
 
 The Mongrel2 communication happens between two sockets. It asks Brubeck to do some work on one socket and hears the response from Brubeck on the other.
 
@@ -38,9 +38,17 @@ The Mongrel2 communication happens between two sockets. It asks Brubeck to do so
     app.run()
 
 
-# Handler configuration
+# Handling URL's
 
-I like to keep things flexible when possible. I find a class structure for maintaining state in a pipeline of state objects works well. The instance doesn't exist for a long period of time either so state is essentially a snapshot of the relevant environment for processing the request and then that object is tossed away along with the request.
+As we saw above, handling URL's is as easy as mapping a URL to a function.
+
+    handler_tuples = [(r'^/brubeck', DemoHandler)]
+
+Simply, this means if the regex `^/brubeck` matches the requested URL, send the request to DemoHandler. 
+
+I find a class structure for maintaining state in a pipeline of state objects works well. The instance doesn't exist for a long period of time either so state is essentially a snapshot of the relevant environment for processing the request and then that object is tossed away when processing finishes.
+
+A class structure let's me easily attach state to the request while providing functions or Mixins for processing the request.
 
 ## Auth
 
