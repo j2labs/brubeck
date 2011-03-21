@@ -31,6 +31,6 @@ class Jinja2Rendering():
         """Receives error calls and sends them through a templated renderer
         call.
         """
-        return self.render('errors.html', **{'error_code': error_code})
+        return self.render_template('errors.html', **{'error_code': error_code})
     
 
