@@ -9,10 +9,7 @@ import sys
 from brubeck.request_handling import Brubeck, WebMessageHandler
 
 import logging
-log_config = dict(#filename='brubeck.log',
-                  level=logging.DEBUG)
-
-logging.basicConfig(**log_config)
+logging.basicConfig(**{'level': logging.DEBUG})
 
 class DemoHandler(WebMessageHandler):
     def get(self):
