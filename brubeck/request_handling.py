@@ -363,9 +363,9 @@ class JSONMessageHandler(WebMessageHandler):
         return rendered
 
 
-class JinjaMessageHandler(WebMessageHandler):
-    """JinjaMessageHandler is a request handler that also provides facilities
-    for loading a Jinja rendering environment.
+class Jinja2MessageHandler(WebMessageHandler):
+    """Jinja2MessageHandler is a request handler that also provides facilities
+    for loading a Jinja2 rendering environment.
 
     This handler implements render to take an argument, template filename, and
     the template context as keywords.
@@ -390,7 +390,7 @@ class JinjaMessageHandler(WebMessageHandler):
         template = jinja_env.get_template(template_file)
         body = template.render(**context or {})
         self.set_body(body)
-        rendered = super(JinjaMessageHandler, self).render()
+        rendered = super(Jinja2MessageHandler, self).render()
         return rendered
 
     def render_error(self, error_code):
