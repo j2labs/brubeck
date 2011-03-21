@@ -6,6 +6,47 @@ The code is available here: [https://github.com/j2labs/brubeck](https://github.c
 
 Brubeck is a system for building cloud-like API's quickly. By using Eventlet, ZeroMQ and Mongrel2 for it's concurrency, messaging and web serving Brubeck users focus exclusively on writing request handling code.
 
+## Simplified look at the code
+
+Build a request handler that answers HTTP GET requests.
+
+    class DemoHandler(WebMessageHandler):
+        def get(self):
+            self.set_body('Take five!') # hello world is boring
+            self.set_status(200)
+            return self.render()
+
+Set up the URL routes to load `DemoHandler` for this url: http://server/brubeck.
+
+    handler_tuples = ((r'^/brubeck$', DemoHandler),)
+
+Configure a Brubeck instance to connect to Mongrel2 and use our URL config. And then turn it on.
+
+    app = Brubeck(('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'), handler_tuples)
+    app.run()
+
+Authentication can be provided by decorating functions, similar to Tornado.
+
+    from brubeck.auth import web_authenticated, UserHandlingMixin
+
+    class DemoHandler(WebMessageHandler, UserHandlingMixin):
+        @web_authenticated
+        def post(self):
+            ...
+
+Jinja2 templates are supported with the Jinja2Rendering Mixin.
+
+    from brubeck.templating import Jinja2Rendering
+    
+    class DemoHandler(WebMessageHandler, Jinja2Rendering):
+        def get(self):
+            ...
+            context = {
+                'msg': 'This this is the context for Jinja2!',
+            }
+            return self.render_template('jinja.html', **context)
+
+
 ## Goals
 
 * The most important goal is to provide a flexible, scalable web system.
