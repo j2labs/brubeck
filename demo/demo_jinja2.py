@@ -6,14 +6,13 @@
 
 import sys
 
-from brubeck.request_handling import (Brubeck,
-                                      WebMessageHandler,
-                                      Jinja2MessageHandler)
+from brubeck.request_handling import Brubeck, WebMessageHandler
+from brubeck.templating import Jinja2Rendering
 
 import logging
 logging.basicConfig(**{'level': logging.DEBUG})
 
-class DemoHandler(Jinja2MessageHandler):
+class DemoHandler(WebMessageHandler, Jinja2Rendering):
     def get(self):
         """Function called for HTTP GET"""
         logging.debug('DemoHandler.get() called')
@@ -21,7 +20,7 @@ class DemoHandler(Jinja2MessageHandler):
         context = {
             'name': name,
         }
-        return self.render('jinja.html', **context)
+        return self.render_template('jinja.html', **context)
 
         
 if __name__ == '__main__':
@@ -31,7 +30,7 @@ if __name__ == '__main__':
     # Make sure mongrel2's config is in sync with this.
     config = {
         'handler_tuples': ((r'^/brubeck', DemoHandler),),
-        'template_loader': Jinja2MessageHandler.load_env('./templates'),
+        'template_loader': Jinja2Rendering.load_env('./templates'),
     }
 
     app = Brubeck((pull_addr, pub_addr), **config)

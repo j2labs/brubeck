@@ -347,7 +347,7 @@ class WebMessageHandler(MessageHandler):
 
 
 ###
-### Mixins for output rendering.
+### Subclasses for different message rendering.
 ###
 
 class JSONMessageHandler(WebMessageHandler):
@@ -362,43 +362,6 @@ class JSONMessageHandler(WebMessageHandler):
         rendered = super(self, JSONRequestHandler).render(**kwargs)
         return rendered
 
-
-class Jinja2MessageHandler(WebMessageHandler):
-    """Jinja2MessageHandler is a request handler that also provides facilities
-    for loading a Jinja2 rendering environment.
-
-    This handler implements render to take an argument, template filename, and
-    the template context as keywords.
-
-    Render success is transmitted via http 200. Rendering failures result in
-    http 500 errors.
-    """
-    @classmethod
-    def load_env(cls, template_dir):
-        """Returns a function that loads the template environment. 
-        """
-        def loader():
-            if template_dir is not None:
-                from jinja2 import Environment, FileSystemLoader
-                return Environment(loader=FileSystemLoader(template_dir or '.'))
-        return loader
-
-    def render(self, template_file, **context):
-        """Renders payload as a jinja template
-        """
-        jinja_env = self.application.template_engine
-        template = jinja_env.get_template(template_file)
-        body = template.render(**context or {})
-        self.set_body(body)
-        rendered = super(Jinja2MessageHandler, self).render()
-        return rendered
-
-    def render_error(self, error_code):
-        """Receives error calls and sends them through a templated renderer
-        call.
-        """
-        return self.render('errors.html', **{'error_code': error_code})
-    
 
 ###
 ### Application logic
@@ -446,9 +409,9 @@ class Brubeck(object):
         if callable(template_loader):
             loaded_env = template_loader()
             if loaded_env:
-                self.template_engine = loaded_env
+                self.template_env = loaded_env
             else:
-                raise ValueException('template_engine failed to load')
+                raise ValueException('template_env failed to load')
 
     ###
     ### Message routing funcitons
