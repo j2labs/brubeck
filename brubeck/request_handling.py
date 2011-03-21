@@ -26,7 +26,7 @@ import re
 import time
 import logging
 
-from mongrel2 import Mongrel2Connection, http_response
+from mongrel2 import Mongrel2Connection
 from functools import partial
 
 
