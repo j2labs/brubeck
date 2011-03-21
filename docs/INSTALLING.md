@@ -68,15 +68,15 @@ First, we setup the Mongrel2 config.
 
 Now we'll turn on a Brubeck instance.
 
-    $ cd ~/Desktop/brubeck/demo
-    $ ./demo.py
+    $ cd ~/Desktop/brubeck/demos
+    $ ./demo_minimal.py
 
 If you see `Brubeck v0.x.x online ]------------` we can try loading a URL in a browser. 
 Now try (a web request)[http://localhost:6767/brubeck/].
 
 ## Web Request Example
 
-There is a [demo app](https://github.com/j2labs/brubeck/blob/master/demo/demo.py) included with Brubeck's source code. Tornado users will notice familiar looking code.
+There is a [demo app](https://github.com/j2labs/brubeck/blob/master/demo/demo_minimal.py) included with Brubeck's source code. Tornado users will notice a familiar looking design.
 
 This example code creates a handler that responds to HTTP GET. We see that because the handler implemented a function called `get()`. 
 
@@ -93,7 +93,7 @@ We configure URL routing as an iterable of two-tuples. The first item is the URL
     pull_addr = 'ipc://127.0.0.1:9999'
     pub_addr = 'ipc://127.0.0.1:9998'
 
-    handler_tuples = [(r'^/brubeck/$', DemoHandler)]
+    handler_tuples = [(r'^/brubeck', DemoHandler)]
 
     app = Brubeck((pull_addr, pub_addr), handler_tuples)
     app.run()
@@ -129,6 +129,8 @@ This is what the Mongrel2 configuration looks like for the demo project.
     
     servers = [brubeck_serv]
     
-In short, it says any requests for '/' should be sent to the Brubeck handler. To send a message to Brubeck, send down the `ipc://127.0.0.1:9999` socket. Responses from Brubeck will be received on `ipc://127.0.0.1:9998`.
+In short, it says any requests for '/' should be sent to the Brubeck handler. 
+
+Did you notice that Brubeck is configured to answer /brubeck, but Mongrel2 will send all web requests to Brubeck? Try a URL that Brubeck isn't ready for to see how it errors.
 
 The web server is answer requests on port `6767`. It's also logging into a `/log` directory and puts the processes pid in a `/run` directory.
