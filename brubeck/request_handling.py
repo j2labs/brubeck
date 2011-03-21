@@ -346,18 +346,56 @@ class WebMessageHandler(MessageHandler):
         return self.http_format % payload
 
 
+###
+### Mixins for output rendering.
+###
+
 class JSONMessageHandler(WebMessageHandler):
     """JSONRequestHandler is a system for maintaining a payload until the
     request is handled to completion. It offers rendering functions for
     printing the payload into JSON format.
     """
-
     def render(self, **kwargs):
         """Renders payload as json
         """
         self.body = json.dumps(self._payload)
         rendered = super(self, JSONRequestHandler).render(**kwargs)
         return rendered
+
+
+class JinjaMessageHandler(WebMessageHandler):
+    """JinjaRequestHandler is a system for maintaining the context and template
+    configuration for a request. The context is passed to the Jinja rendering
+    system and the result is sent to Mongrel.
+
+    Render success is transmitted via http 200. Rendering failures result in
+    http 500 errors.
+    """
+    @classmethod
+    def load_env(cls, template_dir):
+        """Returns a function that loads the template environment. 
+        """
+        def loader():
+            if template_dir is not None:
+                from jinja2 import Environment, FileSystemLoader
+                return Environment(loader=FileSystemLoader(template_dir or '.'))
+        return loader
+
+    def render(self, template_file, **context):
+        """Renders payload as a jinja template
+        """
+        jinja_env = self.application.template_engine
+        template = jinja_env.get_template(template_file)
+        body = template.render(**context or {})
+        self.set_body(body)
+        rendered = super(JinjaMessageHandler, self).render()
+        return rendered
+
+    def render_error(self, error_code):
+        """Receives error calls and sends them through a templated renderer
+        call.
+        """
+        return self.render('errors.html', **{'error_code': error_code})
     
 
 ###
@@ -366,7 +404,8 @@ class JSONMessageHandler(WebMessageHandler):
 
 class Brubeck(object):
     def __init__(self, m2_sockets, handler_tuples=None, pool=None,
-                 no_handler=None, base_handler=None, *args, **kwargs):
+                 no_handler=None, base_handler=None, template_loader=None,
+                 *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
 
@@ -399,6 +438,15 @@ class Brubeck(object):
         self.base_handler = base_handler
         if self.base_handler is None:
             self.base_handler = WebMessageHandler
+
+        # Any template engine can be used. Brubeck just needs a function that
+        # loads the environment without arguments.
+        if callable(template_loader):
+            loaded_env = template_loader()
+            if loaded_env:
+                self.template_engine = loaded_env
+            else:
+                raise ValueException('template_engine failed to load')
 
     ###
     ### Message routing funcitons
