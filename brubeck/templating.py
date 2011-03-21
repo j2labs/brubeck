@@ -1,6 +1,22 @@
-from jinja2 import Environment, FileSystemLoader
-
 from request_handling import WebMessageHandler
+
+
+###
+### Jinja2
+###
+
+def load_jinja2_env(template_dir):
+    """Returns a function that loads a jinja template environment. Uses a
+    closure to provide a namespace around module loading without loading
+    anything until the caller is ready.
+    """
+    def loader():
+        from jinja2 import Environment, FileSystemLoader
+        if template_dir is not None:
+            return Environment(loader=FileSystemLoader(template_dir or '.'))
+        else:
+            return None
+    return loader
 
 class Jinja2Rendering():
     """Jinja2Rendering is a mixin for for loading a Jinja2 rendering
@@ -9,15 +25,6 @@ class Jinja2Rendering():
     Render success is transmitted via http 200. Rendering failures result in
     http 500 errors.
     """
-    @classmethod
-    def load_env(cls, template_dir):
-        """Returns a function that loads the template environment. 
-        """
-        def loader():
-            if template_dir is not None:
-                return Environment(loader=FileSystemLoader(template_dir or '.'))
-        return loader
-
     def render_template(self, template_file, **context):
         """Renders payload as a jinja template
         """
@@ -32,5 +39,3 @@ class Jinja2Rendering():
         call.
         """
         return self.render_template('errors.html', **{'error_code': error_code})
-    
-
