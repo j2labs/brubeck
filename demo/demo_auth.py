@@ -11,7 +11,7 @@ from brubeck.models import User
 from brubeck.auth import web_authenticated, UserHandlingMixin
 
 import logging
-logging.basicConfig(**{level=logging.DEBUG})
+logging.basicConfig(**{'level': logging.DEBUG})
 
 class DemoHandler(WebMessageHandler, UserHandlingMixin):
     def get_current_user(self):
