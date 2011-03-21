@@ -98,18 +98,7 @@ class Request(object):
 ###
 
 CTX = zmq.Context()
-
-HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 MAX_IDENTS = 100
-
-def http_response(body, code, status, headers):
-    payload = {'code': code, 'status': status, 'body': body}
-    headers['Content-Length'] = len(body)
-    payload['headers'] = "\r\n".join('%s: %s' % (k,v) for k,v in
-                                     headers.items())
-
-    return HTTP_FORMAT % payload
-
 
 class Mongrel2Connection(object):
 
@@ -118,7 +107,7 @@ class Mongrel2Connection(object):
         pull_addr = pull socket used for incoming messages
         pub_addr = publish socket used for outgoing messages
 
-        The class encapsulates socket tupe by referring to it's pull socket
+        The class encapsulates socket type by referring to it's pull socket
         as in_sock and it's publish socket as out_sock.
         """
 
