@@ -364,9 +364,11 @@ class JSONMessageHandler(WebMessageHandler):
 
 
 class JinjaMessageHandler(WebMessageHandler):
-    """JinjaRequestHandler is a system for maintaining the context and template
-    configuration for a request. The context is passed to the Jinja rendering
-    system and the result is sent to Mongrel.
+    """JinjaMessageHandler is a request handler that also provides facilities
+    for loading a Jinja rendering environment.
+
+    This handler implements render to take an argument, template filename, and
+    the template context as keywords.
 
     Render success is transmitted via http 200. Rendering failures result in
     http 500 errors.
