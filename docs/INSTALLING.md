@@ -129,7 +129,7 @@ This is what the Mongrel2 configuration looks like for the demo project.
     
     servers = [brubeck_serv]
     
-In short, it says any requests for `'http://localhost:6767/'` should be sent to the Brubeck handler. 
+In short, it says any requests for `http://localhost:6767/` should be sent to the Brubeck handler. 
 
 Did you notice that Brubeck is configured to answer /brubeck, but Mongrel2 will send all web requests to Brubeck? Try a URL that Brubeck isn't ready for to see how it errors.
 
