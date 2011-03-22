@@ -40,6 +40,21 @@ def curtime():
     """
     return long(time.time() * 1000)
 
+HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
+def http_response(body, code, status, headers):
+    """Renders payload and prepares HTTP response.
+    """
+    
+    payload = {'code': code, 'status': status, 'body': body}
+    content_length = 0
+    if body is not None:
+        content_length = len(body)
+    headers['Content-Length'] = content_length
+    payload['headers'] = "\r\n".join('%s: %s' % (k,v) for k,v in
+                                     headers.items())
+
+    return HTTP_FORMAT % payload
+
 
 ###
 ### Message handling coroutines
@@ -320,30 +335,21 @@ class WebMessageHandler(MessageHandler):
         return values
 
 
-    http_format = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
     def render(self, http_200=False, **kwargs):
         """Renders payload and prepares HTTP response.
 
-        Allows forcing HTTP status to be 200 regardless of request status.
+        Allows forcing HTTP status to be 200 regardless of request status
+        for cases where payload contains status information.
         """
-        payload = dict(code=self.status_code,
-                       status=self.status_msg,
-                       body=self.body)
+        code=self.status_code
+        headers = dict() # TODO should probably implement headers
 
         # Some API's send error messages in the payload rather than over
-        # HTTP. Not by ideal, but supported.
+        # HTTP. Not necessarily ideal, but supported.
         if http_200:
-            payload['code'] = 200
+            code = 200
 
-        content_length = 0
-        if self.body is not None:
-            content_length = len(self.body)
-        self.headers['Content-Length'] = content_length
-        
-        payload['headers'] = "\r\n".join('%s: %s' % (k,v)
-                                         for k,v in self.headers.items())
-
-        return self.http_format % payload
+        return http_response(self.body, code, self.status_msg, headers)
 
 
 ###
