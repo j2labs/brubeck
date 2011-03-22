@@ -429,7 +429,7 @@ class Brubeck(object):
         self._routes.append((regex, kallable))
 
     def add_route(self, url_pattern, method=None):
-        """A decorator to facilitate building routes wth callables. DecoratShould be
+        """A decorator to facilitate building routes wth callables. Should be
         used as alternative to classes that derive from MessageHandler.
         """
         if method is None:
@@ -438,7 +438,14 @@ class Brubeck(object):
             method = [method]
             
         def decorator(kallable):
+            """Decorates a function by adding it to the routing table and adding
+            code to check the HTTP Method used.
+            """
             def check_method(app, msg):
+                """Create new method which checks the HTTP request type.
+                If URL matches, but unsupported request type is used an
+                unsupported error is thrown.
+                """
                 if msg.method not in method:
                     # TODO come up with classless model
                     return self.base_handler(app, msg).unsupported()
