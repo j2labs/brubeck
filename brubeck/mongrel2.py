@@ -3,6 +3,7 @@ import time
 import json
 from uuid import uuid4
 import cgi
+import re
 
 ###
 ### Request handling code
@@ -92,6 +93,31 @@ class Request(object):
         else:
             return False
 
+    def get_arguments(self, name, strip=True):
+        """Returns a list of the arguments with the given name. If the argument
+        is not present, returns an empty list. The returned values are always
+        unicode.
+        """
+        values = self.arguments.get(name, [])
+        # Get rid of any weird control chars
+        values = [re.sub(r"[\x00-\x08\x0e-\x1f]", " ", x) for x in values]
+        values = [unicode(x) for x in values]
+        if strip:
+            values = [x.strip() for x in values]
+        return values
+
+    def get_argument(self, name, default=None, strip=True):
+        """Returns the value of the argument with the given name.
+
+        If the argument appears in the url more than once, we return the
+        last value.
+        """
+        args = self.get_arguments(name, strip=strip)
+        if not args:
+            return default
+        return args[-1]
+
+        
 
 ###
 ### Http handling code

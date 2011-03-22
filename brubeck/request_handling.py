@@ -25,6 +25,7 @@ import sys
 import re
 import time
 import logging
+import inspect
 
 from mongrel2 import Mongrel2Connection
 from functools import partial
@@ -68,24 +69,22 @@ def route_message(application, message):
     The application is responsible for handling misconfigured routes.
     """
     handler = application.route_message(message)
-    handler.message = message
-    handler.application = application
-    spawn_n(request_handler, handler)
+    spawn_n(request_handler, application, message, handler)
 
     
-def request_handler(handler):
+def request_handler(application, message, handler):
     """Coroutine for handling the request itself. It simply returns the request
     path in reverse for now.
     """
     if callable(handler):
         response = handler()
-        spawn_n(result_handler, handler, response)
+        spawn_n(result_handler, application, message, response)
     
-def result_handler(handler, response):
+def result_handler(application, message, response):
     """The request has been processed and this is called to do any post
     processing and then send the data back to mongrel2.
     """
-    handler.application.m2conn.reply(handler.message, response)
+    application.m2conn.reply(message, response)
 
 
 ###
@@ -116,7 +115,9 @@ class MessageHandler(object):
         -5: 'Server error',
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, application, message, *args, **kwargs):
+        self.application = application
+        self.message = message
         self._payload = dict()
         self._finished = False
         self.set_status(self._DEFAULT_STATUS)
@@ -188,6 +189,7 @@ class MessageHandler(object):
         """
         self.clear_payload()
         self.set_status(status_code, **kwargs)
+        self._finished = True
         return self.render()
 
     def __call__(self, *args, **kwargs):
@@ -305,35 +307,21 @@ class WebMessageHandler(MessageHandler):
         """Returns the value of the argument with the given name.
 
         If default is not provided, the argument is considered to be
-        required, and we throw an HTTP 404 exception if it is missing.
+        required, and we trigger rendering an HTTP 404 exception if it is
+        missing.
 
         If the argument appears in the url more than once, we return the
         last value.
-
-        The returned value is always unicode.
         """
-        args = self.get_arguments(name, strip=strip)
-        if not args:
-            if default is None:
-                return self.render_error(404, extra_txt=name)
-            return default
-        return args[-1]
+        arg = self.message.get_argument(name, default=default, strip=strip)
+        if arg is None:
+            self.render_error(404, extra_txt=name)
+        return arg
 
     def get_arguments(self, name, strip=True):
         """Returns a list of the arguments with the given name.
-
-        If the argument is not present, returns an empty list.
-
-        The returned values are always unicode.
         """
-        values = self.message.arguments.get(name, [])
-        # Get rid of any weird control chars
-        values = [re.sub(r"[\x00-\x08\x0e-\x1f]", " ", x) for x in values]
-        values = [unicode(x) for x in values]
-        if strip:
-            values = [x.strip() for x in values]
-        return values
-
+        return self.message.get_arguments(name, strip=strip)
 
     def render(self, http_200=False, **kwargs):
         """Renders payload and prepares HTTP response.
@@ -396,7 +384,9 @@ class Brubeck(object):
         self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
 
         # The details of the routing aren't exposed
-        self.init_routes(handler_tuples)
+        self.handler_tuples = handler_tuples
+        if self.handler_tuples is not None:
+            self.init_routes(handler_tuples)
 
         # I am interested in making the app compatible with existing eventlet
         # apps already running with a scheduler. I am not sure if this is the
@@ -426,20 +416,41 @@ class Brubeck(object):
     def init_routes(self, handler_tuples):
         """Creates the _routes variable and compile route patterns
         """
-        self._routes = list()
         for ht in handler_tuples:
-            (pattern, cls) = ht
-            regex = re.compile(pattern)
-            self._routes.append((regex, cls))
+            (pattern, kallable) = ht
+            self.add_route_rule(pattern, kallable)
+
+    def add_route_rule(self, pattern, kallable):
+        """Takes a string pattern and callable and adds them to URL routing
+        """
+        if not hasattr(self, '_routes'):
+            self._routes = list()
+        regex = re.compile(pattern)
+        self._routes.append((regex, kallable))
+
+    def add_route(self, rule, method=None):
+        """A decorator to facilitate building routes wth callables. Should be
+        used as alternative to MessageHandler object structure for message
+        handling.
+        """
+        def decorator(kallable):
+            self.add_route_rule(rule, kallable)
+            return kallable
+        return decorator
 
     def route_message(self, message):
         """Factory funciton that instantiates a request handler based on
         path requested.
         """
         handler = None
-        for (regex, handler_cls) in self._routes:
+        for (regex, kallable) in self._routes:
             if regex.search(message.path):
-                handler = handler_cls(self, message)
+                # instantiate kallable if it's a class
+                if inspect.isclass(kallable):
+                    handler = kallable(self, message)
+                # prepare arguments if kallable is a function
+                else:
+                    handler = lambda: kallable(self, message)
 
         if handler is None:
             handler = self.base_handler()
