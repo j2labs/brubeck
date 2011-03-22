@@ -45,6 +45,8 @@ Start the app and you're done.
 
 This is the simplest model to get started with. 
 
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_noclasses.py)
+
 ### MessageHandler Classes
 
 Brubeck's `MessageHandler` design is similar to what you see in [Facebook's Tornado](https://github.com/facebook/tornado). 
@@ -69,6 +71,8 @@ The handler classes are mapped to URL patterns by passing a list of tuples to Br
 As we saw above, handling URL's is as easy as mapping a URL to a handler.
 
     handler_tuples = [(r'^/brubeck', DemoHandler)]
+
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
 
 Simply, this means if the regex `^/brubeck` matches the requested URL, send the request to a DemoHandler instance.
 
@@ -105,6 +109,8 @@ The `User` model in brubeck.auth will probably serve as a good basis for your ne
         last_login = LongField(default=curtime)
         date_joined = LongField(default=curtime)
         ...
+
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py)
 
 ## Templates
 
