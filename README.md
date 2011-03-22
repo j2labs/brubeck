@@ -21,13 +21,8 @@ Brubeck has:
 
 * [An Install Guide](https://github.com/j2labs/brubeck/blob/master/docs/INSTALLING.md)
 * [A Design Document](https://github.com/j2labs/brubeck/blob/master/docs/DESIGN.md)
-
-Brubeck uses some Python modules:
-
-* [Mongrel2](http://mongrel2.org/)
-* [Eventlet](http://eventlet.net/)
-* [Greenlet](http://pypi.python.org/pypi/greenlet)
-* [DictShield](https://github.com/j2labs/dictshield)
+* [A BSD License](https://github.com/j2labs/brubeck/blob/master/docs/LICENSE.md)
+* [A Requirements File](https://github.com/j2labs/brubeck/blob/master/requirements.txt)
 
 # Quick Look At The Code
 
@@ -97,7 +92,7 @@ In both cases, we match a regex `^/brubeck` against the requested URL. If we fin
 
 A class structure let's me easily attach state to the request while providing functions or Mixins for processing the request. One mixin might add a ._attribute1 and a follow up function can check if that value exists. 
 
-State *could* be maintained otherwise too. If that's the case, the decorator approach is likely for you.
+State *could* be maintained otherwise too. If that's your cup of tea, the decorator approach is likely for you.
 
 Auth and templates are good examples of how to extend your `MessageHandler` instances.
 
