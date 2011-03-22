@@ -16,39 +16,67 @@ Brubeck is a system for building cloud-like API's quickly. By using Eventlet, Ze
 * The third goal is to provide tools that make building cloud-like API's easy. A common theme is to have a stream that can be explored via timestamps on data. That stream probably needs authentication at times. It probably needs paging too. Most API's offer something along these lines, so Brubeck will too.
 
 
-## Quick glance at the code
+## Quick Glance At The Code
 
-Brubeck's design is similar to what you see in [Facebook's Tornado](https://github.com/facebook/tornado). An event loop is provided by [Eventlet's server pattern](http://eventlet.net/doc/design_patterns.html#server-pattern). 
+There are different opinions on how to properly set up routing systems in Python. One group generally likes to have funcitons and some decorators for routing. This is similar to what you see in Flask or Bottle. Another group likes to have classes that implement particular funcitons, like a `MessageHandler` implementing `get()`
 
-The loop waits on the ZeroMQ socket is uses to connect to Mongrel2. When a message comes in from Mongrel2, Brubeck matches the URL pattern against it's list of handlers. To respond to HTTP GET on a particular URL you map the URL to a handler class and implement `get()`.
+Brubeck supports both.
+
+### Functions and Decorators
+
+Brubeck supports wrapping funcitons with route information if that's the style you like. 
+
+First, you instantiate a Brubeck instance with the two Mongrel2 sockets.
+
+    pull_addr = 'ipc://127.0.0.1:9999'
+    pub_addr = 'ipc://127.0.0.1:9998'
+
+    app = Brubeck((pull_addr, pub_addr))
+
+Then you wrap some funcitons with the `add_route` decorator.
+
+    @app.add_route('/brubeck', method='GET')
+    def foo(application, message):
+        return http_response('Take five!', 200, 'OK', {})
+
+Start the app and you're done.
+
+    app.run()
+
+This is the simplest model to get started with. 
+
+### MessageHandler Classes
+
+Brubeck's `MessageHandler` design is similar to what you see in [Facebook's Tornado](https://github.com/facebook/tornado). 
+
+To answer HTTP GET requests, implement `get()` on a WebMessageHandler instance. We'll map the class to the URL in a second.
 
     class DemoHandler(WebMessageHandler):
         def get(self):
-            self.set_body('Take five!') # hello world is boring
+            self.set_body('Take five!')
             self.set_status(200)
             return self.render()
 
-The URL map is list of url pattern and handler class pairs. This is how we map `localhost:6767/brubeck` to the `DemoHandler` class.
+The handler classes are mapped to URL patterns by passing a list of tuples to Brubeck when you run the app. The list might looks like this.
 
     handler_tuples = [(r'^/brubeck', DemoHandler)]
-
-The Mongrel2 communication happens between two sockets. It asks Brubeck to do some work on one socket and hears the response from Brubeck on the other.
 
     app = Brubeck(('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'), handler_tuples)
     app.run()
 
-
 # Handling URL's
 
-As we saw above, handling URL's is as easy as mapping a URL to a function.
+As we saw above, handling URL's is as easy as mapping a URL to a handler.
 
     handler_tuples = [(r'^/brubeck', DemoHandler)]
 
-Simply, this means if the regex `^/brubeck` matches the requested URL, send the request to DemoHandler. 
+Simply, this means if the regex `^/brubeck` matches the requested URL, send the request to a DemoHandler instance.
 
 I find a class structure for maintaining state in a pipeline of state objects works well. The instance doesn't exist for a long period of time either so state is essentially a snapshot of the relevant environment for processing the request and then that object is tossed away when processing finishes.
 
 A class structure let's me easily attach state to the request while providing functions or Mixins for processing the request.
+
+Auth and templates are good examples of how to extend your `MessageHandler` instances.
 
 ## Auth
 
@@ -82,7 +110,7 @@ The `User` model in brubeck.auth will probably serve as a good basis for your ne
 
 Templates are supported by implementing a *Rendering Mixin. This Mixin will attach a `render_template` function and overwrite the `render_error` template to produce errors messages via the template engine.
 
-Using a template system is then as easy as calling `render_template` with the template file and context instead of calling `render`.
+Using a template system is then as easy as calling `render_template` with the template filename and context. `render_template` will call `render` for you.
 
 ### Jinja2
 
@@ -96,13 +124,25 @@ Using Jinja2 template looks like this.
             context = {
                 'name': 'J2 D2',
             }
-            return self.render_template('templates/success.html', **context)
+            return self.render_template('success.html', **context)
+
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py)
 
 ### Tornado
 
 Tornado templates are supported by the TornadoRendering mixin. The code looks virtually the same to keep mixing template systems lightweight.
 
-Using Tornado looks exactly the same, except you write `TornadoRendering`.
+    from brubeck.templating import TornadoRendering
+    
+    class DemoHandler(WebMessageHandler, TornadoRendering):
+        def get(self):
+            ...
+            context = {
+                'name': 'J2 D2',
+            }
+            return self.render_template('success.html', **context)
+
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py)
 
 # Licensing
 
