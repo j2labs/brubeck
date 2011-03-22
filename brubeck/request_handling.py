@@ -341,7 +341,7 @@ class WebMessageHandler(MessageHandler):
         Allows forcing HTTP status to be 200 regardless of request status
         for cases where payload contains status information.
         """
-        code=self.status_code
+        code = self.status_code
         headers = dict() # TODO should probably implement headers
 
         # Some API's send error messages in the payload rather than over
