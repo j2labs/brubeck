@@ -16,7 +16,7 @@ pub_addr = 'ipc://127.0.0.1:9998'
 
 app = Brubeck((pull_addr, pub_addr))
 
-@app.add_route('/brubeck')
+@app.add_route('/brubeck', method='GET')
 def foo(application, message):
     logging.debug('foo() called')
     name = message.get_argument('name', 'whomever you are')

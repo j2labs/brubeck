@@ -428,14 +428,24 @@ class Brubeck(object):
         regex = re.compile(pattern)
         self._routes.append((regex, kallable))
 
-    def add_route(self, rule, method=None):
-        """A decorator to facilitate building routes wth callables. Should be
-        used as alternative to MessageHandler object structure for message
-        handling.
+    def add_route(self, url_pattern, method=None):
+        """A decorator to facilitate building routes wth callables. DecoratShould be
+        used as alternative to classes that derive from MessageHandler.
         """
+        if method is None:
+            method = list()
+        elif not hasattr(method, '__iter__'):
+            method = [method]
+            
         def decorator(kallable):
-            self.add_route_rule(rule, kallable)
-            return kallable
+            def check_method(app, msg):
+                if msg.method not in method:
+                    # TODO come up with classless model
+                    return self.base_handler(app, msg).unsupported()
+                else:
+                    return kallable(app, msg)
+            self.add_route_rule(url_pattern, check_method)
+            return check_method
         return decorator
 
     def route_message(self, message):
