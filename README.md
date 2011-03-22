@@ -66,13 +66,13 @@ The handler classes are mapped to URL patterns by passing a list of tuples to Br
     app = Brubeck(('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'), handler_tuples)
     app.run()
 
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
+
 # Handling URL's
 
 As we saw above, handling URL's is as easy as mapping a URL to a handler.
 
     handler_tuples = [(r'^/brubeck', DemoHandler)]
-
-* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
 
 Simply, this means if the regex `^/brubeck` matches the requested URL, send the request to a DemoHandler instance.
 
