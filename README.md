@@ -15,14 +15,27 @@ Brubeck is a system for building cloud-like API's quickly. By using Eventlet, Ze
 
 * The third goal is to provide tools that make building cloud-like API's easy. A common theme is to have a stream that can be explored via timestamps on data. That stream probably needs authentication at times. It probably needs paging too. Most API's offer something along these lines, so Brubeck will too.
 
+## Further reading
 
-## Quick Glance At The Code
+Brubeck has:
+
+* [An Install Guide](https://github.com/j2labs/brubeck/blob/master/docs/INSTALLING.md)
+* [A Design Document](https://github.com/j2labs/brubeck/blob/master/docs/DESIGN.md)
+
+Brubeck uses some Python modules:
+
+* [Mongrel2](http://mongrel2.org/)
+* [Eventlet](http://eventlet.net/)
+* [Greenlet](http://pypi.python.org/pypi/greenlet)
+* [DictShield](https://github.com/j2labs/dictshield)
+
+# Quick Look At The Code
 
 There are different opinions on how to properly set up routing systems in Python. One group generally likes to have funcitons and some decorators for routing. This is similar to what you see in Flask or Bottle. Another group likes to have classes that implement particular funcitons, like a `MessageHandler` implementing `get()`
 
 Brubeck supports both.
 
-### Functions and Decorators
+## Functions and Decorators
 
 Brubeck supports wrapping funcitons with route information if that's the style you like. 
 
@@ -35,7 +48,7 @@ First, you instantiate a Brubeck instance with the two Mongrel2 sockets.
 
 Then you wrap some funcitons with the `add_route` decorator.
 
-    @app.add_route('/brubeck', method='GET')
+    @app.add_route('^/brubeck', method='GET')
     def foo(application, message):
         return http_response('Take five!', 200, 'OK', {})
 
@@ -47,7 +60,7 @@ This is the simplest model to get started with.
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_noclasses.py)
 
-### MessageHandler Classes
+## MessageHandler Classes
 
 Brubeck's `MessageHandler` design is similar to what you see in [Facebook's Tornado](https://github.com/facebook/tornado). 
 
@@ -68,17 +81,23 @@ The handler classes are mapped to URL patterns by passing a list of tuples to Br
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
 
-# Handling URL's
+# Routing URL's
 
 As we saw above, handling URL's is as easy as mapping a URL to a handler.
 
     handler_tuples = [(r'^/brubeck', DemoHandler)]
 
-Simply, this means if the regex `^/brubeck` matches the requested URL, send the request to a DemoHandler instance.
+Or as easy as using a decorator.
 
-I find a class structure for maintaining state in a pipeline of state objects works well. The instance doesn't exist for a long period of time either so state is essentially a snapshot of the relevant environment for processing the request and then that object is tossed away when processing finishes.
+    @app.add_route('^/brubeck', method='GET')
+    def foo(application, message):
+        ...
 
-A class structure let's me easily attach state to the request while providing functions or Mixins for processing the request.
+In both cases, we match a regex `^/brubeck` against the requested URL. If we find a match, we send the request to the handler.
+
+A class structure let's me easily attach state to the request while providing functions or Mixins for processing the request. One mixin might add a ._attribute1 and a follow up function can check if that value exists. 
+
+State *could* be maintained otherwise too. If that's the case, the decorator approach is likely for you.
 
 Auth and templates are good examples of how to extend your `MessageHandler` instances.
 
@@ -133,6 +152,7 @@ Using Jinja2 template looks like this.
             return self.render_template('success.html', **context)
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py)
+* [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/jinja2)
 
 ### Tornado
 
@@ -149,6 +169,7 @@ Tornado templates are supported by the TornadoRendering mixin. The code looks vi
             return self.render_template('success.html', **context)
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py)
+* [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/tornado)
 
 # Licensing
 
