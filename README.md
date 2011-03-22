@@ -83,11 +83,11 @@ The handler classes are mapped to URL patterns by passing a list of tuples to Br
 
 # Routing URL's
 
-As we saw above, handling URL's is as easy as mapping a URL to a handler.
+As we saw above, handling URL's is as easy as mapping a URL to a class.
 
     handler_tuples = [(r'^/brubeck', DemoHandler)]
 
-Or as easy as using a decorator.
+Or as easy as decorating a funciton.
 
     @app.add_route('^/brubeck', method='GET')
     def foo(application, message):
