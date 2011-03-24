@@ -15,6 +15,7 @@ Brubeck is a system for building cloud-like API's quickly. By using Eventlet, Ze
 
 * The third goal is to provide tools that make building cloud-like API's easy. A common theme is to have a stream that can be explored via timestamps on data. That stream probably needs authentication at times. It probably needs paging too. Most API's offer something along these lines, so Brubeck will too.
 
+
 ## Further reading
 
 Brubeck has:
@@ -24,36 +25,17 @@ Brubeck has:
 * [A BSD License](https://github.com/j2labs/brubeck/blob/master/docs/LICENSE.md)
 * [A Requirements File](https://github.com/j2labs/brubeck/blob/master/requirements.txt)
 
+
 # Quick Look At The Code
 
-There are different opinions on how to properly set up routing systems in Python. One group generally likes to have funcitons and some decorators for routing. This is similar to what you see in Flask or Bottle. Another group likes to have classes that implement particular funcitons, like a `MessageHandler` implementing `get()`
+There are different opinions on how to properly set up routing systems in Python. 
+
+One group likes to have classes that implement particular functions. Often enough, this looks like a `MessageHandler` implementing `get()` to respond to HTTP GET requests.
+
+Another group likes to have just have funcitons and then apply some decorators for routing. This is similar to what you see in Flask or Bottle. 
 
 Brubeck supports both.
 
-## Functions and Decorators
-
-Brubeck supports wrapping funcitons with route information if that's the style you like. 
-
-First, you instantiate a Brubeck instance with the two Mongrel2 sockets.
-
-    pull_addr = 'ipc://127.0.0.1:9999'
-    pub_addr = 'ipc://127.0.0.1:9998'
-
-    app = Brubeck((pull_addr, pub_addr))
-
-Then you wrap some funcitons with the `add_route` decorator.
-
-    @app.add_route('^/brubeck', method='GET')
-    def foo(application, message):
-        return http_response('Take five!', 200, 'OK', {})
-
-Start the app and you're done.
-
-    app.run()
-
-This is the simplest model to get started with. 
-
-* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_noclasses.py)
 
 ## MessageHandler Classes
 
@@ -64,17 +46,42 @@ To answer HTTP GET requests, implement `get()` on a WebMessageHandler instance. 
     class DemoHandler(WebMessageHandler):
         def get(self):
             self.set_body('Take five!')
-            self.set_status(200)
             return self.render()
 
 The handler classes are mapped to URL patterns by passing a list of tuples to Brubeck when you run the app. The list might looks like this.
 
-    handler_tuples = [(r'^/brubeck', DemoHandler)]
-
-    app = Brubeck(('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'), handler_tuples)
-    app.run()
+    config = {
+        'handler_tuples': [(r'^/brubeck', DemoHandler)],
+        'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+    }
+    Brubeck(**config).run()
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
+
+
+## Functions and Decorators
+
+Brubeck supports wrapping funcitons with route information if that's the style you like. 
+
+First, you instantiate a Brubeck instance with a pair of Mongrel2 sockets.
+
+    app = Brubeck(mongrel2_pair=('ipc://127.0.0.1:9999', 
+                                 'ipc://127.0.0.1:9998'))
+
+Then you wrap some functions with the `add_route` decorator.
+
+    @app.add_route('^/brubeck', method='GET')
+    def foo(application, message):
+        return http_response('Take five!', 200, 'OK', {})
+
+Start the app and you're done.
+
+    app.run()
+
+This is the simplest model to get start answering URL's with Python functions.
+
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_noclasses.py)
+
 
 # Routing URL's
 
@@ -96,9 +103,12 @@ State *could* be maintained otherwise too. If that's your cup of tea, the decora
 
 Auth and templates are good examples of how to extend your `MessageHandler` instances.
 
+
 ## Auth
 
-Authentication can be provided by decorating functions, similar to Tornado. The `@web_authenticated` decorator expects the handler to have a `current_user` property that returns either an authenticated `User` model or None. The `UserHandlingMixin` provides the functionality for authenticating a user and creating that `current_user` property.
+Authentication can be provided by decorating functions, similar to Tornado. The `@web_authenticated` decorator expects the handler to have a `current_user` property that returns either an authenticated `User` model or None. The `UserHandlingMixin` provides the functionality for authenticating a user and creating that `current_user` property. 
+
+By using the decorator, you trigger a call provided by the mixin. Nice and simple!
 
 The work that's required will depend on how you build your system. The authentication framework uses a DictShield Document to create the `User` model, so you can implement the database query however you see fit. You still get the authentication framework you need.
 
@@ -117,20 +127,18 @@ The `User` model in brubeck.auth will probably serve as a good basis for your ne
         """Bare minimum to have the concept of a User.
         """
         username = StringField(max_length=30, required=True)
-        email = EmailField(max_length=100)
         password = StringField(max_length=128)
-        is_active = BooleanField(default=False)
-        last_login = LongField(default=curtime)
-        date_joined = LongField(default=curtime)
         ...
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py)
+
 
 ## Templates
 
 Templates are supported by implementing a *Rendering Mixin. This Mixin will attach a `render_template` function and overwrite the `render_error` template to produce errors messages via the template engine.
 
 Using a template system is then as easy as calling `render_template` with the template filename and context. `render_template` will call `render` for you.
+
 
 ### Jinja2
 
@@ -140,7 +148,6 @@ Using Jinja2 template looks like this.
     
     class DemoHandler(WebMessageHandler, Jinja2Rendering):
         def get(self):
-            ...
             context = {
                 'name': 'J2 D2',
             }
@@ -148,6 +155,7 @@ Using Jinja2 template looks like this.
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py)
 * [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/jinja2)
+
 
 ### Tornado
 
@@ -157,7 +165,6 @@ Tornado templates are supported by the TornadoRendering mixin. The code looks vi
     
     class DemoHandler(WebMessageHandler, TornadoRendering):
         def get(self):
-            ...
             context = {
                 'name': 'J2 D2',
             }
@@ -166,6 +173,7 @@ Tornado templates are supported by the TornadoRendering mixin. The code looks vi
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py)
 * [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/tornado)
 
-# Licensing
 
-Brubeck is [BSD licensed](http://en.wikipedia.org/wiki/BSD_licenses).
+# J2 Labs LLC
+
+Brubeck is a J2 Labs creation. I hope you find it useful.
