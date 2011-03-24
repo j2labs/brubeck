@@ -45,7 +45,6 @@ HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 def http_response(body, code, status, headers):
     """Renders payload and prepares HTTP response.
     """
-    
     payload = {'code': code, 'status': status, 'body': body}
     content_length = 0
     if body is not None:
@@ -53,7 +52,6 @@ def http_response(body, code, status, headers):
     headers['Content-Length'] = content_length
     payload['headers'] = "\r\n".join('%s: %s' % (k,v) for k,v in
                                      headers.items())
-
     return HTTP_FORMAT % payload
 
 
@@ -71,7 +69,6 @@ def route_message(application, message):
     handler = application.route_message(message)
     spawn_n(request_handler, application, message, handler)
 
-    
 def request_handler(application, message, handler):
     """Coroutine for handling the request itself. It simply returns the request
     path in reverse for now.
@@ -116,6 +113,12 @@ class MessageHandler(object):
     }
 
     def __init__(self, application, message, *args, **kwargs):
+        """A MessageHandler is called at two major points, with regard to the
+        eventlet scheduler. __init__ is the first point, which is responsible
+        for bootstrapping the state of a single handler.
+
+        __call__ is the second major point.
+        """
         self.application = application
         self.message = message
         self._payload = dict()
@@ -137,7 +140,7 @@ class MessageHandler(object):
         pass
 
     def unsupported(self):
-        """Called anytime an unsupported request is made
+        """Called anytime an unsupported request is made.
         """
         return self.render_error(-1)
 
@@ -173,7 +176,7 @@ class MessageHandler(object):
         return self._payload[self._STATUS_MSG]
 
     def set_timestamp(self, timestamp):
-        """Sets the timestamp to given timestamp
+        """Sets the timestamp to given timestamp.
         """
         self.add_to_payload(self._TIMESTAMP, timestamp)
         self.timestamp = timestamp
@@ -260,12 +263,12 @@ class WebMessageHandler(MessageHandler):
         self._payload[self._HEADERS] = dict()
 
     @property
-    def body(self):
-        return self._payload[self._BODY]
-
-    @property
     def headers(self):
         return self._payload[self._HEADERS]
+
+    @property
+    def body(self):
+        return self._payload[self._BODY]
 
     def set_body(self, body, headers=None):
         self._payload[self._BODY] = body
@@ -273,7 +276,7 @@ class WebMessageHandler(MessageHandler):
             self._payload[self._HEADERS] = headers
         
     ###
-    ### Request types supported are mapped to HTTP request methods
+    ### Supported HTTP request methods are mapped to these functions
     ###
 
     def head(self, *args, **kwargs):
@@ -350,7 +353,7 @@ class JSONMessageHandler(WebMessageHandler):
     printing the payload into JSON format.
     """
     def render(self, **kwargs):
-        """Renders payload as json
+        """Renders entire payload as json dump. 
         """
         self.body = json.dumps(self._payload)
         rendered = super(self, JSONRequestHandler).render(**kwargs)
@@ -445,27 +448,38 @@ class Brubeck(object):
                 """Create new method which checks the HTTP request type.
                 If URL matches, but unsupported request type is used an
                 unsupported error is thrown.
+
+                def one_more_layer():
+                    print 'INCEPTION'
                 """
                 if msg.method not in method:
                     # TODO come up with classless model
                     return self.base_handler(app, msg).unsupported()
                 else:
                     return kallable(app, msg)
+                
             self.add_route_rule(url_pattern, check_method)
             return check_method
         return decorator
 
     def route_message(self, message):
-        """Factory funciton that instantiates a request handler based on
+        """Factory function that instantiates a request handler based on
         path requested.
+
+        If a class that implements `__call__` is used, the class should
+        implement an `__init__` that receives two arguments: a brubeck instance
+        and the message to be handled. The return value of this call is a
+        callable class that is ready to be executed in a follow up coroutine.
+
+        If a function is used (eg with the decorating routing pattern) a
+        closure is created around the two arguments. The return value of this
+        call is a function ready to be executed in a follow up coroutine.
         """
         handler = None
         for (regex, kallable) in self._routes:
             if regex.search(message.path):
-                # instantiate kallable if it's a class
                 if inspect.isclass(kallable):
                     handler = kallable(self, message)
-                # prepare arguments if kallable is a function
                 else:
                     handler = lambda: kallable(self, message)
             else:
@@ -483,6 +497,10 @@ class Brubeck(object):
     def run(self):
         """This method turns on the message handling system and puts Brubeck
         in a never ending loop waiting for messages.
+
+        The loop is actually the eventlet scheduler. A goal of Brubeck is to
+        help users avoid thinking about complex things like an event loop while
+        still getting the goodness of asynchronous and nonblocking I/O.
         """
         greeting = 'Brubeck v%s online ]-----------------------------------'
         print greeting % version
@@ -494,4 +512,3 @@ class Brubeck(object):
         except KeyboardInterrupt, ki:
             # Put a newline after ^C
             print '\nBrubeck going down...'
-
