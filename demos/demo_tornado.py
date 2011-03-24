@@ -6,16 +6,13 @@ from brubeck.templating import TornadoRendering, load_tornado_env
 
 class DemoHandler(WebMessageHandler, TornadoRendering):
     def get(self):
-        name = self.get_argument('name', 'whomever you are')
+        name = self.get_argument('name', 'dude')
         context = {
             'name': name,
         }
         return self.render_template('success.html', **context)
 
-config = {
-    'handler_tuples': [(r'^/brubeck', DemoHandler)],
-    'template_loader': load_tornado_env('./templates/tornado'),
-}
-
-app = Brubeck(('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'), **config)
+app = Brubeck(mongrel2_pair=('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+              handler_tuples=[(r'^/brubeck', DemoHandler)],
+              template_loader=load_tornado_env('./templates/tornado'))
 app.run()
