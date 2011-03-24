@@ -89,19 +89,33 @@ def result_handler(application, message, response):
 ###
 
 class MessageHandler(object):
-    """A base class for request handling
+    """The base class for request handling. It's functionality consists
+    primarily of a payload system and a way to store some state for
+    the duration of processing the message.
 
-    Contains the general payload mechanism used for storing key-value pairs
-    to answer requests.
+    Mixins are provided in Brubeck's modules for extending these handlers.
+    Mixins provide a simple way to add functions to a MessageHandler that are
+    unique to the message our handler is designed for. Mix in logic as you
+    realize you need it. Or rip it out. Keep your handlers lean.
 
-    No render function is defined here so this class should not actually be
-    used. 
+    Two callbacks are offered for state preperation.
+
+    The `initialize` function allows users to add steps to object
+    initialization. A mixin, however, should never use this. You could hook
+    the request handler up to a database connection pool, for example.
+
+    The `prepare` function is called just before any decorators are called.
+    The idea here is to give Mixin creators a chance to build decorators that
+    depend on post-initialization processing to have taken place. You could use
+    that database connection we created in `initialize` to check the username
+    and password from a user.
     """
     SUPPORTED_METHODS = ()
     _STATUS_CODE = 'status_code'
     _STATUS_MSG = 'status_msg'
     _TIMESTAMP = 'timestamp'
     _DEFAULT_STATUS = -1 # default to error, earn success
+    _SUCCESS_CODE = 0
 
     _response_codes = {
         0: 'OK',
@@ -150,7 +164,7 @@ class MessageHandler(object):
         self._payload[key] = value
 
     def clear_payload(self):
-        """Resets the payload.
+        """Resets the payload but preserves the current status_code.
         """
         status_code = self.status_code
         self._payload = dict() 
@@ -181,19 +195,23 @@ class MessageHandler(object):
         self.add_to_payload(self._TIMESTAMP, timestamp)
         self.timestamp = timestamp
 
-    def render(self, *kwargs):
-        """Don't actually use this class. Subclass it so render can handle
-        templates or making json or whatevz you got in mind.
+    def render(self, status_code=None, **kwargs):
+        """Renders entire payload as json dump. Subclass and overwrite this
+        function if a different output format is needed. See WebMessageHandler
+        as an example.
         """
-        raise NotImplementedError('Someone code me! PLEASE!')
+        if not status_code:
+            status_code = self.status_code
+        self.set_status(status_code)
+        rendered = json.dumps(self._payload)
+        return rendered
 
     def render_error(self, status_code, **kwargs):
         """Clears the payload before rendering the error status
         """
         self.clear_payload()
-        self.set_status(status_code, **kwargs)
         self._finished = True
-        return self.render()
+        return self.render(status_code=status_code)
 
     def __call__(self, *args, **kwargs):
         """This function handles mapping the request type to a function on
@@ -211,22 +229,24 @@ class MessageHandler(object):
         """
         self.prepare()
         if not self._finished:
-            # M-E-T-H-O-D MAN!
-            mef = self.message.method
+            mef = self.message.method # M-E-T-H-O-D man!
+
+            # Find function mapped to method on self
             if mef in self.SUPPORTED_METHODS:
                 mef = mef.lower()
                 fun = getattr(self, mef)
             else:
                 fun = self.unsupported
 
+            # Call the function we settled on
             try:
-                response = fun(*args, **kwargs)
+                rendered = fun(*args, **kwargs)
             except Exception, e:
                 logging.error(e)
-                response = self.unsupported()
+                rendered = self.unsupported()
                 
             self._finished = True
-            return response
+            return rendered
         else:
             return self.render()
 
@@ -238,6 +258,7 @@ class WebMessageHandler(MessageHandler):
     """
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PUT", "OPTIONS")
     _DEFAULT_STATUS = 500 # default to server error
+    _SUCCESS_CODE = 200
 
     _response_codes = {
         200: 'OK',
@@ -309,55 +330,39 @@ class WebMessageHandler(MessageHandler):
     def get_argument(self, name, default=None, strip=True):
         """Returns the value of the argument with the given name.
 
-        If default is not provided, the argument is considered to be
-        required, and we trigger rendering an HTTP 404 exception if it is
-        missing.
-
         If the argument appears in the url more than once, we return the
         last value.
         """
-        arg = self.message.get_argument(name, default=default, strip=strip)
-        if arg is None:
-            self.render_error(404, extra_txt=name)
-        return arg
+        return self.message.get_argument(name, default=default, strip=strip)
 
     def get_arguments(self, name, strip=True):
         """Returns a list of the arguments with the given name.
         """
         return self.message.get_arguments(name, strip=strip)
 
-    def render(self, http_200=False, **kwargs):
-        """Renders payload and prepares HTTP response.
+    def render(self, status_code=None, http_200=False, **kwargs):
+        """Renders payload and prepares the payload for a successful HTTP
+        response.
 
         Allows forcing HTTP status to be 200 regardless of request status
         for cases where payload contains status information.
         """
-        code = self.status_code
-        headers = dict() # TODO should probably implement headers
+        if not status_code:
+            status_code = self._SUCCESS_CODE
+        self.set_status(status_code)
 
         # Some API's send error messages in the payload rather than over
         # HTTP. Not necessarily ideal, but supported.
         if http_200:
-            code = 200
+            status_code = 200
 
-        return http_response(self.body, code, self.status_msg, headers)
+        # TODO fill in REMOTE_ADDR 
+        logging.info('%s %s %s (%s)' % (status_code,
+                                        self.message.method,
+                                        self.message.path,
+                                        'REMOTE_ADDR'))
 
-
-###
-### Subclasses for different message rendering.
-###
-
-class JSONMessageHandler(WebMessageHandler):
-    """JSONRequestHandler is a system for maintaining a payload until the
-    request is handled to completion. It offers rendering functions for
-    printing the payload into JSON format.
-    """
-    def render(self, **kwargs):
-        """Renders entire payload as json dump. 
-        """
-        self.body = json.dumps(self._payload)
-        rendered = super(self, JSONRequestHandler).render(**kwargs)
-        return rendered
+        return http_response(self.body, status_code, self.status_msg, self.headers)
 
 
 ###
@@ -365,8 +370,9 @@ class JSONMessageHandler(WebMessageHandler):
 ###
 
 class Brubeck(object):
-    def __init__(self, m2_sockets, handler_tuples=None, pool=None,
+    def __init__(self, mongrel2_pair=None, handler_tuples=None, pool=None,
                  no_handler=None, base_handler=None, template_loader=None,
+                 log_level=logging.INFO,
                  *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
@@ -379,14 +385,22 @@ class Brubeck(object):
         for matching the URL requested. The second is the class instantiated
         to handle the message.
         """
+        # All output is sent via logging
+        # (while i figure out how to do a good abstraction via zmq)
+        logging.basicConfig(level=log_level)
 
         # A Mongrel2Connection is currently just a way to manage
         # the sockets we need to open with a Mongrel2 instance and
         # identify this particular Brubeck instance as the sender
-        (pull_addr, pub_addr) = m2_sockets
-        self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
+        if mongrel2_pair is not None:
+            (pull_addr, pub_addr) = mongrel2_pair
+            self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
+        else:
+            raise ValueException('No mongrel2 connection possible.')
 
-        # The details of the routing aren't exposed
+        # Class based route lists should be handled this way.
+        # It is also possible to use `add_route`, a decorator provided by a
+        # brubeck instance, that can extend routing tables.
         self.handler_tuples = handler_tuples
         if self.handler_tuples is not None:
             self.init_routes(handler_tuples)
@@ -398,33 +412,36 @@ class Brubeck(object):
         if self.pool is None:
             self.pool = eventlet.GreenPool()
 
-        # Set a base_handler for handling errors (eg. missing handler)
+        # Set a base_handler for handling errors (eg. 404 handler)
         self.base_handler = base_handler
         if self.base_handler is None:
             self.base_handler = WebMessageHandler
 
         # Any template engine can be used. Brubeck just needs a function that
-        # loads the environment without arguments.
+        # loads the environment without arguments. 
         if callable(template_loader):
             loaded_env = template_loader()
             if loaded_env:
                 self.template_env = loaded_env
             else:
-                raise ValueException('template_env failed to load')
+                raise ValueException('template_env failed to load.')
 
     ###
     ### Message routing funcitons
     ###
     
     def init_routes(self, handler_tuples):
-        """Creates the _routes variable and compile route patterns
+        """Loops over a list of (pattern, handler) tuples and adds them
+        to the routing table.
         """
         for ht in handler_tuples:
             (pattern, kallable) = ht
             self.add_route_rule(pattern, kallable)
 
     def add_route_rule(self, pattern, kallable):
-        """Takes a string pattern and callable and adds them to URL routing
+        """Takes a string pattern and callable and adds them to URL routing.
+        The pattern should be compilable as a regular expression with `re`.
+        The kallable argument should be a handler.
         """
         if not hasattr(self, '_routes'):
             self._routes = list()
@@ -432,8 +449,8 @@ class Brubeck(object):
         self._routes.append((regex, kallable))
 
     def add_route(self, url_pattern, method=None):
-        """A decorator to facilitate building routes wth callables. Should be
-        used as alternative to classes that derive from MessageHandler.
+        """A decorator to facilitate building routes wth callables. Can be
+        used as alternative method for constructing routing tables.
         """
         if method is None:
             method = list()
@@ -453,7 +470,6 @@ class Brubeck(object):
                     print 'INCEPTION'
                 """
                 if msg.method not in method:
-                    # TODO come up with classless model
                     return self.base_handler(app, msg).unsupported()
                 else:
                     return kallable(app, msg)
