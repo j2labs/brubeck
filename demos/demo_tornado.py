@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     # Make sure mongrel2's config is in sync with this.
     config = {
-        'handler_tuples': ((r'^/brubeck', DemoHandler),),
+        'handler_tuples': [(r'^/brubeck', DemoHandler)],
         'template_loader': load_tornado_env('./templates/tornado'),
     }
 

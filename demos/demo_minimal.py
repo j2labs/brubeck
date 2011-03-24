@@ -31,7 +31,7 @@ if __name__ == '__main__':
     pub_addr = 'ipc://127.0.0.1:9998'
 
     # Make sure mongrel2's config is in sync with this.
-    handler_tuples = ((r'^/brubeck/', DemoHandler),)
+    handler_tuples = [(r'^/brubeck', DemoHandler)]
 
     app = Brubeck((pull_addr, pub_addr), handler_tuples)
     app.run()
