@@ -468,9 +468,11 @@ class Brubeck(object):
                 # prepare arguments if kallable is a function
                 else:
                     handler = lambda: kallable(self, message)
+            else:
+                logging.debug('Msg path not found: %s' % (message.path))
 
         if handler is None:
-            handler = self.base_handler()
+            handler = self.base_handler(self, message)
 
         return handler
 
