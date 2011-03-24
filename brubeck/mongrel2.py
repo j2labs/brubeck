@@ -70,7 +70,7 @@ class Request(object):
     @staticmethod
     def parse_msg(msg):
         """Static method for constructing a Request instance out of a
-        message read straight of a zmq socket.
+        message read straight off a zmq socket.
         """
         sender, conn_id, path, rest = msg.split(' ', 3)
         headers, rest = parse_netstring(rest)
@@ -166,14 +166,11 @@ class Mongrel2Connection(object):
         internally.
         """
         header = "%s %d:%s," % (uuid, len(str(conn_id)), str(conn_id))
-        #self.out_sock.send_pyobj(header + ' ' + msg)
-        #self.out_sock.send(header + ' ' + msg)
         self.out_sock.send_unicode(header + ' ' + msg)        
 
     def reply(self, req, msg):
         """Does a reply based on the given Request object and message.
         """
-
         self.send(req.sender, req.conn_id, msg)
 
     def reply_bulk(self, uuid, idents, data):
