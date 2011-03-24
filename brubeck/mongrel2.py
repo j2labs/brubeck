@@ -4,6 +4,7 @@ import json
 from uuid import uuid4
 import cgi
 import re
+import logging
 
 ###
 ### Request handling code
@@ -81,8 +82,9 @@ class Request(object):
         return Request(sender, conn_id, path, headers, body)
 
     def is_disconnect(self):
-        if self.headers.get('METHOD') == 'JSON':
-            return self.data['type'] == 'disconnect'
+        if self.headers.get('METHOD') == 'JSON' and self.path == '@*':
+            logging.error('DISONNECT')
+            return self.headers.get('type') == 'disconnect'
 
     def should_close(self):
         """Determines if Request data matches criteria for closing request"""
