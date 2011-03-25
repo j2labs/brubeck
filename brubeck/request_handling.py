@@ -495,8 +495,10 @@ class Brubeck(object):
         for (regex, kallable) in self._routes:
             if regex.search(message.path):
                 if inspect.isclass(kallable):
+                     # Handler classes must be instantiated
                     handler = kallable(self, message)
                 else:
+                    # Can't instantiate  a function
                     handler = lambda: kallable(self, message)
             else:
                 logging.debug('Msg path not found: %s' % (message.path))
