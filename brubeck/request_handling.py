@@ -498,7 +498,7 @@ class Brubeck(object):
                      # Handler classes must be instantiated
                     handler = kallable(self, message)
                 else:
-                    # Can't instantiate  a function
+                    # Can't instantiate a function
                     handler = lambda: kallable(self, message)
             else:
                 logging.debug('Msg path not found: %s' % (message.path))
