@@ -82,7 +82,7 @@ class Request(object):
         return Request(sender, conn_id, path, headers, body)
 
     def is_disconnect(self):
-        if self.headers.get('METHOD') == 'JSON' and self.path == '@*':
+        if self.headers.get('METHOD') == 'JSON':
             logging.error('DISONNECT')
             return self.headers.get('type') == 'disconnect'
 
