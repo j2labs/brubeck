@@ -377,11 +377,11 @@ class Brubeck(object):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
 
-        m2_sockets should be a 2-tuple consisting of the pull socket address
+        mongrel2_pair should be a 2-tuple consisting of the pull socket address
         and the pub socket address for communicating with Mongrel2. Brubeck
         creates and manages a Mongrel2Connection instance from there.
 
-        request_handlers is a list of two-tuples. The first item is a regex
+        handler_tuples is a list of two-tuples. The first item is a regex
         for matching the URL requested. The second is the class instantiated
         to handle the message.
         """
