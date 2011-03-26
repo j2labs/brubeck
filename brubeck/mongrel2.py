@@ -5,6 +5,8 @@ from uuid import uuid4
 import cgi
 import re
 import logging
+import Cookie
+
 
 ###
 ### Request handling code
@@ -15,6 +17,11 @@ def parse_netstring(ns):
     len = int(len)
     assert rest[len] == ',', "Netstring did not end in ','"
     return rest[:len], rest[len+1:]
+
+def to_bytes(data, enc='utf8'):
+    """Convert anything to bytes
+    """
+    return data.encode(enc) if isinstance(data, unicode) else bytes(data)
 
 
 class Request(object):
@@ -68,6 +75,20 @@ class Request(object):
     def version(self):
         return self.headers.get('VERSION')
 
+    @property
+    def cookies(self):
+        """Lazy generation of cookies from request headers."""
+        if not hasattr(self, "_cookies"):
+            self._cookies = Cookie.SimpleCookie()
+            if "cookie" in self.headers:
+                try:
+                    cookies = self.headers['cookie']
+                    self._cookies.load(to_bytes(cookies))
+                except Exception, e:
+                    logging.error('Failed to load cookies')
+                    self.clear_all_cookies()
+        return self._cookies
+
     @staticmethod
     def parse_msg(msg):
         """Static method for constructing a Request instance out of a
@@ -76,7 +97,6 @@ class Request(object):
         sender, conn_id, path, rest = msg.split(' ', 3)
         headers, rest = parse_netstring(rest)
         body, _ = parse_netstring(rest)
-
         headers = json.loads(headers)
 
         return Request(sender, conn_id, path, headers, body)
@@ -119,10 +139,9 @@ class Request(object):
             return default
         return args[-1]
 
-        
 
 ###
-### Http handling code
+### Mongrel2 handling code
 ###
 
 CTX = zmq.Context()
