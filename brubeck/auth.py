@@ -51,7 +51,7 @@ def split_passwd_line(password_line):
 ### Authentication decorators
 ###
 
-def authenticated(method, error_status=-2):
+def authenticated(method):
     """Decorate request handler methods with this to require that the user be
     logged in. Works by checking for the existence of self.current_user as set
     by a RequestHandler's prepare() function.
@@ -59,14 +59,25 @@ def authenticated(method, error_status=-2):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
-            return self.render_error(error_status)
+            return self.render_error(self._AUTH_FAILURE)
         return method(self, *args, **kwargs)
     return wrapper
 
 def web_authenticated(method):
-    """Same as authenticated but uses a 401 error status
+    """Same as `authenticated` except it redirects a user to the login page
+    specified by self.application.login_url
     """
-    return authenticated(method, error_status=401)
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        if not self.current_user:
+            if self.application.login_url is not None:
+                return self.redirect(self.application.login_url)
+            else:
+                error = 'web_authentication called with undefined <login_url>'
+                logging.error(error)
+                return self.render_error(self._SERVER_ERROR)
+        return method(self, *args, **kwargs)
+    return wrapper
 
 
 ###
