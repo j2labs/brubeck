@@ -78,7 +78,7 @@ class LogoutHandler(CustomAuthMixin, Jinja2Rendering):
         """Clears cookie and sends user to login page
         """
         self.delete_cookies()
-        return self.redirect('/')
+        return self.redirect('/login')
 
 
 ###
