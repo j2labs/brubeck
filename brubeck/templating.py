@@ -32,7 +32,7 @@ class Jinja2Rendering():
         template = jinja_env.get_template(template_file)
         body = template.render(**context or {})
         self.set_body(body)
-        return self.render()
+        return self.render(status_code=self._SUCCESS_CODE)
 
     def render_error(self, error_code):
         """Receives error calls and sends them through a templated renderer
@@ -70,7 +70,7 @@ class TornadoRendering():
         template = tornado_env.load(template_file)
         body = template.generate(**context or {})
         self.set_body(body)
-        return self.render()
+        return self.render(status_code=self._SUCCESS_CODE)
 
     def render_error(self, error_code):
         """Receives error calls and sends them through a templated renderer
