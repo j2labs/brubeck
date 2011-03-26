@@ -4,7 +4,7 @@ import sys
 import logging
 from brubeck.request_handling import Brubeck, WebMessageHandler
 from brubeck.models import User
-from brubeck.auth import web_authenticated, UserHandlingMixin
+from brubeck.auth import authenticated, UserHandlingMixin
 
 ### Hardcode a user for the demo
 demo_user = User.create_user('jd', 'foo')
@@ -15,7 +15,7 @@ class DemoHandler(WebMessageHandler, UserHandlingMixin):
         them. Returns an instantiated User if credentials were good.
 
         `get_current_user` is a callback triggered by decorating a function
-        with @web_authenticated.
+        with @authenticated.
         """
         username = self.get_argument('username')
         password = self.get_argument('password')
@@ -31,7 +31,7 @@ class DemoHandler(WebMessageHandler, UserHandlingMixin):
         logging.info('Access granted for user: %s' % username)
         return demo_user
     
-    @web_authenticated
+    @authenticated
     def post(self):
         """Requires username and password."""
         self.set_body('You logged in successfully!')
