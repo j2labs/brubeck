@@ -26,9 +26,10 @@ import re
 import time
 import logging
 import inspect
+import Cookie
+from functools import partial
 
 from mongrel2 import Mongrel2Connection
-from functools import partial
 
 
 ###
@@ -43,7 +44,7 @@ def curtime():
 
 HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 def http_response(body, code, status, headers):
-    """Renders payload and prepares HTTP response.
+    """Renders arguments into an HTTP response.
     """
     payload = {'code': code, 'status': status, 'body': body}
     content_length = 0
@@ -53,6 +54,19 @@ def http_response(body, code, status, headers):
     payload['headers'] = "\r\n".join('%s: %s' % (k,v) for k,v in
                                      headers.items())
     return HTTP_FORMAT % payload
+
+### Knowledge of `to_bytes` and `to_unicode` should be together
+from mongrel2 import to_bytes
+
+def to_unicode(s, enc='utf8'):
+    """Convert anything to unicode
+    """
+    return s if isinstance(s, unicode) else unicode(str(s), encoding=enc)
+
+def _lscmp(a, b):
+    """Compares two strings in a cryptographically safe way
+    """
+    return not sum(0 if x==y else 1 for x, y in zip(a, b)) and len(a) == len(b)
 
 
 ###
@@ -82,6 +96,31 @@ def result_handler(application, message, response):
     processing and then send the data back to mongrel2.
     """
     application.m2conn.reply(message, response)
+
+
+###
+### Me not *take* cookies, me *eat* the cookies.
+###
+
+def cookie_encode(data, key):
+    """Encode and sign a pickle-able object. Return a (byte) string
+    """
+    msg = base64.b64encode(pickle.dumps(data, -1))
+    sig = base64.b64encode(hmac.new(key, msg).digest())
+    return to_bytes('!') + sig + to_bytes('?') + msg
+
+def cookie_decode(data, key):
+    ''' Verify and decode an encoded string. Return an object or None.'''
+    data = to_bytes(data)
+    if cookie_is_encoded(data):
+        sig, msg = data.split(to_bytes('?'), 1)
+        if _lscmp(sig[1:], base64.b64encode(hmac.new(key, msg).digest())):
+            return pickle.loads(base64.b64decode(msg))
+    return None
+
+def cookie_is_encoded(data):
+    ''' Return True if the argument looks like a encoded cookie.'''
+    return bool(data.startswith(to_bytes('!')) and to_bytes('?') in data)
 
 
 ###
@@ -116,6 +155,8 @@ class MessageHandler(object):
     _TIMESTAMP = 'timestamp'
     _DEFAULT_STATUS = -1 # default to error, earn success
     _SUCCESS_CODE = 0
+    _AUTH_FAILURE = -2
+    _SERVER_ERROR = -5
 
     _response_codes = {
         0: 'OK',
@@ -171,11 +212,12 @@ class MessageHandler(object):
         self.set_status(status_code)
         self.initialize()
 
-    def set_status(self, status_code, extra_txt=None):
+    def set_status(self, status_code, status_msg=None, extra_txt=None):
         """Sets the status code of the payload to <status_code> and sets
         status msg to the the relevant msg as defined in _response_codes.
         """
-        status_msg = self._response_codes[status_code]
+        if status_msg is None:
+            status_msg = self._response_codes[status_code]
         if extra_txt:
             status_msg = '%s - %s' % (status_msg, extra_txt)
         self.add_to_payload(self._STATUS_CODE, status_code)
@@ -241,6 +283,9 @@ class MessageHandler(object):
             # Call the function we settled on
             try:
                 rendered = fun(*args, **kwargs)
+                if rendered is None:
+                    logging.debug('Handler had no return value: %s' % fun)
+                    return ''
             except Exception, e:
                 logging.error(e)
                 rendered = self.unsupported()
@@ -259,7 +304,9 @@ class WebMessageHandler(MessageHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PUT", "OPTIONS")
     _DEFAULT_STATUS = 500 # default to server error
     _SUCCESS_CODE = 200
-
+    _AUTH_FAILURE = 401
+    _SERVER_ERROR = 500
+    
     _response_codes = {
         200: 'OK',
         400: 'Bad request',
@@ -273,8 +320,8 @@ class WebMessageHandler(MessageHandler):
     ### Payload extension
     ###
     
-    _BODY = '_body'
-    _HEADERS = '_headers'
+    _BODY = 'body'
+    _HEADERS = 'headers'
 
     def initialize(self):
         """WebMessageHandler extends the payload for body and headers. It
@@ -295,7 +342,7 @@ class WebMessageHandler(MessageHandler):
         self._payload[self._BODY] = body
         if headers is not None:
             self._payload[self._HEADERS] = headers
-        
+
     ###
     ### Supported HTTP request methods are mapped to these functions
     ###
@@ -323,6 +370,17 @@ class WebMessageHandler(MessageHandler):
     def unsupported(self, *args, **kwargs):
         return self.render_error(404)
 
+    def redirect(self, url):
+        """Clears the payload before rendering the error status
+        """
+        logging.debug('Redirecting to url: %s' % url)
+        self.clear_payload()
+        self._finished = True
+        msg = 'Page has moved to %s' % url
+        self.set_status(302, status_msg=msg)
+        self.headers['Location'] = '%s' % url
+        return self.render()
+
     ###
     ### Helpers for accessing request variables
     ###
@@ -340,6 +398,78 @@ class WebMessageHandler(MessageHandler):
         """
         return self.message.get_arguments(name, strip=strip)
 
+    ###
+    ### Cookies
+    ###
+
+    ### Incoming cookie functions
+            
+    def get_cookie(self, key, default=None, secret=None):
+        """Retrieve a cookie from message, if present, else fallback to
+        `default` keyword. Accepts a secret key to validate signed cookies.
+        """
+        if key in self.message.cookies:
+            return self.message.cookies[key].value
+        if secret and value:
+            dec = cookie_decode(value, secret) 
+            return dec[1] if dec and dec[0] == key else None        
+        return default    
+
+    ### Outgoing cookie functions
+
+    @property
+    def cookies(self):
+        """Lazy creation of response cookies."""
+        if not hasattr(self, "_cookies"):
+            self._cookies = Cookie.SimpleCookie()
+        return self._cookies
+
+    def set_cookie(self, key, value, secret=None, **kargs):
+        """Add a cookie or overwrite an old one. If the `secret` parameter is
+        set, create a `Signed Cookie` (described below).
+
+        `key`: the name of the cookie.
+        `value`: the value of the cookie.
+        `secret`: required for signed cookies.
+
+        params passed to as keywords:
+          `max_age`: maximum age in seconds.
+          `expires`: a datetime object or UNIX timestamp.
+          `domain`: the domain that is allowed to read the cookie.
+          `path`: limits the cookie to a given path
+
+        If neither `expires` nor `max_age` are set (default), the cookie
+        lasts only as long as the browser is not closed.
+        """
+        if secret:
+            value = cookie_encode((key, value), secret)
+        elif not isinstance(value, basestring):
+            raise TypeError('Secret missing for non-string Cookie.')
+
+        self.cookies[key] = value
+        
+        # handle keywords
+        for k, v in kargs.iteritems():
+            self.cookies[key][k.replace('_', '-')] = v
+
+    def delete_cookie(self, key, **kwargs):
+        """Delete a cookie. Be sure to use the same `domain` and `path`
+        parameters as used to create the cookie.
+        """
+        kwargs['max_age'] = -1
+        kwargs['expires'] = 0
+        self.set_cookie(key, '', **kwargs)
+
+    def delete_cookies(self):
+        """Deleats every cookie received from the user.
+        """
+        for key in self.message.cookies.iterkeys():
+            self.delete_cookie(key)
+    
+    ###
+    ### Output generation
+    ###
+
     def render(self, status_code=None, http_200=False, **kwargs):
         """Renders payload and prepares the payload for a successful HTTP
         response.
@@ -347,22 +477,27 @@ class WebMessageHandler(MessageHandler):
         Allows forcing HTTP status to be 200 regardless of request status
         for cases where payload contains status information.
         """
-        if not status_code:
-            status_code = self._SUCCESS_CODE
-        self.set_status(status_code)
+        if status_code: 
+            self.set_status(status_code)
 
         # Some API's send error messages in the payload rather than over
         # HTTP. Not necessarily ideal, but supported.
+        status_code = self.status_code
         if http_200:
             status_code = 200
 
-        # TODO fill in REMOTE_ADDR 
-        logging.info('%s %s %s (%s)' % (status_code,
-                                        self.message.method,
-                                        self.message.path,
-                                        'REMOTE_ADDR'))
+        # Resolve cookies into multiline value
+        cookie_vals = [c.OutputString() for c in self.cookies.values()]
+        if len(cookie_vals) > 0:
+            cookie_str = '\nSet-Cookie: '.join(cookie_vals)
+            self.headers['Set-Cookie'] = cookie_str
 
-        return http_response(self.body, status_code, self.status_msg, self.headers)
+        response = http_response(self.body, status_code,
+                                 self.status_msg, self.headers)
+
+        logging.info('%s %s %s (%s)' % (status_code, self.message.method,
+                                        self.message.path, 'REMOTE_ADDR')) #TODO
+        return response
 
 
 ###
@@ -372,7 +507,7 @@ class WebMessageHandler(MessageHandler):
 class Brubeck(object):
     def __init__(self, mongrel2_pair=None, handler_tuples=None, pool=None,
                  no_handler=None, base_handler=None, template_loader=None,
-                 log_level=logging.INFO,
+                 log_level=logging.INFO, login_url=None,
                  *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
@@ -417,6 +552,9 @@ class Brubeck(object):
         if self.base_handler is None:
             self.base_handler = WebMessageHandler
 
+        # Login url is optional
+        self.login_url = login_url
+            
         # Any template engine can be used. Brubeck just needs a function that
         # loads the environment without arguments. 
         if callable(template_loader):
@@ -445,7 +583,7 @@ class Brubeck(object):
         """
         if not hasattr(self, '_routes'):
             self._routes = list()
-        regex = re.compile(pattern)
+        regex = re.compile(pattern, re.UNICODE)
         self._routes.append((regex, kallable))
 
     def add_route(self, url_pattern, method=None):
@@ -467,7 +605,7 @@ class Brubeck(object):
                 unsupported error is thrown.
 
                 def one_more_layer():
-                    print 'INCEPTION'
+                    INCEPTION
                 """
                 if msg.method not in method:
                     return self.base_handler(app, msg).unsupported()
@@ -493,16 +631,16 @@ class Brubeck(object):
         """
         handler = None
         for (regex, kallable) in self._routes:
-            if regex.search(message.path):
+            if regex.search(message.path) is not None:
                 if inspect.isclass(kallable):
-                     # Handler classes must be instantiated
+                    # Handler classes must be instantiated
                     handler = kallable(self, message)
+                    return handler
                 else:
                     # Can't instantiate a function
                     handler = lambda: kallable(self, message)
-            else:
-                logging.debug('Msg path not found: %s' % (message.path))
-
+                    return handler
+            
         if handler is None:
             handler = self.base_handler(self, message)
 
