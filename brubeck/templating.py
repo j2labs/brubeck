@@ -25,7 +25,8 @@ class Jinja2Rendering():
     Render success is transmitted via http 200. Rendering failures result in
     http 500 errors.
     """
-    def render_template(self, template_file, _status_code=self._SUCCESS_CODE,
+    def render_template(self, template_file,
+                        _status_code=WebMessageHandler._SUCCESS_CODE,
                         **context):
         """Renders payload as a jinja template
         """
@@ -68,7 +69,8 @@ class TornadoRendering():
     to avoid conflict with **context. '_status_code', for now, is a reserved
     word.
     """
-    def render_template(self, template_file, _status_code=self._SUCCESS_CODE,
+    def render_template(self, template_file,
+                        _status_code=WebMessageHandler._SUCCESS_CODE,
                         **context):
         """Renders payload as a tornado template
         """
