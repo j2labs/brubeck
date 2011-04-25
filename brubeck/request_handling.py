@@ -14,8 +14,6 @@ See github.com/j2labs/brubeck for more information.
 import eventlet
 from eventlet import spawn, spawn_n, serve
 from eventlet.green import zmq
-from eventlet.hubs import get_hub, use_hub
-use_hub('zeromq')
 
 from . import version
 
