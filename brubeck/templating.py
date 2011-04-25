@@ -25,21 +25,22 @@ class Jinja2Rendering():
     Render success is transmitted via http 200. Rendering failures result in
     http 500 errors.
     """
-    def render_template(self, template_file, **context):
+    def render_template(self, template_file, _status_code=self._SUCCESS_CODE,
+                        **context):
         """Renders payload as a jinja template
         """
         jinja_env = self.application.template_env
         template = jinja_env.get_template(template_file)
         body = template.render(**context or {})
-        self.set_body(body)
-        return self.render(status_code=self._SUCCESS_CODE)
+        self.set_body(body, status_code=_status_code)
+        return self.render()
 
     def render_error(self, error_code):
         """Receives error calls and sends them through a templated renderer
         call.
         """
-        self.set_status(error_code)
-        return self.render_template('errors.html', **{'error_code': error_code})
+        return self.render_template('errors.html', _status_code=error_code,
+                                    **{'error_code': error_code})
 
 
 ###
@@ -62,19 +63,24 @@ class TornadoRendering():
     environment.
 
     Follows usual convention: 200 => success and 500 => failure
+
+    The unusual convention of an underscore in front of a variable is used
+    to avoid conflict with **context. '_status_code', for now, is a reserved
+    word.
     """
-    def render_template(self, template_file, **context):
+    def render_template(self, template_file, _status_code=self._SUCCESS_CODE,
+                        **context):
         """Renders payload as a tornado template
         """
         tornado_env = self.application.template_env
         template = tornado_env.load(template_file)
         body = template.generate(**context or {})
-        self.set_body(body)
-        return self.render(status_code=self._SUCCESS_CODE)
+        self.set_body(body, status_code=_status_code)
+        return self.render()
 
     def render_error(self, error_code):
         """Receives error calls and sends them through a templated renderer
         call.
         """
-        self.set_status(error_code)
-        return self.render_template('errors.html', **{'error_code': error_code})
+        return self.render_template('errors.html', _status_code=error_code,
+                                    **{'error_code': error_code})

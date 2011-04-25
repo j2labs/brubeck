@@ -336,9 +336,11 @@ class WebMessageHandler(MessageHandler):
     def body(self):
         return self._payload[self._BODY]
 
-    def set_body(self, body, headers=None):
+    def set_body(self, body, status_code=self._SUCCESS_CODE, headers=None):
+        """
+        """
         self._payload[self._BODY] = body
-        self.set_status(self._SUCCESS_CODE)
+        self.set_status(status_code)
         if headers is not None:
             self._payload[self._HEADERS] = headers
 
