@@ -192,6 +192,12 @@ class MessageHandler(object):
         """
         pass
 
+    @property
+    def db_conn(self):
+        """Short hand to put database connection in easy reach of handlers
+        """
+        return self.application.db_conn
+
     def unsupported(self):
         """Called anytime an unsupported request is made.
         """
@@ -509,7 +515,7 @@ class WebMessageHandler(MessageHandler):
 class Brubeck(object):
     def __init__(self, mongrel2_pair=None, handler_tuples=None, pool=None,
                  no_handler=None, base_handler=None, template_loader=None,
-                 log_level=logging.INFO, login_url=None,
+                 log_level=logging.INFO, login_url=None, db_conn=None,
                  *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
@@ -553,6 +559,9 @@ class Brubeck(object):
         self.base_handler = base_handler
         if self.base_handler is None:
             self.base_handler = WebMessageHandler
+
+        # A database connection is optional. The var name is now in place
+        self.db_conn = db_conn
 
         # Login url is optional
         self.login_url = login_url
