@@ -42,7 +42,7 @@ class User(Document):
         'password', 'is_active',
     ]
 
-    username_regex = re.compile('[^a-zA-Z0-9._]')
+    username_regex = re.compile('^[A-Za-z0-9._]+$')
     username_min_length = 2
 
     def __unicode__(self):
@@ -78,16 +78,18 @@ class User(Document):
         about password format.
         """
         now = curtime()
-        username = username.lower()
 
-        # validate email argument
-        try:
-            cls.validate_class_partial(dict(email=email))
-        except ValueError:
-            pass
-        else:
-            email = email.strip()
-            email = email.lower()
+        username = username.lower()
+        email = email.strip()
+        email = email.lower()
+
+        # Username must pass valid character range check.
+        if not cls.username_regex.match(username):
+            warning = 'Username failed character validation - username_regex'
+            raise ValueError(warning)
+        
+        # Caller should handle validation exceptions
+        cls.validate_class_partial(dict(email=email))
 
         user = cls(username=username, email=email, date_joined=now)
         user.set_password(password)
