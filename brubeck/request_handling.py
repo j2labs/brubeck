@@ -25,6 +25,9 @@ import time
 import logging
 import inspect
 import Cookie
+import base64
+import hmac
+import cPickle as pickle
 from functools import partial
 
 from mongrel2 import Mongrel2Connection
@@ -416,8 +419,9 @@ class WebMessageHandler(MessageHandler):
         """Retrieve a cookie from message, if present, else fallback to
         `default` keyword. Accepts a secret key to validate signed cookies.
         """
+        value = None
         if key in self.message.cookies:
-            return self.message.cookies[key].value
+            value = self.message.cookies[key].value
         if secret and value:
             dec = cookie_decode(value, secret) 
             return dec[1] if dec and dec[0] == key else None        
@@ -516,6 +520,7 @@ class Brubeck(object):
     def __init__(self, mongrel2_pair=None, handler_tuples=None, pool=None,
                  no_handler=None, base_handler=None, template_loader=None,
                  log_level=logging.INFO, login_url=None, db_conn=None,
+                 cookie_secret=None,
                  *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
@@ -566,6 +571,9 @@ class Brubeck(object):
         # Login url is optional
         self.login_url = login_url
             
+        # This must be set to use secure cookies
+        self.cookie_secret = cookie_secret
+
         # Any template engine can be used. Brubeck just needs a function that
         # loads the environment without arguments. 
         if callable(template_loader):
