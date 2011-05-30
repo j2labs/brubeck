@@ -35,6 +35,8 @@ Zed has kept the setup for Mongrel2 very easy. On my mac, I run the following st
 
 ## Python packages
 
+First of all, this works with virtualenv, if you choose to use it.
+
 If you have pip installed, you can use the requirements file. 
 
     $ cd ~/Desktop/brubeck
@@ -42,9 +44,9 @@ If you have pip installed, you can use the requirements file.
 
 If you don't have pip, you can easy_install the libraries listed.
 
-People who aren't using macports can use pip to install pyzmq. 
-
 ### PyZMQ
+
+People who aren't using macports can use pip to install pyzmq. 
 
 Because I use mac ports, I have to update a config file included in the release so pyzmq knows to look in /opt/local for the zeromq libraries.
 
@@ -55,6 +57,13 @@ That looks like this
     $ cp setup.cfg.template setup.cfg
     $ vi setup.cfg # Edit file to use /opt/local instead of /usr/local
     $ python ./setup.py install
+
+### Brubeck itself
+
+As the last step, install Brubeck.
+
+    $ cd ~/Desktop/brubeck
+    $ python setup.py install
 
 # A demo
 
