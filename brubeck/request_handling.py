@@ -294,7 +294,7 @@ class MessageHandler(object):
                     logging.debug('Handler had no return value: %s' % fun)
                     return ''
             except Exception, e:
-                logging.error(e)
+                logging.error(e, exc_info=True)
                 rendered = self.unsupported()
                 
             self._finished = True
