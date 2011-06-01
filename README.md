@@ -26,6 +26,15 @@ Brubeck has:
 * [A Requirements File](https://github.com/j2labs/brubeck/blob/master/requirements.txt)
 
 
+## Complete example: Listsurf
+
+Take a look at [listsurf](https://github.com/j2labs/listsurf). Listsurf is a
+to way to save links. Yeah, another delicious clone! Well, sorta. But it's also
+the building block towards projects for *most* people and can teach readers how
+to build a website and JSON API with data stored in MongoDB.
+
+* [listsurf](https://github.com/j2labs/listsurf)
+
 # Quick Look At The Code
 
 There are different opinions on how to properly set up routing systems in Python. 
