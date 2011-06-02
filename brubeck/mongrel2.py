@@ -1,5 +1,4 @@
 from eventlet.green import zmq
-import time
 import json
 from uuid import uuid4
 import cgi
@@ -33,6 +32,12 @@ class Request(object):
         self.conn_id = conn_id
         self.headers = headers
         self.body = body
+
+        if self.headers['METHOD'] == 'JSON':
+            self.data = json.loads(body)
+        else:
+            self.data = {}
+
 
         # populate arguments with QUERY string
         self.arguments = {}
@@ -103,7 +108,7 @@ class Request(object):
 
     def is_disconnect(self):
         if self.headers.get('METHOD') == 'JSON':
-            logging.error('DISONNECT')
+            logging.error('DISCONNECT')
             return self.headers.get('type') == 'disconnect'
 
     def should_close(self):
