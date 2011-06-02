@@ -109,7 +109,7 @@ class Request(object):
     def is_disconnect(self):
         if self.headers.get('METHOD') == 'JSON':
             logging.error('DISCONNECT')
-            return self.headers.get('type') == 'disconnect'
+            return self.data.get('type') == 'disconnect'
 
     def should_close(self):
         """Determines if Request data matches criteria for closing request"""
