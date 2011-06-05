@@ -6,16 +6,16 @@ All three packages live in github, so we'll clone the repos to our Desktop.
 
     $ cd ~/Desktop
     $ git clone https://github.com/j2labs/brubeck.git
-    $ git clone https://github.com/zeromq/libzmq.git
-    $ git clone https://github.com/zedshaw/mongrel2.git
+    $ git clone https://github.com/zedshaw/mongrel2.gi
+    $ wget http://download.zeromq.org/zeromq-2.1.7.tar.gz 
+    $ tar zxf zeromq-2.1.7.tar.gz
 
 
 ## ZeroMQ
 
 For us, ZeroMQ is actually two pieces: libzmq and pyzmq. libzmq must be installed by hand like you see below.
 
-    $ cd ~/Desktop/libzmq
-    $ git checkout -b v2.1.7 49df2f416cd43e9e18f3dbd964271c5cca835729
+    $ cd ~/Desktop/zeromq-2.1.7    
     $ ./autogen.sh
     $ ./configure  ## for mac ports use: ./configure --prefix=/opt/local
     $ make 
