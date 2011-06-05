@@ -2,61 +2,47 @@
 
 First, we have to install a few things. Brubeck depends on Mongrel2, ZeroMQ and a few python packages.
 
-To stay current, I build packages from source, but I fallback to the latest tagged release. This keeps me current and avoids the compile errors the git master branches sometimes have.
-
-Let's say, for conversation's sake, we're working from the desktop of a Mac and we are using Mac Ports. We'll first grab the necessary repos and then install them individually.
+All three packages live in github, so we'll clone the repos to our Desktop.
 
     $ cd ~/Desktop
     $ git clone https://github.com/j2labs/brubeck.git
-    $ git clone https://github.com/zeromq/zeromq2.git
-    $ git clone https://github.com/zeromq/pyzmq.git
+    $ git clone https://github.com/zeromq/libzmq.git
+    $ git clone https://github.com/zedshaw/mongrel2.git
+
 
 ## ZeroMQ
 
-On my mac, I build packages against Mac Ports.
+For us, ZeroMQ is actually two pieces: libzmq and pyzmq. libzmq must be installed by hand like you see below.
 
-    $ cd ~/Desktop/zeromq2
-    $ git checkout -v2.1.0
+    $ cd ~/Desktop/libzmq
+    $ git checkout -b v2.1.7 49df2f416cd43e9e18f3dbd964271c5cca835729
     $ ./autogen.sh
-    $ ./configure --prefix=/opt/local
+    $ ./configure  ## for mac ports use: ./configure --prefix=/opt/local
     $ make 
-    $ make install
+    $ sudo make install
+
 
 ## Mongrel2
 
-Zed has kept the setup for Mongrel2 very easy. On my mac, I run the following steps.
+Mongrel2 is also painless to setup.
 
-    $ cd ~/Desktop
-    $ wget http://mongrel2.org/static/downloads/mongrel2-1.5.tar.bz2
-    $ tar jxf mongrel2-1.5.tar.bz2
-    $ cd mongrel2-1.5
-    $ make macports
+    $ cd ~/Desktop/mongrel2
+    $ git checkout -b v1.5 996e9115ba603da473efb5568f413a1e8241a3b0
+    $ make  ## for mac ports use: make macports
     $ sudo make install
 
-## Python packages
 
-First of all, this works with virtualenv, if you choose to use it.
+## Python packages & Brubeck
+
+First, brubeck work great with virtualenv. I recommend using
 
 If you have pip installed, you can use the requirements file. 
 
     $ cd ~/Desktop/brubeck
     $ pip install -I -r ./requirements.txt
 
-If you don't have pip, you can easy_install the libraries listed.
+If you don't have `pip`, you can `easy_install` the libraries listed.
 
-### PyZMQ
-
-People who aren't using macports can use pip to install pyzmq. 
-
-Because I use mac ports, I have to update a config file included in the release so pyzmq knows to look in /opt/local for the zeromq libraries.
-
-That looks like this
-
-    $ cd ~/Desktop/pyzmq
-    $ git checkout -v2.0.10
-    $ cp setup.cfg.template setup.cfg
-    $ vi setup.cfg # Edit file to use /opt/local instead of /usr/local
-    $ python ./setup.py install
 
 ### Brubeck itself
 
@@ -64,6 +50,7 @@ As the last step, install Brubeck.
 
     $ cd ~/Desktop/brubeck
     $ python setup.py install
+
 
 # A demo
 
@@ -83,29 +70,6 @@ Now we'll turn on a Brubeck instance.
 If you see `Brubeck v0.x.x online ]------------` we can try loading a URL in a browser. 
 Now try [a web request(http://localhost:6767/brubeck/).
 
-## Web Request Example
-
-There is a [demo app](https://github.com/j2labs/brubeck/blob/master/demo/demo_minimal.py) included with Brubeck's source code. Tornado users will notice a familiar looking design.
-
-This example code creates a handler that responds to HTTP GET. We see that because the handler implemented a function called `get()`. 
-
-Mongrel2 communicates with Brubeck over two local unix sockets. It could be tcp or even multicast, but the example uses ipc. 
-
-We configure URL routing as an iterable of two-tuples. The first item is the URL pattern (/brubeck) and the second is the callable to handle this request. I like classes for handling requests, as seen in Tornado, but a simple funciton could be used if you prefer that.
-
-    class DemoHandler(WebMessageHandler):
-        def get(self):
-            self.set_body('Take five!') # hello world is boring
-            self.set_status(200)
-            return self.render()
-
-    pull_addr = 'ipc://127.0.0.1:9999'
-    pub_addr = 'ipc://127.0.0.1:9998'
-
-    handler_tuples = [(r'^/brubeck', DemoHandler)]
-
-    app = Brubeck((pull_addr, pub_addr), handler_tuples)
-    app.run()
 
 ## Mongrel2 configuration
 
@@ -140,6 +104,4 @@ This is what the Mongrel2 configuration looks like for the demo project.
     
 In short, it says any requests for `http://localhost:6767/` should be sent to the Brubeck handler. 
 
-Did you notice that Brubeck is configured to answer /brubeck, but Mongrel2 will send all web requests to Brubeck? Try a URL that Brubeck isn't ready for to see how it errors.
-
-The web server is answer requests on port `6767`. It's also logging into a `/log` directory and puts the processes pid in a `/run` directory.
+The web server is also configured to answer requests on port `6767`, logging to `./log` directory and puts the mongrel2 pid in a pidfile in the `./run` directory.
