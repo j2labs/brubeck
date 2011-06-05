@@ -1,31 +1,47 @@
-# Bird's eye view
+# Bird's Eye View
 
-Brubeck reads and processes ZeroMQ messages, as sent by Mongrel2, by splitting the processing into a pipeline of [coroutines](http://en.wikipedia.org/wiki/Coroutine). Cooperative threading makes threading a little bit easier to think about but the big gain is the lightweight process model, as provided by [Greenlet](http://pypi.python.org/pypi/greenlet).
+Brubeck processes and responds to messages sent from Mongrel2. By splitting the processing into a pipeline of lightweight [coroutines](http://en.wikipedia.org/wiki/Coroutine), Brubeck can handle a large number of tasks simultaneously. Many more tasks than tradition OS threads allow.
 
-Brubeck uses [non-blocking I/O](http://en.wikipedia.org/wiki/Asynchronous_I/O), as provided by [eventlet](http://eventlet.net/). By using Eventlet, Brubeck might be able to turn your blocking code into [non-blocking code](http://eventlet.net/doc/patching.html) automatically.
+## Goals
 
-Brubeck offers a database-agnostic data modeling layer by using [DictShield](https://github.com/j2labs/dictshield). DictShield provides ways of structuring and validating data without taking a stance on which database system you use.
+* __Be Fast__: Brubeck is currently very fast. We intend to keep it that way.
+
+* __Scalable__: Massive scaling capabilities should be available out of the box.
+
+* __Friendly__: All of the speed and scale should be available to Python hackers of any skill level.
+
+* __Pluggable__: Brubeck can speak to any language and any database - it will fit nicely in your current network.
+
 
 # Dependencies
 
-Brubeck leverages a few awesome Python packages for most of it's magic. Credit must be given where credit is due.
+Brubeck leverages a few awesome Python packages for most of it's magic.
+
+Credit must be given where credit is due.
+
 
 ## Mongrel2 + ZeroMQ
 
 Mongrel2 is an asynchronous and language-agnostic (!!) web server by [Zed Shaw](http://zedshaw.com/). Mongrel2 handles everything relevant to HTTP and has facilities for passing request handling to external services via ZeroMQ sockets. 
 
-Back before Brubeck existed, I covered the gist of how Mongrel2 uses ZeroMQ to fulfill requests in a blog post: [A Short Introduction To Mongrel2](http://j2labs.tumblr.com/post/3201232215/mongrel2-a-short-introduction).
+This decoupling of the webserver from the request handling allows for interesting web service topologies. It also allows for easy scaling, since you can simply connect a new handler to existing Mongrel2 instances and immediately become part of the handler pool.
+
+Similarly, if a handler dies, it is removed from the pool immediately. Contrast this vs nginx likely waiting 10 seconds before it notices the host is down.
 
 * [Mongrel2](http://mongrel2.org)
 * [ZeroMQ guide](http://zguide.zeromq.org/)
+
 
 ## Eventlet
 
 Eventlet is a concurrent networking library for Python. We get concurrency in the form of coroutines and an implicit scheduler. The coroutines, which can be thought of as a replacement for threads, are very cheap. So cheap that you don't have to think too hard on how many you spawn. 
 
-Brubeck, then, is a pipeline of coroutines attempting to fulfill web requests. By using greenlets in conjunction with a scheduler, Eventlet has the necessary pieces to handle nonblocking I/O for us. It can even monkey patch existing Python code, by providing new modules for socket, threading and others. Modules written entirely in Python likely depend on these, so Eventlet transforms them coroutine friendly at a very low level.
+Brubeck, then, is a pipeline of coroutines attempting to fulfill web requests. By using greenlets in conjunction with a scheduler, Eventlet has the necessary pieces to handle nonblocking I/O for us.
+
+It can even monkey patch existing Python code, by providing new modules for socket, threading and others. Modules written entirely in Python likely depend on these, so Eventlet transforms them coroutine friendly at a very low level.
 
 * [Evenlet](http://eventlet.net).
+
 
 ## DictShield
 
@@ -34,6 +50,7 @@ DictShield offers input validation and structuring without taking a stance on wh
 DictShield strives to be database agnostic in the same way that Mongrel2 is language agnostic.
 
 * [DictShield](https://github.com/j2labs/dictshield)
+
 
 # The General Design
 
