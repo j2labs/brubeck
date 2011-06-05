@@ -190,4 +190,4 @@ You then attempt to retrieve the cookie value by passing the application's secre
 What you do from there is up to you.
 
 
-# J2 Labs LLC
+# Brubeck.io

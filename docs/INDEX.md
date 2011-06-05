@@ -28,4 +28,4 @@ This is a whole Brubeck application.
                   handler_tuples=urls)
     app.run()
 
-# J2 Labs LLC
+# Brubeck.io
