@@ -2,7 +2,11 @@
 
 __Brubeck__ is a flexible Python web framework that aims to make the process of building scalable web services easy.
 
-The Brubeck model resembles what companies build when they operate at large scale, yet the experience couldn't be much simpler. There are no confusing callback's that obfuscate the code. No strong opinions about what database you should use. And a familiar style that users of Tornado or Flask will recognize.
+The Brubeck model resembles what companies build when they operate at large scale, but working with it will feel like what you're used to from other frameworks.
+
+* No confusing callbacks
+* No database opinions
+* Built-in distributed load balancing
 
 
 ## Example: Hello World
@@ -31,7 +35,7 @@ Brubeck gets by with a little help from it's friends:
 * [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
 * [DictShield](https://github.com/j2labs/dictshield): data modeling & validation with no database opinions
 
-It's also quite fast. Please see this completely unscientific comparison of Brubeck and Tornado: [https://gist.github.com/882555](https://gist.github.com/882555).
+Please also see this completely unscientific comparison of Brubeck and Tornado: [https://gist.github.com/882555](https://gist.github.com/882555).
 
 
 ## Complete Example: Listsurf
