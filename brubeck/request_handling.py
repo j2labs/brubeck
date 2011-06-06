@@ -683,7 +683,10 @@ class Brubeck(object):
         try:
             while True:
                 request = self.m2conn.recv()
-                self.pool.spawn_n(route_message, self, request)
+                if request.is_disconnect():
+                    continue
+                else:
+                    self.pool.spawn_n(route_message, self, request)
         except KeyboardInterrupt, ki:
             # Put a newline after ^C
             print '\nBrubeck going down...'
