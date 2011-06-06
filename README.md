@@ -35,7 +35,9 @@ Brubeck gets by with a little help from it's friends:
 * [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
 * [DictShield](https://github.com/j2labs/dictshield): data modeling & validation with no database opinions
 
-Please also see this completely unscientific comparison of Brubeck and Tornado: [https://gist.github.com/882555](https://gist.github.com/882555).
+Please also see this completely unscientific comparison of Brubeck and Tornado:
+
+* [500 concurrent connections for 10 seconds](https://gist.github.com/882555)
 
 
 ## Complete Example: Listsurf
