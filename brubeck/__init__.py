@@ -2,6 +2,6 @@
 
 """The Brubeck Message Handling system."""
 
-version = "0.2.7"
-version_info = (0, 2, 7)
+version = "0.2.9"
+version_info = (0, 2, 9)
 __all__ = [ 'auth', 'models', 'mongrel2', 'request_handling', 'templating',]
