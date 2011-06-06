@@ -33,9 +33,40 @@ Mongrel2 is also painless to setup.
 
 ## Python packages & Brubeck
 
-First, brubeck work great with virtualenv. I recommend using
+Brubeck works great with virtualenv. I highly recommend using it. 
 
-If you have pip installed, you can use the requirements file. 
+In fact, let's stop for a second and talk about it.
+
+
+### virtualenv & virtualenvwrapper
+
+Virtualenv is a way to construct isolated python environments. Very handy for managing multiple environments in a single machine.
+
+Install both virtualenv and virtualenvwrapper with `pip`.
+
+    pip install virtualenv virtualenvwrapper
+
+Then, we must configure our shell to know where to store our virtualenv's. While we're there, we'll source the virtualenvwrapper shell script.
+
+Open your `.profile` or `.bashrc` and add the following two lines.
+
+    export WORKON_HOME="~/.virtualenvs"
+    source /usr/local/bin/virtualenvwrapper
+
+By sourcing virtualenvwrapper, you get a simple interface for creating, managing and removing virutalenv environments.
+
+    $ mkvirtualenv <env_name> # Creates a virtual environment
+    $ deactivate              # Turn off a virtual environment
+    $ workon <env_name>       # Turn on a virtual environment
+
+For more information, see my quick & dirty howto.
+
+* [Quick & Dirty Virtualenv & Virtualenvwrapper](http://j2labs.tumblr.com/post/5181438807/quick-dirty-virtualenv-virtualenvwrapper)
+    
+
+## Back to Python packages & Brubeck
+
+If you have pip installed, you can install everything with the requirements file. 
 
     $ cd ~/Desktop/brubeck
     $ pip install -I -r ./requirements.txt
@@ -103,6 +134,7 @@ This is what the Mongrel2 configuration looks like for the demo project.
     
 In short, it says any requests for `http://localhost:6767/` should be sent to the Brubeck handler. 
 
-The web server is also configured to answer requests on port `6767`, logging to `./log` directory and puts the mongrel2 pid in a pidfile in the `./run` directory.
+The web server answers requests on port `6767`. It logs to the `./log` directory. It also writes a pidfile in the `./run` to the run directory. 
+
 
 # Brubeck.io

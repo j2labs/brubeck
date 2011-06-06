@@ -2,14 +2,7 @@
 
 __Brubeck__ is a flexible Python web framework that aims to make the process of building scalable web services easy.
 
-Build for scale at the same time you're prototyping your idea.
-
-
-# Learn More
-
-The [documentation](readme.html) goes into much more detail about Brubeck's design. 
-
-You will find lots of code samples for designing request handler, authentication, cookies, and rendering templates.
+The [documentation](readme.html) goes into much more detail about Brubeck's design. There, you will find lots of code samples for building request handlers, authentication, rendering templates and more.
 
 
 # Example: Hello World
@@ -27,5 +20,15 @@ This is a whole Brubeck application.
     app = Brubeck(mongrel2_pair=mongrel2_pair,
                   handler_tuples=urls)
     app.run()
+
+
+# Complete Example: Listsurf
+
+__Listsurf__ is a simple to way to save links. Yeah... another delicious clone!
+
+It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating and stores data in [MongoDB](http://mongodb.org).
+
+* [Listsurf on GitHub](https://github.com/j2labs/listsurf)
+
 
 # Brubeck.io

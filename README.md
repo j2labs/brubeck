@@ -2,9 +2,7 @@
 
 __Brubeck__ is a flexible Python web framework that aims to make the process of building scalable web services easy.
 
-The Brubeck model resembles what companies build when they operate at large scale, yet the experience couldn't be much simpler.
-
-Build for scale at the same time you're prototyping your idea.
+The Brubeck model resembles what companies build when they operate at large scale, yet the experience couldn't be much simpler. There are no confusing callback's that obfuscate the code. No strong opinions about what database you should use. And a familiar style that users of Tornado or Flask will recognize.
 
 
 ## Example: Hello World
@@ -26,42 +24,44 @@ This is a whole Brubeck application.
 
 ## Features
 
-Brubeck gets by with a little help from these friends:
+Brubeck gets by with a little help from it's friends:
 
 * [Mongrel2](http://mongrel2.org): lean & fast, asynchronous web serving
 * [Eventlet](http://eventlet.net): non-blocking I/O & coroutines
 * [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
 * [DictShield](https://github.com/j2labs/dictshield): data modeling & validation with no database opinions
 
+It's also quite fast. Please see this completely unscientific comparison of Brubeck and Tornado: [https://gist.github.com/882555](https://gist.github.com/882555).
+
 
 ## Complete Example: Listsurf
 
 __Listsurf__ is a simple to way to save links. Yeah... another delicious clone!
 
-It serves as a basic demonstration of what a complete site looks like when you built with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating and stores data in [MongoDB](http://mongodb.org).
+It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating and stores data in [MongoDB](http://mongodb.org).
 
 * [Listsurf on GitHub](https://github.com/j2labs/listsurf)
 
 
 # Closer Look At The Code
 
-In this section we'll discuss writing request handler, adding user authentication and rendering pages with templates.
+In this section we'll discuss writing a request handler, adding user authentication and rendering pages with templates.
 
 
 ## Handling Requests
 
 The framework can be used for different requirements. It can be lean and lightweight for high throughput or you can fatten it up and use it for rendering pages in a database backed CMS.
 
-The general architecture of the system is to map requests for a specific URL to some [callable](http://docs.python.org/library/functions.html#callable) to handle it. The configuration attempts to match handlers to URL's by inspecting a list of `(url pattern, callable)` tuples.
+The general architecture of the system is to map requests for a specific URL to some [callable](http://docs.python.org/library/functions.html#callable) for processing the request. The configuration attempts to match handlers to URL's by inspecting a list of `(url pattern, callable)` tuples.
 
 Some people like to use classes as handlers. Some folks prefer to use functions. Brubeck supports both.
 
 
 ### MessageHandler Classes
 
-When a class model is used, the class will be instantiated for the life of the request and then thrown away. This makes building state for each request fairly easy, since you can just attach members to `self` knowing that memory will be back soon.
+When a class model is used, the class will be instantiated for the life of the request and then thrown away. This makes building state for each request fairly easy.
 
-Brubeck's `MessageHandler` design is similar to what you see in [Facebook's Tornado](https://github.com/facebook/tornado), or [web.py](http://webpy.org/).
+Brubeck's `MessageHandler` design is similar to what you see in [Tornado](https://github.com/facebook/tornado), or [web.py](http://webpy.org/). 
 
 To answer HTTP GET requests, implement `get()` on a WebMessageHandler instance.
 
@@ -70,15 +70,14 @@ To answer HTTP GET requests, implement `get()` on a WebMessageHandler instance.
             self.set_body('Take five!')
             return self.render()
 
-Then we add `DemoHandler` to the routing config instantiate a Brubeck instance. 
-
-That looks like this:
+Then we add `DemoHandler` to the routing config and instantiate a Brubeck instance. 
 
     urls = [(r'^/brubeck', DemoHandler)]
     config = {
         'handler_tuples': urls,
         ...
     }
+    
     Brubeck(**config).run()
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
@@ -104,9 +103,9 @@ That looks like this:
 
 ## Templates
 
-Templates support is contained in `brubeck.templates` as rendering mixins. Brubeck currently supports [Jinja2](http://jinja.pocoo.org/) or [Tornado](http://www.tornadoweb.org/documentation#templates) templates.
+Brubeck currently supports [Jinja2](http://jinja.pocoo.org/) or [Tornado](http://www.tornadoweb.org/documentation#templates) templates.
 
-Each Mixin will attach a `render_template` function to your handler and overwrite the default `render_error` to produce templated errors messages.
+Template support is contained in `brubeck.templates` as rendering mixins. Each Mixin will attach a `render_template` function to your handler and overwrite the default `render_error` to produce templated errors messages.
 
 Using a template system is then as easy as calling `render_template` with the template filename and some context, just like you're used to.
 
@@ -141,6 +140,24 @@ Tornado templates are supported by the TornadoRendering mixin. The code looks vi
 * [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/tornado)
 
 
+### Template loading
+
+Along with the template rendering, you must provide the path to your templates. If Jinja2 templates serve your needs, Providing that path in a call to `load_jinja2_env` is all you need.
+
+That looks like this:
+
+    from brubeck.templating import load_jinja2_env
+
+    config = {
+        template_loader=load_jinja2_env('./templates/jinja2')
+        ...
+    }
+
+If you have something more sophisticated in mind, you'll be glad to know `load_jinja2_env` actually returns the template loading function provided by each rendering engine. 
+
+Swap in whatever rendering engine you like best.
+
+
 ## Auth
 
 Authentication can be provided by decorating functions with the `@web_authenticated` decorator. This decorator expects the handler to have a `current_user` property that returns either an authenticated `User` model or None. 
@@ -164,7 +181,11 @@ The `User` model in brubeck.auth will probably serve as a good basis for your ne
         """Bare minimum to have the concept of a User.
         """
         username = StringField(max_length=30, required=True)
+        email = EmailField(max_length=100)
         password = StringField(max_length=128)
+        is_active = BooleanField(default=False)
+        last_login = LongField(default=curtime)
+        date_joined = LongField(default=curtime)        
         ...
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py)
@@ -181,7 +202,7 @@ You first add the cookie secret to your Brubeck config.
         ...
     }
 
-You then attempt to retrieve the cookie value by passing the application's secret key into the `get_cookie` function.
+Then retrieve the cookie value by passing the application's secret key into the `get_cookie` function.
 
     # Try loading credentials from secure cookie
     user_id = self.get_cookie('user_id',

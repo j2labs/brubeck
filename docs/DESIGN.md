@@ -2,22 +2,23 @@
 
 Brubeck processes and responds to messages sent from Mongrel2. By splitting the processing into a pipeline of lightweight [coroutines](http://en.wikipedia.org/wiki/Coroutine), Brubeck can handle a large number of tasks simultaneously. Many more tasks than tradition OS threads allow.
 
+
 ## Goals
 
 * __Be Fast__: Brubeck is currently very fast. We intend to keep it that way.
 
 * __Scalable__: Massive scaling capabilities should be available out of the box.
 
-* __Friendly__: All of the speed and scale should be available to Python hackers of any skill level.
+* __Friendly__: Should be easy for Python hackers of any skill level to use.
 
-* __Pluggable__: Brubeck can speak to any language and any database - it will fit nicely in your current network.
+* __Pluggable__: Brubeck can speak to any language and any database.
 
 
 # Dependencies
 
-Brubeck leverages a few awesome Python packages for most of it's magic.
+Brubeck leverages a few awesome Python packages for most of it's magic. Credit must be given where credit is due. 
 
-Credit must be given where credit is due.
+Feel free to skip to The General Design further down if you understand the dependencies.
 
 
 ## Mongrel2 + ZeroMQ
@@ -26,7 +27,7 @@ Mongrel2 is an asynchronous and language-agnostic (!!) web server by [Zed Shaw](
 
 This decoupling of the webserver from the request handling allows for interesting web service topologies. It also allows for easy scaling, since you can simply connect a new handler to existing Mongrel2 instances and immediately become part of the handler pool.
 
-Similarly, if a handler dies, it is removed from the pool immediately. Contrast this vs nginx likely waiting 10 seconds before it notices the host is down.
+Similarly, if a handler dies, it is removed from the pool immediately. Contrast this with nginx likely waiting 10 seconds before it notices the upstream host is down.
 
 * [Mongrel2](http://mongrel2.org)
 * [ZeroMQ guide](http://zguide.zeromq.org/)
@@ -34,18 +35,43 @@ Similarly, if a handler dies, it is removed from the pool immediately. Contrast 
 
 ## Eventlet
 
-Eventlet is a concurrent networking library for Python. We get concurrency in the form of coroutines and an implicit scheduler. The coroutines, which can be thought of as a replacement for threads, are very cheap. So cheap that you don't have to think too hard on how many you spawn. 
+Eventlet is a concurrent networking library for Python. We get concurrency in the form of [coroutines](http://pypi.python.org/pypi/greenlet) and an implicit scheduler. The coroutines, which can be thought of as something of a replacement for threads, are very cheap. So cheap that you don't have to think too hard on how many you spawn. 
 
-Brubeck, then, is a pipeline of coroutines attempting to fulfill web requests. By using greenlets in conjunction with a scheduler, Eventlet has the necessary pieces to handle nonblocking I/O for us.
 
-It can even monkey patch existing Python code, by providing new modules for socket, threading and others. Modules written entirely in Python likely depend on these, so Eventlet transforms them coroutine friendly at a very low level.
+### Coroutines
+
+Brubeck is basically a pipeline of coroutines attempting to fulfill web requests. By using coroutines in conjunction with a scheduler, Eventlet has the necessary pieces to also provide nonblocking I/O.
+
+Python programmers have seen asynchronous, nonblocking I/O typically done as a chain of callbacks that interact with a scheduler. System design can become foggy when many callbacks are chained together. And, many drivers for things like databases are synchronous / blocking too, so steps must be taken to make them compatible.
+
+
+### Back To Eventlet
+
+Eventlet makes this easier through implicit context switching. Each time your code reaches a I/O point, eventlet will step in and switch to some other coroutines and handle the complication for you, implicitly.
+
+Brubeck then shares time between reading Mongrel2 messages, processing the messages, and writing responses back to Mongrel2. Your request handler is inserted inbetween those steps, making all of your I/O calls part of the asynchronous, nonblocking system automatically.
+
+The end result is that your code looks synchronous (read: no callback spaghetti)
 
 * [Evenlet](http://eventlet.net).
 
 
+### Alternatives
+
+Some folks prefer [gevent](http://gevent.org) over eventlet. Brubeck has a branch adding support for that. (Thanks [d1on](https://github.com/d1on)
+
+* [gevent support](https://github.com/j2labs/brubeck/tree/gevent)
+
+There are also reasonable arguments for explicit context switching. If prefer that model, I recommend the systems below:
+
+* [Twisted Project](http://twistedmatrix.com/)
+* [Node.js](http://nodejs.org)
+* [Web Machine](https://bitbucket.org/justin/webmachine/wiki/Home)
+
+
 ## DictShield
 
-DictShield offers input validation and structuring without taking a stance on what database you should be using. There are many good reasons to use all kinds of databases. DictShield only cares about Python structures, so if you can get your data into those, DictShield will handle the rest. 
+DictShield offers input validation and structuring without taking a stance on what database you should be using. There are many good reasons to use all kinds of databases. DictShield only cares about Python dictionaries. If you can get your data into those, DictShield will handle the rest. 
 
 DictShield strives to be database agnostic in the same way that Mongrel2 is language agnostic.
 
@@ -56,13 +82,22 @@ DictShield strives to be database agnostic in the same way that Mongrel2 is lang
 
 Now that we know what the dependencies offer, let's consider how to put them together. 
 
-The general idea is to pull a message off the ZeroMQ socket, route it to the correct function for handling it and then send a response back to Mongrel2. As said in the README, the message is done via three coroutines. If you are implementing a message handler, your code would run in the second coroutine.
+The general idea is to pull a message off the ZeroMQ socket, route it to the correct function for handling it and then send a response back to Mongrel2. This process takes place across three coroutines. If you are implementing a message handler, your code would run in the second coroutine. The other two are hidden away inside Brubeck for pre and post-processing.
 
-Setting up a Brubeck instance is then as simple as configuring two ZeroMQ sockets and some routes for handling URL's.
+To set up a Brubeck instance, you configure two ZeroMQ sockets, some routes for handling URL's, and call `run()`.
+
+    config = {
+        'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998')
+        'handler_tuples': [(r'^/url/path, SomeHandler)]
+    }
+    
+    Brubeck(**config).run()
+
 
 ## request_handling.py
 
 In `brubeck.request_handling` we see a section for message pipelining coroutines, a section for message handling and a section for the Brubeck application logic. A Brubeck instance creates a Mongrel2 connection and provides a `run()` function to start waiting for Mongrel2 messages. `run()` is similar to `IOLoop.start()` in Tornado.
+
 
 ### Routing Coroutines
 
@@ -73,6 +108,7 @@ The general strucuture for the preprocessing, message processing and post-proces
 * `request_handler` is the follow-up coroutine. It's job is simply to call the handler and spawn the final coroutine for post-processing.
 
 * `result_handler` is the final coroutine. It currently just takes the handler's response and sent it along to Mongrel2.
+
 
 ### Message Routing and Handling
 
@@ -86,6 +122,7 @@ The response just needs to be a string. MessageHandler is a base class for handl
 
 By using a callable and expecting a string response, leaner programmers can avoid using classes altogether. Map a URL to a function directly.
 
+
 ## mongrel2.py
 
 This module provides functions and a class for parsing a message from Mongrel2 and a class for managing the details of a Mongrel2 connection.
@@ -95,5 +132,6 @@ A call to `recv()` on connection instance will block until a message arrives or 
 `Request.method()` will tell us whether the message was HTTP GET or POST, etc. `Request.version()` tells us the HTTP version used.
 
 This class is kept simple on purpose and could be used outside Brubeck for parsing Mongrel2 messages.
+
 
 # Brubeck.io
