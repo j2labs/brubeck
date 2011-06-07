@@ -21,7 +21,7 @@ def name_handler(application, message, name):
 
 
 urls = [(r'^/$', IndexHandler),
-        (r'^/class/(?P<name>\w+)$', NameHandler),
+        (r'^/class/(\w+)$', NameHandler),
         (r'^/fun/(?P<name>\w+)$', name_handler)]
 
 config = {
