@@ -146,7 +146,7 @@ Tornado templates are supported by the TornadoRendering mixin. The code looks vi
 * [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/tornado)
 
 
-### Template loading
+### Template Loading
 
 Along with the template rendering, you must provide the path to your templates. If Jinja2 templates serve your needs, Providing that path in a call to `load_jinja2_env` is all you need.
 
@@ -159,9 +159,10 @@ That looks like this:
         ...
     }
 
-If you have something more sophisticated in mind, you'll be glad to know `load_jinja2_env` actually returns the template loading function provided by each rendering engine. 
 
-Swap in whatever rendering engine you like best.
+### Custom Rendering
+
+If you have something else in mind, you'll be glad to know `template_loader` can be any callable that loads a rendering environment. Brubeck calls this during initialization and attach the output to `self.template_env`, which you use in your handlers.
 
 
 ## Auth
