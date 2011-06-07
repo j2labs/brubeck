@@ -2,7 +2,6 @@
 
 
 import sys
-import logging
 
 from brubeck.request_handling import Brubeck, WebMessageHandler, http_response
 
@@ -18,8 +17,6 @@ class NameHandler(WebMessageHandler):
         return self.render()
 
 def name_handler(application, message, name):
-    import logging
-    logging.info('%s %s %s (%s)' % (200, message.method, message.path, '...'))
     return http_response('Take five, %s!' % (name), 200, 'OK', {})
 
 
@@ -37,7 +34,6 @@ app = Brubeck(**config)
 
 @app.add_route('^/deco/(?P<name>\w+)$', method='GET')
 def new_name_handler(application, message, name):
-    logging.info('%s %s %s (%s)' % (200, message.method, message.path, '...'))
     return http_response('Take five, %s!' % (name), 200, 'OK', {})
 
 
