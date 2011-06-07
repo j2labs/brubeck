@@ -148,7 +148,7 @@ Tornado templates are supported by the TornadoRendering mixin. The code looks vi
 
 ### Template Loading
 
-Along with the template rendering, you must provide the path to your templates. If Jinja2 templates serve your needs, Providing that path in a call to `load_jinja2_env` is all you need.
+In addition to using a rendering mixin, you need to provide the path to your templates.
 
 That looks like this:
 
@@ -159,10 +159,16 @@ That looks like this:
         ...
     }
 
+Using a function here keeps the config lightweight.
+
 
 ### Custom Rendering
 
-If you have something else in mind, you'll be glad to know `template_loader` can be any callable that loads a rendering environment. Brubeck calls this during initialization and attach the output to `self.template_env`, which you use in your handlers.
+If you have something else in mind, you'll be glad to know `template_loader` can be any callable that loads a rendering environment. Brubeck calls this during initialization and attaches the output to `self.application.template_env`.
+
+The current convention is for handlers to provide a `render_template` and `render_error` function. These functions typically use `self.application.template_env` to render request specific data.
+
+* [brubeck.templating](https://github.com/j2labs/brubeck/blob/master/brubeck/templating.py#L1)
 
 
 ## Auth
