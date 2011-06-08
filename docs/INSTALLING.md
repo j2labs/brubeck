@@ -4,7 +4,7 @@ First, we have to install a few things. Brubeck depends on Mongrel2, ZeroMQ and 
 
 All three packages live in github, so we'll clone the repos to our Desktop.
 
-    $ cd ~/Desktop
+    $ cd ~/Desktop/
     $ git clone https://github.com/j2labs/brubeck.git
     $ git clone https://github.com/zedshaw/mongrel2.git
     $ wget http://download.zeromq.org/zeromq-2.1.7.tar.gz 
