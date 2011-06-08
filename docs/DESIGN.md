@@ -88,7 +88,7 @@ To set up a Brubeck instance, you configure two ZeroMQ sockets, some routes for 
 
     config = {
         'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998')
-        'handler_tuples': [(r'^/url/path, SomeHandler)]
+        'handler_tuples': [(r'^/url/path', SomeHandler)]
     }
     
     Brubeck(**config).run()
