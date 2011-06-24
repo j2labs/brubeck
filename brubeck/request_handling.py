@@ -439,7 +439,7 @@ class WebMessageHandler(MessageHandler):
             self._cookies = Cookie.SimpleCookie()
         return self._cookies
 
-    def set_cookie(self, key, value, secret=None, **kargs):
+    def set_cookie(self, key, value, secret=None, **kwargs):
         """Add a cookie or overwrite an old one. If the `secret` parameter is
         set, create a `Signed Cookie` (described below).
 
@@ -461,10 +461,11 @@ class WebMessageHandler(MessageHandler):
         elif not isinstance(value, basestring):
             raise TypeError('Secret missing for non-string Cookie.')
 
+        # Set cookie value
         self.cookies[key] = value
-        
+
         # handle keywords
-        for k, v in kargs.iteritems():
+        for k, v in kwargs.iteritems():
             self.cookies[key][k.replace('_', '-')] = v
 
     def delete_cookie(self, key, **kwargs):
