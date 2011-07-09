@@ -134,7 +134,7 @@ This is what the Mongrel2 configuration looks like for the demo project.
     
 In short, it says any requests for `http://localhost:6767/` should be sent to the Brubeck handler. 
 
-The web server answers requests on port `6767`. It logs to the `./log` directory. It also writes a pidfile in the `./run` to the run directory. 
+The web server answers requests on port `6767`. It logs to the `./log` directory. It also writes a pidfile in the `./run` directory. 
 
 
 # Brubeck.io
