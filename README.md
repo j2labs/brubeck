@@ -58,14 +58,14 @@ In this section we'll discuss writing a request handler, adding user authenticat
 
 The framework can be used for different requirements. It can be lean and lightweight for high throughput or you can fatten it up and use it for rendering pages in a database backed CMS.
 
-The general architecture of the system is to map requests for a specific URL to some [callable](http://docs.python.org/library/functions.html#callable) for processing the request. The configuration attempts to match handlers to URL's by inspecting a list of `(url pattern, callable)` tuples.
+The general architecture of the system is to map requests for a specific URL to some [callable](http://docs.python.org/library/functions.html#callable) for processing the request. The configuration attempts to match handlers to URL's by inspecting a list of `(url pattern, callable)` tuples. First regex to match provides the callable.
 
 Some people like to use classes as handlers. Some folks prefer to use functions. Brubeck supports both.
 
 
 ### MessageHandler Classes
 
-When a class model is used, the class will be instantiated for the life of the request and then thrown away. This makes building state for each request fairly easy.
+When a class model is used, the class will be instantiated for the life of the request and then thrown away. This keeps our memory requirements nice and light.
 
 Brubeck's `MessageHandler` design is similar to what you see in [Tornado](https://github.com/facebook/tornado), or [web.py](http://webpy.org/). 
 
@@ -85,6 +85,8 @@ Then we add `DemoHandler` to the routing config and instantiate a Brubeck instan
     }
     
     Brubeck(**config).run()
+    
+Notice the url regex is `^/brubeck`. This will put our handler code on `http://hostname/brubeck`. 
 
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
 
@@ -92,6 +94,8 @@ Then we add `DemoHandler` to the routing config and instantiate a Brubeck instan
 ### Functions and Decorators
 
 If you'd prefer to just use a simple function, you instantiate a Brubeck instance and wrap your function with the `add_route` decorator. 
+
+Your function will be given two arguments. First, is the `application` itself. This provides the function with a hook almost all the information it might need. The second argument, the `message`, provides all the information available about the request.
 
 That looks like this:
 
@@ -204,6 +208,28 @@ The `User` model in brubeck.auth will probably serve as a good basis for your ne
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py)
 
 
+### Database Connections
+
+Database connectivity is provided in the form of a `db_conn` member on the `MessageHandler` instances when a `db_conn` flag is passed to the Brubeck instance.
+
+That looks like this:
+
+    config = {
+        'db_conn': db_conn,
+        ...
+    }
+
+    app = Brubeck(**config)
+    
+For people using `MessageHandler` instances, the database connection is available as `self.db_conn`.
+
+For people using the function and decorator approach, you can get the database connection off the `application` argument, `application.db_conn`.
+
+Query code then looks like this with the database connection as the first argument.
+
+    user = load_user(self.db_conn, username='jd')
+
+
 ### Secure Cookies
 
 If you need a session to persist, you can use Brubeck's secure cookies to track users.
@@ -221,7 +247,7 @@ Then retrieve the cookie value by passing the application's secret key into the 
     user_id = self.get_cookie('user_id',
                               secret=self.application.cookie_secret)
 
-What you do from there is up to you.
+What you do from there is up to you, but you'll probably be loading the user_id from a database or cache to get the rest of the account info. 
 
 
 # Brubeck.io

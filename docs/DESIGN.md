@@ -2,6 +2,10 @@
 
 Brubeck processes and responds to messages sent from Mongrel2. By splitting the processing into a pipeline of lightweight [coroutines](http://en.wikipedia.org/wiki/Coroutine), Brubeck can handle a large number of tasks simultaneously. Many more tasks than tradition OS threads allow.
 
+Veteran Python hackers can probably skip past the dependencies section.
+
+Please keep reading if you're unfamiliar with ZeroMQ, Eventlet, Mongrel2 or DictShield for a brief introduction to each.
+
 
 ## Goals
 
@@ -17,8 +21,6 @@ Brubeck processes and responds to messages sent from Mongrel2. By splitting the 
 # Dependencies
 
 Brubeck leverages a few awesome Python packages for most of it's magic. Credit must be given where credit is due. 
-
-Feel free to skip to The General Design further down if you understand the dependencies.
 
 
 ## Mongrel2 + ZeroMQ

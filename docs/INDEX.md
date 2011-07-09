@@ -2,7 +2,7 @@
 
 __Brubeck__ is a flexible Python web framework that aims to make the process of building scalable web services easy.
 
-The [documentation](readme.html) goes into much more detail about Brubeck's design. There, you will find lots of code samples for building request handlers, authentication, rendering templates and more.
+The [documentation](readme.html) goes into much more detail about Brubeck's design. There, you will find lots of code samples for building request handlers, authentication, rendering templates, managing databases and more.
 
 
 # Example: Hello World
