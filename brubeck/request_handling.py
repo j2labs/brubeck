@@ -422,13 +422,13 @@ class WebMessageHandler(MessageHandler):
         """Retrieve a cookie from message, if present, else fallback to
         `default` keyword. Accepts a secret key to validate signed cookies.
         """
-        value = None
+        value = default
         if key in self.message.cookies:
             value = self.message.cookies[key].value
         if secret and value:
             dec = cookie_decode(value, secret) 
             return dec[1] if dec and dec[0] == key else None        
-        return default    
+        return value
 
     ### Outgoing cookie functions
 
