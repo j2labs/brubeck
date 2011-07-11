@@ -2,11 +2,6 @@
 
 Brubeck processes and responds to messages sent from Mongrel2. By splitting the processing into a pipeline of lightweight [coroutines](http://en.wikipedia.org/wiki/Coroutine), Brubeck can handle a large number of tasks simultaneously. Many more tasks than tradition OS threads allow.
 
-Veteran Python hackers can probably skip past the dependencies section.
-
-Please keep reading if you're unfamiliar with ZeroMQ, Eventlet, Mongrel2 or DictShield for a brief introduction to each.
-
-
 ## Goals
 
 * __Be Fast__: Brubeck is currently very fast. We intend to keep it that way.
@@ -16,6 +11,20 @@ Please keep reading if you're unfamiliar with ZeroMQ, Eventlet, Mongrel2 or Dict
 * __Friendly__: Should be easy for Python hackers of any skill level to use.
 
 * __Pluggable__: Brubeck can speak to any language and any database.
+
+## Contributors
+
+Brubeck wouldn't be what it is without help from:
+
+* [James Dennis](https://github.com/j2labs)
+* [Andrew Gwozdziewycz](https://github.com/apgwoz)
+* [Malcolm Matalka](https://github.com/orbitz/)
+* [Dion Paragas](https://github.com/d1on/)
+* [Duane Griffen](https://github.com/duaneg)
+
+Veteran Python hackers can probably skip past the dependencies section.
+
+Please keep reading if you're unfamiliar with ZeroMQ, Eventlet, Mongrel2 or DictShield for a brief introduction to each.
 
 
 # Dependencies
@@ -55,12 +64,12 @@ Brubeck then shares time between reading Mongrel2 messages, processing the messa
 
 The end result is that your code looks synchronous (read: no callback spaghetti)
 
-* [Evenlet](http://eventlet.net).
+* [Eventlet](http://eventlet.net).
 
 
 ### Alternatives
 
-Some folks prefer [gevent](http://gevent.org) over eventlet. Brubeck has a branch adding support for that. (Thanks [d1on](https://github.com/d1on)
+Some folks prefer [gevent](http://gevent.org) over eventlet. Brubeck has a branch adding support for that. (Thanks [d1on](https://github.com/d1on))
 
 * [gevent support](https://github.com/j2labs/brubeck/tree/gevent)
 
