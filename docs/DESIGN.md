@@ -22,6 +22,8 @@ Brubeck wouldn't be what it is without help from:
 * [Dion Paragas](https://github.com/d1on/)
 * [Duane Griffen](https://github.com/duaneg)
 
+## Reading This Document
+
 Veteran Python hackers can probably skip past the dependencies section.
 
 Please keep reading if you're unfamiliar with ZeroMQ, Eventlet, Mongrel2 or DictShield for a brief introduction to each.
