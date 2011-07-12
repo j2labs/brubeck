@@ -20,7 +20,7 @@ Brubeck wouldn't be what it is without help from:
 * [Andrew Gwozdziewycz](https://github.com/apgwoz)
 * [Malcolm Matalka](https://github.com/orbitz/)
 * [Dion Paragas](https://github.com/d1on/)
-* [Duane Griffen](https://github.com/duaneg)
+* [Duane Griffin](https://github.com/duaneg)
 
 ## Reading This Document
 
