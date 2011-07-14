@@ -37,12 +37,6 @@ from mongrel2 import Mongrel2Connection
 ### Common helpers
 ###
 
-def curtime():
-    """This funciton is the central method for getting the current time. It
-    represents the time in milliseconds and the timezone is UTC.
-    """
-    return long(time.time() * 1000)
-
 HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 def http_response(body, code, status, headers):
     """Renders arguments into an HTTP response.

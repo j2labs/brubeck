@@ -1,9 +1,7 @@
-import datetime
 import math
 import logging
 from dateutil.parser import parse
 import re
-import time
 import uuid
 
 
@@ -17,12 +15,12 @@ from dictshield.fields import (StringField,
                                BooleanField,
                                URLField,
                                EmailField,
-                               LongField)
-# this might get moved
-from dictshield.fields import ObjectIdField
+                               LongField,
+                               ObjectIdField)
 
 import auth
-from request_handling import curtime
+from timekeeping import curtime, MillisecondField
+
 
 ###
 ### User Document
@@ -32,8 +30,8 @@ class User(Document):
     """Bare minimum to have the concept of a User.
     """
     username = StringField(max_length=30, required=True)
-    email = EmailField(max_length=100)
     password = StringField(max_length=128)
+
     is_active = BooleanField(default=False)
     last_login = LongField(default=curtime)
     date_joined = LongField(default=curtime)
@@ -104,9 +102,17 @@ class UserProfile(Document):
     """The basic things a user profile tends to carry. Isolated in separate
     class to keep separate from private data.
     """
+    # ownable
     owner = ObjectIdField(required=True)
     username = StringField(max_length=30, required=True)
+
+    # streamable
+    created_at = MillisecondField()
+    updated_at = MillisecondField()
+
+    # identity info
     name = StringField(max_length=255)
+    email = EmailField(max_length=100)
     website = URLField(max_length=255)
     bio = StringField(max_length=100)
     location_text = StringField(max_length=100)
