@@ -107,6 +107,19 @@ class UserHandlingMixin(object):
         return self._current_user        
 
     def get_current_user(self):
-        """Override to determine the current user from, e.g., a cookie."""
+        """Override to determine the current user from, e.g., a cookie.
+        """
         return None
 
+    @property
+    def current_userprofile(self):
+        """Same idea for the user's profile
+        """
+        if not hasattr(self, "_current_userprofile"):
+            self._current_userprofile = self.get_current_userprofile()
+        return self._current_userprofile
+
+    def get_current_userprofile(self):
+        """Override to determine the current user
+        """
+        return None
