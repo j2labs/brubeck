@@ -90,7 +90,7 @@ Assuming the environment installation went well we can now turn on Brubeck.
 
 First, we setup the Mongrel2 config.
 
-    $ cd ~/Desktop/brubeck/demo
+    $ cd ~/Desktop/brubeck/demos
     $ m2sh load -config mongrel2.conf -db the.db
     $ m2sh start -db the.db -host localhost
 
