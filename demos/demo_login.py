@@ -88,7 +88,7 @@ class LogoutHandler(CustomAuthMixin, Jinja2Rendering):
 handler_tuples = [
     (r'^/login', LoginHandler),
     (r'^/logout', LogoutHandler),
-    (r'^/$', LandingHandler),
+    (r'^/', LandingHandler),
 ]
 
 config = {

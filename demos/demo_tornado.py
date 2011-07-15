@@ -13,6 +13,6 @@ class DemoHandler(WebMessageHandler, TornadoRendering):
         return self.render_template('success.html', **context)
 
 app = Brubeck(mongrel2_pair=('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
-              handler_tuples=[(r'^/$', DemoHandler)],
+              handler_tuples=[(r'^/brubeck', DemoHandler)],
               template_loader=load_tornado_env('./templates/tornado'))
 app.run()

@@ -100,7 +100,7 @@ Now we'll turn on a Brubeck instance.
     $ ./demo_minimal.py
 
 If you see `Brubeck v0.x.x online ]------------` we can try loading a URL in a browser. 
-Now try [a web request](http://localhost:6767/brubeck/).
+Now try [a web request](http://localhost:6767/brubeck).
 
 
 ## Mongrel2 Configuration

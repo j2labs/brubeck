@@ -40,7 +40,7 @@ class DemoHandler(WebMessageHandler, UserHandlingMixin):
 
 config = {
     'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
-    'handler_tuples': [(r'^/$', DemoHandler)],
+    'handler_tuples': [(r'^/brubeck', DemoHandler)],
 }
 
 app = Brubeck(**config)
