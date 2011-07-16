@@ -54,7 +54,7 @@ Wanna see what Mongrel2 is actually saying? Turn on `m2reader.py`. It won't resp
 Brubeck's job is to generate a response and send it to Mongrel2, which Mongrel2 then then forwards to our user.
 
 
-## The Demos
+# The Demos
 
 On the agenda:
 
@@ -89,30 +89,35 @@ In spite of being the last URL listed above, `IndexHandler` is the first class d
             self.set_body('Take five!')
             return self.render()
 
-The next class, `NameHandler`, defines it's `get()` function different than `IndexHandler`.  This definition includes the parameter `name`.  Notice that in the `urls` above we asign `NameHandler` to pattern `'^/class/(\w+)$'`.  Whatever string matches `(\w+)` will be used as the value for `name`.
+The next class, `NameHandler`, defines it's `get()` function differently from `IndexHandler`.  The new definition includes the parameter `name`.  Notice that in the `urls` above we asign `NameHandler` to pattern `'^/class/(\w+)$'`.
+
+Whatever matches `(\w+)` will be the value of the `name` argument below.
 
     class NameHandler(WebMessageHandler):
         def get(self, name):
             self.set_body('Take five, %s!' % (name))
             return self.render()
 
-The third handler defined is not a class.  This handler is defined using the function method.  And notice that it also has a `name` argument tacked on.
+The third handler defined is not a class.  This handler is defined as a function.  And notice that it also has a `name` argument tacked on.
 
     def name_handler(application, message, name):
         return http_response('Take five, %s!' % (name), 200, 'OK', {})
 
-We put all three in the urls map and instantiate a `Brubeck` instance.  It's not running yet, but it's ready to go.
+We then map all three URL's to the relevant handlers and instantiate a `Brubeck` instance.  
 
     app = Brubeck(**config)
 
-But we'll add one more function.  We'll wrap this function with the `add_route` decorator on our app instance and map it to `'^/deco/(?P<name>\w+)$'`. This function also has the `name` variable.
+But hey, we'll add one more function just because we still can.
+
+The `add_route` decorator is now available to us on the Brubeck instance (`app`). Wrap any function with this decorator to assign it to a URL pattern and HTTP method. Passing parameters in URL's works fine here too.
 
     @app.add_route('^/deco/(?P<name>\w+)$', method='GET')
     def new_name_handler(application, message, name):
         return http_response('Take five, %s!' % (name), 200, 'OK', {})
 
-Then we turn it on by calling `run()` and all four URL's can answer requests.  Try this one [http://localhost:6767/class/james](http://localhost:6767/class/james).
+Then we turn it on by calling `run()` and all four URL's can answer requests.  Try this one: [http://localhost:6767/class/james](http://localhost:6767/class/james).  Or this one: [http://localhost:6767/fun/james](http://localhost:6767/fun/james).  Or this one: [http://localhost:6767/deco/james](http://localhost:6767/deco/james).
 
+The only URL left is the boring one: [http://localhost:6767/](http://localhost:6767/).
 
 
 # Template Rendering
@@ -198,12 +203,12 @@ The implementation of `LoginHandler` is straight forward. The `get()` method ren
 
 ### Authentication Tracking
 
-A cookie was set the first time `@web_authenticated` was called a cookie because we provided the correct username and password. This doesn't happen automatically. It happened because of these two lines in `get_current_user`.
+A cookie was set the first time `@web_authenticated` was called because we provided the correct username and password. This doesn't happen automatically. It happened because of these two lines in `get_current_user`.
 
     self.set_cookie('username', username) # DEMO: Don't actually put a
     self.set_cookie('password', password) # password in a cookie...
 
-Notice the comment suggesting you shouldn't actually store a password in the cookie. This is done to keep the demo focused. Secure cookies will are covered soon..
+Notice the comment suggesting you shouldn't actually store a password in the cookie. This is done to keep the demo focused. Secure cookies will be covered soon..
 
 
 ### Authenticated Browsing
