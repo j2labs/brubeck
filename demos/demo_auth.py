@@ -34,7 +34,7 @@ class DemoHandler(WebMessageHandler, UserHandlingMixin):
     @authenticated
     def post(self):
         """Requires username and password."""
-        self.set_body('You logged in successfully!')
+        self.set_body('%s logged in successfully!' % (self.current_user.username))
         return self.render()
 
 
