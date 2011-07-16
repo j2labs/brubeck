@@ -139,6 +139,3 @@ In short: any requests for `http://localhost:6767/` should be sent to the Brubec
 Don't forget that our Brubeck handler is only configured to answer `http://localhost:6767/brubeck` for now. You could add another route once you're comfortable building `MessageHandler`'s
 
 The web server answers requests on port `6767`. It logs to the `./log` directory. It also writes a pidfile in the `./run` directory. 
-
-
-# Brubeck.io

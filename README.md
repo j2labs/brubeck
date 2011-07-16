@@ -248,6 +248,3 @@ Then retrieve the cookie value by passing the application's secret key into the 
                               secret=self.application.cookie_secret)
 
 What you do from there is up to you, but you'll probably be loading the user_id from a database or cache to get the rest of the account info. 
-
-
-# Brubeck.io

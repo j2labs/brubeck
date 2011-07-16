@@ -145,6 +145,3 @@ A call to `recv()` on connection instance will block until a message arrives or 
 `Request.method()` will tell us whether the message was HTTP GET or POST, etc. `Request.version()` tells us the HTTP version used.
 
 This class is kept simple on purpose and could be used outside Brubeck for parsing Mongrel2 messages.
-
-
-# Brubeck.io
