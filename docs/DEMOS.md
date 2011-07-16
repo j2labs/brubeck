@@ -1,10 +1,16 @@
 # Learn By Example
 
-Each demo attempts to explain some of the nuances of Brubeck.  Each example should be run from inside the [demos](https://github.com/j2labs/brubeck/blob/master/demos/) directory after Brubeck has been installed.
+Each demo attempts to explain some of the nuances of Brubeck.
+
+Each example should be run from inside the [demos](https://github.com/j2labs/brubeck/blob/master/demos/) directory after Brubeck has been installed.  
 
 This document assumes you have already read the README.  If you have not, please read that and come back after.
 
-The first two demos show the two methods of building request handlers: classes and functions.  Then we look at how URL's are handled.  Template rendering is shown for both [Jinja2](http://jinja.pocoo.org/) and [Tornado's template system](http://www.tornadoweb.org/documentation/template.html).  Finally, authentication is explained over two demos.
+## Abstract
+
+We begin by building some knowledge of Mongrel2's internals using `sqlite3` and `m2reader.py`.
+
+Then there are four sets of demos. The first set contains the two demos from the README that build request handlers using classes or functions.  Then we discuss how URL's are mapped to handlers.  Template rendering is then shown for both [Jinja2 templates](http://jinja.pocoo.org/) and [Tornado templates](http://www.tornadoweb.org/documentation/template.html).  This doc is then finished with an explanation of authentication over two final demos.
 
 
 ## Kicking Mongrel2's Tires
@@ -45,7 +51,7 @@ Wanna see what Mongrel2 is actually saying? Turn on `m2reader.py`. It won't resp
     $ ./m2reader.py 
     34f9ceee-cd52-4b7f-b197-88bf2f0ec378 0 / 571:{"PATH":"/","x-forwarded-for":"127.0.0.1","accept-language":"en-US,en;q=0.8","accept-encoding":"gzip,deflate,sdch","connection":"keep-alive","accept-charset":"ISO-8859-1,utf-8;q=0.7,*;q=0.3","accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","user-agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.122 Safari/534.30","host":"localhost:6767","METHOD":"GET","VERSION":"HTTP/1.1","URI":"/","PATTERN":"/"},0:,
     
-Brubeck's job is to send response to this request to Mongrel2, which it then then forwards to our user.
+Brubeck's job is to generate a response and send it to Mongrel2, which Mongrel2 then then forwards to our user.
 
 
 ## The Demos
