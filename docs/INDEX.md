@@ -33,6 +33,6 @@ It serves as a basic demonstration of what a complete site looks like when you b
 
 # Contact Us
 
-*NEW* Brubeck development is now  discussed on [brubeck-dev](http://groups.google.com/group/brubeck-dev).
+If you discover bugs or want to suggest features, please use our [issue tracker](https://github.com/j2labs/brubeck/issues).
 
-* [Inaugural email announcing Brubeck v.0.3.1](http://groups.google.com/group/brubeck-dev/browse_thread/thread/eee52f0bbf1e5182)
+*NEW* You can also join the conversation on [brubeck-dev](http://groups.google.com/group/brubeck-dev).
