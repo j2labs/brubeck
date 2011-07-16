@@ -1,6 +1,44 @@
 from request_handling import WebMessageHandler
 
 
+def load_mako_env(template_dir, module_directory='/tmp/mako_modules',
+  cache_dir=None, input_encoding='utf-8', output_encoding='utf-8',
+  default_filters=['decode.utf8'], encoding_errors='replace',
+  filesystem_checks=False, collection_size=512):
+  """Returns a function which loads a Mako templates environment.
+  """
+  def loader():
+    from mako.lookup import TemplateLookup
+    if template_dir is not None:
+      return TemplateLookup(directories=[template_dir or '.'],
+        module_directory=module_directory,
+        cache_dir=cache_dir,
+        input_encoding=input_encoding,
+        output_encoding=input_encoding,
+        default_filters=default_filters,
+        encoding_errors=encoding_errors,
+        filesystem_checks=filesystem_checks,
+        collection_size=collection_size)
+    else:
+      return None
+  return loader
+  
+
+class MakoRendering(object):
+  def render_template(self, template_file,
+    _status_code=WebMessageHandler._SUCCESS_CODE, **context):
+    mako_env = self.application.template_env
+    template = mako_env.get_template(template_file)
+    body = template.render(**context or {})
+    self.set_body(body, status_code=_status_code)
+    return self.render()
+  
+  def render_error(self, error_code):
+    return self.render_template('errors.html', _status_code=error_code,
+      **{'error_code': error_code})
+
+
+
 ###
 ### Jinja2
 ###
