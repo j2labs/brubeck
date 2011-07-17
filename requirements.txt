@@ -6,3 +6,4 @@ py-bcrypt==0.2
 pymongo==1.11
 python-dateutil==2.0
 pyzmq==2.1.7
+Mako==0.4.1
