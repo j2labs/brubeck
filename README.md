@@ -28,7 +28,7 @@ This is a whole Brubeck application.
 
 ## Features
 
-Brubeck gets by with a little help from it's friends:
+Brubeck gets by with a little help from its friends:
 
 * [Mongrel2](http://mongrel2.org): lean & fast, asynchronous web serving
 * [Eventlet](http://eventlet.net): non-blocking I/O & coroutines
