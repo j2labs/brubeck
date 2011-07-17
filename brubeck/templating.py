@@ -1,24 +1,13 @@
 from request_handling import WebMessageHandler
 
 
-def load_mako_env(template_dir, module_directory='/tmp/mako_modules',
-  cache_dir=None, input_encoding='utf-8', output_encoding='utf-8',
-  default_filters=['decode.utf8'], encoding_errors='replace',
-  filesystem_checks=False, collection_size=512):
+def load_mako_env(template_dir, *vals):
   """Returns a function which loads a Mako templates environment.
   """
   def loader():
     from mako.lookup import TemplateLookup
     if template_dir is not None:
-      return TemplateLookup(directories=[template_dir or '.'],
-        module_directory=module_directory,
-        cache_dir=cache_dir,
-        input_encoding=input_encoding,
-        output_encoding=input_encoding,
-        default_filters=default_filters,
-        encoding_errors=encoding_errors,
-        filesystem_checks=filesystem_checks,
-        collection_size=collection_size)
+      return TemplateLookup(directories=[template_dir or '.'], *vals)
     else:
       return None
   return loader
