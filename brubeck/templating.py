@@ -1,31 +1,33 @@
 from request_handling import WebMessageHandler
 
+###
+### Mako templates
+###
 
 def load_mako_env(template_dir, *vals):
-  """Returns a function which loads a Mako templates environment.
-  """
-  def loader():
-    from mako.lookup import TemplateLookup
-    if template_dir is not None:
-      return TemplateLookup(directories=[template_dir or '.'], *vals)
-    else:
-      return None
-  return loader
+    """Returns a function which loads a Mako templates environment.
+    """
+    def loader():
+        from mako.lookup import TemplateLookup
+        if template_dir is not None:
+            return TemplateLookup(directories=[template_dir or '.'], *vals)
+        else:
+            return None
+    return loader
   
-
 class MakoRendering(object):
-  def render_template(self, template_file,
-    _status_code=WebMessageHandler._SUCCESS_CODE, **context):
-    mako_env = self.application.template_env
-    template = mako_env.get_template(template_file)
-    body = template.render(**context or {})
-    self.set_body(body, status_code=_status_code)
-    return self.render()
+    def render_template(self, template_file,
+                        _status_code=WebMessageHandler._SUCCESS_CODE,
+                        **context):
+        mako_env = self.application.template_env
+        template = mako_env.get_template(template_file)
+        body = template.render(**context or {})
+        self.set_body(body, status_code=_status_code)
+        return self.render()
   
-  def render_error(self, error_code):
-    return self.render_template('errors.html', _status_code=error_code,
-      **{'error_code': error_code})
-
+    def render_error(self, error_code):
+        return self.render_template('errors.html', _status_code=error_code,
+                                    **{'error_code': error_code})
 
 
 ###
