@@ -192,7 +192,7 @@ class Mongrel2Connection(object):
         internally.
         """
         header = "%s %d:%s," % (uuid, len(str(conn_id)), str(conn_id))
-        self.out_sock.send_unicode(header + ' ' + msg)        
+        self.out_sock.send(header + ' ' + to_bytes(msg))
 
     def reply(self, req, msg):
         """Does a reply based on the given Request object and message.
