@@ -22,7 +22,7 @@ def name_handler(application, message, name):
 
 urls = [(r'^/class/(\w+)$', NameHandler),
         (r'^/fun/(?P<name>\w+)$', name_handler),
-        (r'^/', IndexHandler)]
+        (r'^/$', IndexHandler)]
 
 config = {
     'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
