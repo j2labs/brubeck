@@ -122,15 +122,25 @@ class Request(object):
 
     def get_arguments(self, name, strip=True):
         """Returns a list of the arguments with the given name. If the argument
-        is not present, returns an empty list. The returned values are always
-        unicode.
+        is not present, returns a None. The returned values are always unicode.
         """
-        values = self.arguments.get(name, [])
-        # Get rid of any weird control chars
-        values = [re.sub(r"[\x00-\x08\x0e-\x1f]", " ", x) for x in values]
-        values = [unicode(x) for x in values]
+        values = self.arguments.get(name, None)
+        if values is None:
+            return None
+
+        # Get the stripper ready
         if strip:
-            values = [x.strip() for x in values]
+            stripper = lambda v: v.strip()
+        else:
+            stripper = lambda v: v
+
+        def clean_value(v):
+            v = re.sub(r"[\x00-\x08\x0e-\x1f]", " ", v)
+            v = unicode(v)
+            v = stripper(v)
+            return v
+
+        values = [clean_value(v) for v in values]
         return values
 
     def get_argument(self, name, default=None, strip=True):
