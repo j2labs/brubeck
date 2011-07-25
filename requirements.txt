@@ -1,6 +1,6 @@
 Cython==0.14.1
 Jinja2==2.5.5
-dictshield==0.2.2
+dictshield==0.2.8
 eventlet==0.9.15
 py-bcrypt==0.2
 pymongo==1.11
