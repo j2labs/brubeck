@@ -102,23 +102,16 @@ def route_message(application, message):
 
     The application is responsible for handling misconfigured routes.
     """
-    print 'ROUTING 1'
     handler = application.route_message(message)
-    print 'ROUTING 2'    
     coro_spawn(request_handler, application, message, handler)
-    print 'ROUTING 3'    
 
 def request_handler(application, message, handler):
     """Coroutine for handling the request itself. It simply returns the request
     path in reverse for now.
     """
-    print 'HANDLING 1'
     if callable(handler):
-        print 'HANDLING 2'
         response = handler()
-        print 'HANDLING 3'
         coro_spawn(result_handler, application, message, response)
-        print 'HANDLING 4'
     
 def result_handler(application, message, response):
     """The request has been processed and this is called to do any post
@@ -585,7 +578,6 @@ class Brubeck(object):
             self.init_routes(handler_tuples)
 
         # We can accept an existing pool or initialize a new pool
-        print 'USING COROS:', CORO_LIBRARY
         if pool is None:
             self.pool = coro_pool()
         elif callable(pool):
