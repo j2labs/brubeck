@@ -21,6 +21,7 @@ Brubeck wouldn't be what it is without help from:
 * [Malcolm Matalka](https://github.com/orbitz/)
 * [Dion Paragas](https://github.com/d1on/)
 * [Duane Griffin](https://github.com/duaneg)
+* [Faruk Akgul](https://github.com/faruken)
 
 ## Reading This Document
 
