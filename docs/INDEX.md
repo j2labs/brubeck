@@ -26,7 +26,7 @@ This is a whole Brubeck application.
 
 __Listsurf__ is a simple to way to save links. Yeah... another delicious clone!
 
-It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating and stores data in [MongoDB](http://mongodb.org).
+It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating, [Eventlet](http://eventlet.net) for coroutines and stores data in [MongoDB](http://mongodb.org).
 
 * [Listsurf on GitHub](https://github.com/j2labs/listsurf)
 
@@ -35,4 +35,4 @@ It serves as a basic demonstration of what a complete site looks like when you b
 
 If you discover bugs or want to suggest features, please use our [issue tracker](https://github.com/j2labs/brubeck/issues).
 
-*NEW* You can also join the conversation on [brubeck-dev](http://groups.google.com/group/brubeck-dev).
+Also consider joining our mailing list: [brubeck-dev](http://groups.google.com/group/brubeck-dev).
