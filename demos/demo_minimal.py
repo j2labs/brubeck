@@ -6,6 +6,7 @@ from brubeck.request_handling import Brubeck, WebMessageHandler
 class DemoHandler(WebMessageHandler):
     def get(self):
         name = self.get_argument('name', 'dude')
+        print 'KADJFAKDJFADLKJFADJF?A'
         self.set_body('Take five, %s!' % name)
         return self.render()
 
