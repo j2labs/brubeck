@@ -1,10 +1,12 @@
-from eventlet.green import zmq
+from request_handling import zmq
+
 import json
 from uuid import uuid4
 import cgi
 import re
 import logging
 import Cookie
+
 
 
 ###

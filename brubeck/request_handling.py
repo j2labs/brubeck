@@ -11,9 +11,35 @@ before anything else to guarantee the eventlet code is run first.
 See github.com/j2labs/brubeck for more information.
 """
 
-import eventlet
-from eventlet import spawn, spawn_n, serve
-from eventlet.green import zmq
+### Attempt to setup gevent
+try:
+    from gevent import monkey
+    monkey.patch_all()
+    from gevent import pool
+    from gevent_zeromq import zmq
+
+    coro_pool = pool.Pool
+    def coro_spawn(function, app, message, *a, **kw):
+        app.pool.spawn(function, app, message, *a, **kw)
+
+    CORO_LIBRARY = 'gevent'
+
+### Fallback to eventlet
+except:
+    try:
+        import eventlet
+        eventlet.patcher.monkey_patch(all=True)
+        from eventlet.green import zmq
+
+        coro_pool = eventlet.GreenPool
+        def coro_spawn(function, app, message, *a, **kw):
+            app.pool.spawn_n(function, app, message, *a, **kw)
+
+        CORO_LIBRARY = 'eventlet'
+
+    except: ### eventlet or gevent is required.
+        raise EnvironmentError('Y U NO INSTALL CONCURRENCY?!')
+
 
 from . import version
 
@@ -76,16 +102,23 @@ def route_message(application, message):
 
     The application is responsible for handling misconfigured routes.
     """
+    print 'ROUTING 1'
     handler = application.route_message(message)
-    spawn_n(request_handler, application, message, handler)
+    print 'ROUTING 2'    
+    coro_spawn(request_handler, application, message, handler)
+    print 'ROUTING 3'    
 
 def request_handler(application, message, handler):
     """Coroutine for handling the request itself. It simply returns the request
     path in reverse for now.
     """
+    print 'HANDLING 1'
     if callable(handler):
+        print 'HANDLING 2'
         response = handler()
-        spawn_n(result_handler, application, message, response)
+        print 'HANDLING 3'
+        coro_spawn(result_handler, application, message, response)
+        print 'HANDLING 4'
     
 def result_handler(application, message, response):
     """The request has been processed and this is called to do any post
@@ -551,12 +584,14 @@ class Brubeck(object):
         if self.handler_tuples is not None:
             self.init_routes(handler_tuples)
 
-        # I am interested in making the app compatible with existing eventlet
-        # apps already running with a scheduler. I am not sure if this is the
-        # right way...
-        self.pool = pool
-        if self.pool is None:
-            self.pool = eventlet.GreenPool()
+        # We can accept an existing pool or initialize a new pool
+        print 'USING COROS:', CORO_LIBRARY
+        if pool is None:
+            self.pool = coro_pool()
+        elif callable(pool):
+            self.pool = pool()
+        else:
+            raise ValueException('Unable to initialize coroutine pool')
 
         # Set a base_handler for handling errors (eg. 404 handler)
         self.base_handler = base_handler
@@ -691,7 +726,7 @@ class Brubeck(object):
                 if request.is_disconnect():
                     continue
                 else:
-                    self.pool.spawn_n(route_message, self, request)
+                    coro_spawn(route_message, self, request)
         except KeyboardInterrupt, ki:
             # Put a newline after ^C
             print '\nBrubeck going down...'
