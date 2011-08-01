@@ -21,11 +21,11 @@ First, we parse the config file into a sqlite database. Configuring the database
 
 There is no need to edit the config so we can just load the config into a database using `m2sh load`.
 
-    $ m2sh load -config mongrel2.conf -db dev.db
+    $ m2sh load -config mongrel2.conf -db the.db
     
 Now we have a sqlite database representing our config. If you have sqlite installed, open the database and take a look. You can start by typing `.tables` at the prompt to get a table list.
 
-    $ sqlite3 dev.db 
+    $ sqlite3 the.db 
     sqlite> .tables
     directory  host       mimetype   route      setting  
     handler    log        proxy      server     statistic
