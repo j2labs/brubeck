@@ -70,11 +70,11 @@ If you have pip installed, you can install everything with the requirements file
     
 We now choose either eventlet or gevent and install the relevent requirements file in the same directory.
 
-To install eventlet support:
+To install `eventlet` support:
 
     $ pip install -I -r ./envs/eventlet.reqs
 
-To install gevent support:
+To install `gevent` support:
 
     $ pip install -I -r ./envs/gevent.reqs
 

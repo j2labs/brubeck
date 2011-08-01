@@ -31,20 +31,21 @@ This is a whole Brubeck application.
 Brubeck gets by with a little help from its friends:
 
 * [Mongrel2](http://mongrel2.org): lean & fast, asynchronous web serving
-* [Eventlet](http://eventlet.net): non-blocking I/O & coroutines
-* [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
 * [DictShield](https://github.com/j2labs/dictshield): data modeling & validation with no database opinions
+* [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
+* [Eventlet](http://eventlet.net): non-blocking I/O, coroutines & implicit scheduling
+* [Gevent](http://gevent.org): like eventlet, but uses `libevent`
 
 Please also see this completely unscientific comparison of Brubeck and Tornado:
 
 * [500 concurrent connections for 10 seconds](https://gist.github.com/882555)
 
 
-## Complete Example: Listsurf
+# Complete Example: Listsurf
 
 __Listsurf__ is a simple to way to save links. Yeah... another delicious clone!
 
-It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating and stores data in [MongoDB](http://mongodb.org).
+It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating, [Eventlet](http://eventlet.net) for coroutines and stores data in [MongoDB](http://mongodb.org).
 
 * [Listsurf on GitHub](https://github.com/j2labs/listsurf)
 
