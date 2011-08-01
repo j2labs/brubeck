@@ -10,7 +10,7 @@ This document assumes you have already read the README.  If you have not, please
 
 We begin by building some knowledge of Mongrel2's internals using `sqlite3` and `m2reader.py`.
 
-Then there are four sets of demos. The first set contains the two demos from the README that build request handlers using classes or functions.  Then we discuss how URL's are mapped to handlers.  Template rendering is then shown for both [Jinja2 templates](http://jinja.pocoo.org/) and [Tornado templates](http://www.tornadoweb.org/documentation/template.html).  This doc is then finished with an explanation of authentication over two final demos.
+Then there are four sets of demos. The first set contains the two demos from the README that build request handlers using classes or functions.  Then we discuss how URL's are mapped to handlers.  Template rendering is then shown for [Jinja2](http://jinja.pocoo.org/), [Tornado templates](http://www.tornadoweb.org/documentation/template.html) and [Mako](http://www.makotemplates.org/).  This doc is then finished with an explanation of authentication over two final demos.
 
 
 ## Kicking Mongrel2's Tires
@@ -124,6 +124,7 @@ The only URL left is the boring one: [http://localhost:6767/](http://localhost:6
 
 * [https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py)
 * [https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py)
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_mako.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_mako.py)
 
 Template rendering is adequately covered as part of the README for now.
 
