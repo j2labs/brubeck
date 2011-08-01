@@ -2,6 +2,7 @@
 
 Brubeck processes and responds to messages sent from Mongrel2. By splitting the processing into a pipeline of lightweight [coroutines](http://en.wikipedia.org/wiki/Coroutine), Brubeck can handle a large number of tasks simultaneously. Many more tasks than tradition OS threads allow.
 
+
 ## Goals
 
 * __Be Fast__: Brubeck is currently very fast. We intend to keep it that way.
@@ -11,6 +12,7 @@ Brubeck processes and responds to messages sent from Mongrel2. By splitting the 
 * __Friendly__: Should be easy for Python hackers of any skill level to use.
 
 * __Pluggable__: Brubeck can speak to any language and any database.
+
 
 ## Contributors
 
@@ -22,6 +24,7 @@ Brubeck wouldn't be what it is without help from:
 * [Dion Paragas](https://github.com/d1on/)
 * [Duane Griffin](https://github.com/duaneg)
 * [Faruk Akgul](https://github.com/faruken)
+
 
 ## Reading This Document
 
@@ -47,40 +50,50 @@ Similarly, if a handler dies, it is removed from the pool immediately. Contrast 
 * [ZeroMQ guide](http://zguide.zeromq.org/)
 
 
-## Eventlet
+## Coroutines
 
-Eventlet is a concurrent networking library for Python. We get concurrency in the form of [coroutines](http://pypi.python.org/pypi/greenlet) and an implicit scheduler. The coroutines, which can be thought of as something of a replacement for threads, are very cheap. So cheap that you don't have to think too hard on how many you spawn. 
+Brubeck is basically a pipeline of coroutines attempting to fulfill web requests.  Each `MessageHandler` is executed as a coroutine, or `greenlet`.
+
+[Greenlet's](http://packages.python.org/greenlet/) are a python implementation of coroutines optimized for fast coroutine switching.  Greenlet's can be thought of as similar to generators, but they require a `yield` statement.
+
+Coroutines, combined with a scheduler, make for an interesting and lightweight alternative to threads.  Greenlets are so lightweight that we don't have to think too hard on how many we spawn.  And Brubeck uses executes your request handler as a single coroutine.
+
+* [Greenlet's](http://packages.python.org/greenlet/)
 
 
-### Coroutines
+### Eventlet
 
-Brubeck is basically a pipeline of coroutines attempting to fulfill web requests. By using coroutines in conjunction with a scheduler, Eventlet has the necessary pieces to also provide nonblocking I/O.
+Eventlet is an implementation of a scheduling system.  In addition to scheduling, it will convert your blocking calls into nonblocking automatically as part of it's scheduling.
 
-Python programmers have seen asynchronous, nonblocking I/O typically done as a chain of callbacks that interact with a scheduler. System design can become foggy when many callbacks are chained together. And, many drivers for things like databases are synchronous / blocking too, so steps must be taken to make them compatible.
+This makes building nonblocking, asynchronous systems look the same as building blocking, synchronous systems. The kind that normally live in threads.
 
+Eventlet was started by developers at Linden Labs and used to support Second Life.
 
-### Back To Eventlet
-
-Eventlet makes this easier through implicit context switching. Each time your code reaches a I/O point, eventlet will step in and switch to some other coroutines and handle the complication for you, implicitly.
-
-Brubeck then shares time between reading Mongrel2 messages, processing the messages, and writing responses back to Mongrel2. Your request handler is inserted inbetween those steps, making all of your I/O calls part of the asynchronous, nonblocking system automatically.
-
-The end result is that your code looks synchronous (read: no callback spaghetti)
+Install `envs/eventlet.reqs` to use eventlet.
 
 * [Eventlet](http://eventlet.net).
+* [Eventlet History](http://eventlet.net/doc/history.html)
+
+
+### Gevent
+
+Gevent was started by Denis Bilenko as an alternative to Eventlet.  It is similar in design but uses an event loop implemented in C; `libevent`.  It will be soon be on the newer `libev`.
+
+Some folks believe the performance characteristics of this design are substantial.
+
+Install the `envs/gevent.reqs` to use gevent.
+
+* [Gevent](http://gevent.org)
+* [Gevent Introduction](http://gevent.org/intro.html)
 
 
 ### Alternatives
 
-Some folks prefer [gevent](http://gevent.org) over eventlet. Brubeck has a branch adding support for that. (Thanks [d1on](https://github.com/d1on))
-
-* [gevent support](https://github.com/j2labs/brubeck/tree/gevent)
-
-There are also reasonable arguments for explicit context switching. If prefer that model, I recommend the systems below:
+There are also reasonable arguments for explicit context switching.  Or perhaps even a different language.  If you prefer that model, I recommend the systems below:
 
 * [Twisted Project](http://twistedmatrix.com/)
 * [Node.js](http://nodejs.org)
-* [Web Machine](https://bitbucket.org/justin/webmachine/wiki/Home)
+* [EventMachine](https://github.com/eventmachine/eventmachine/wiki)
 
 
 ## DictShield

@@ -33,14 +33,9 @@ Mongrel2 is also painless to setup.
 There are a few compile options available at the bottom of Mongrel2's `Makefile`. Take a look if the code above doesn't compile successfully.
 
 
-## Python Packages & Brubeck
+## Virtualenv & Virtualenvwrapper
 
 Brubeck works great with virtualenv. I highly recommend using it. 
-
-In fact, let's stop for a second and talk about it.
-
-
-### Virtualenv & Virtualenvwrapper
 
 Virtualenv is a way to construct isolated python environments. Very handy for managing multiple environments in a single machine.
 
@@ -66,14 +61,22 @@ For more information, see my quick & dirty howto.
 * [Quick & Dirty Virtualenv & Virtualenvwrapper](http://j2labs.tumblr.com/post/5181438807/quick-dirty-virtualenv-virtualenvwrapper)
     
 
-## Back To Python Packages & Brubeck
+## Python Packages & Brubeck
 
 If you have pip installed, you can install everything with the requirements file. 
 
     $ cd ~/Desktop/brubeck
-    $ pip install -I -r ./requirements.txt
+    $ pip install -I -r ./envs/brubeck.reqs
+    
+We now choose either eventlet or gevent and install the relevent requirements file in the same directory.
 
-If you don't have `pip`, you can `easy_install` the libraries listed.
+To install eventlet support:
+
+    $ pip install -I -r ./envs/eventlet.reqs
+
+To install gevent support:
+
+    $ pip install -I -r ./envs/gevent.reqs
 
 
 ### Brubeck Itself
