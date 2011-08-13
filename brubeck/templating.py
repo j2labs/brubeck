@@ -34,7 +34,7 @@ class MakoRendering(object):
 ### Jinja2
 ###
 
-def load_jinja2_env(template_dir):
+def load_jinja2_env(template_dir, *args, **kwargs):
     """Returns a function that loads a jinja template environment. Uses a
     closure to provide a namespace around module loading without loading
     anything until the caller is ready.
@@ -42,7 +42,7 @@ def load_jinja2_env(template_dir):
     def loader():
         from jinja2 import Environment, FileSystemLoader
         if template_dir is not None:
-            return Environment(loader=FileSystemLoader(template_dir or '.'))
+            return Environment(loader=FileSystemLoader(template_dir or '.'), *args, **kwargs)
         else:
             return None
     return loader
