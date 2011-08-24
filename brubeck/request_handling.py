@@ -245,7 +245,7 @@ class MessageHandler(object):
         status msg to the the relevant msg as defined in _response_codes.
         """
         if status_msg is None:
-            status_msg = self._response_codes[status_code]
+            status_msg = self._response_codes.get(status_code, str(status_code))
         if extra_txt:
             status_msg = '%s - %s' % (status_msg, extra_txt)
         self.add_to_payload(self._STATUS_CODE, status_code)
@@ -341,6 +341,7 @@ class WebMessageHandler(MessageHandler):
         200: 'OK',
         400: 'Bad request',
         401: 'Authentication failed',
+        403: 'Forbidden',
         404: 'Not found',
         405: 'Method not allowed',
         500: 'Server error',
