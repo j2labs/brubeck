@@ -227,6 +227,9 @@ class MessageHandler(object):
         """
         return self.render_error(-1)
 
+    def error(self, err):
+        return self.unsupported()
+
     def add_to_payload(self, key, value):
         """Upserts key-value pair into payload.
         """
@@ -318,7 +321,7 @@ class MessageHandler(object):
                     return ''
             except Exception, e:
                 logging.error(e, exc_info=True)
-                rendered = self.unsupported()
+                rendered = self.error(e)
                 
             self._finished = True
             return rendered
