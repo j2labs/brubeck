@@ -338,6 +338,8 @@ class WebMessageHandler(MessageHandler):
     _DEFAULT_STATUS = 500 # default to server error
     _SUCCESS_CODE = 200
     _AUTH_FAILURE = 401
+    _FORBIDDEN = 403
+    _NOT_FOUND = 404
     _SERVER_ERROR = 500
     
     _response_codes = {
@@ -406,7 +408,7 @@ class WebMessageHandler(MessageHandler):
         return self.unsupported()
 
     def unsupported(self, *args, **kwargs):
-        return self.render_error(404)
+        return self.render_error(self._NOT_FOUND)
 
     def redirect(self, url):
         """Clears the payload before rendering the error status
