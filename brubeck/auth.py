@@ -76,7 +76,7 @@ def web_authenticated(method):
             else:
                 error = 'web_authentication called with undefined <login_url>'
                 logging.error(error)
-                return self.render_error(self._SERVER_ERROR)
+                return self.render_error(self._AUTH_FAILURE)
         return method(self, *args, **kwargs)
     return wrapper
 
