@@ -70,7 +70,8 @@ def web_authenticated(method):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
-            if self.application.login_url is not None:
+            has_login_url = hasattr(self.application, 'login_url')
+            if has_login_url and self.application.login_url is not None:
                 return self.redirect(self.application.login_url)
             else:
                 error = 'web_authentication called with undefined <login_url>'
