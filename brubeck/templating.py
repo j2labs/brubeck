@@ -78,13 +78,13 @@ class Jinja2Rendering():
 ### Tornado
 ###
 
-def load_tornado_env(template_dir):
+def load_tornado_env(template_dir, *args, **kwargs):
     """Returns a function that loads the Tornado template environment.
     """
     def loader():
         from tornado.template import Loader
         if template_dir is not None:
-            return Loader(template_dir or '.')
+            return Loader(template_dir or '.', *args, **kwargs)
         else:
             return None
     return loader
