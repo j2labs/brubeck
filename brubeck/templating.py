@@ -4,14 +4,14 @@ from request_handling import WebMessageHandler
 ### Mako templates
 ###
 
-def load_mako_env(template_dir, *vals, **kwargs):
+def load_mako_env(template_dir, *args, **kwargs):
     """Returns a function which loads a Mako templates environment.
     """
     def loader():
         from mako.lookup import TemplateLookup
         if template_dir is not None:
             return TemplateLookup(directories=[template_dir or '.'],
-                                  *vals, **kwargs)
+                                  *args, **kwargs)
         else:
             return None
     return loader
