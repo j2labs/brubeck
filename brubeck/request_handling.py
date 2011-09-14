@@ -202,6 +202,7 @@ class MessageHandler(object):
         self._payload = dict()
         self._finished = False
         self.set_status(self._DEFAULT_STATUS)
+        self.set_timestamp(int(time.time() * 1000))
         self.initialize()
 
     def initialize(self):
@@ -262,6 +263,10 @@ class MessageHandler(object):
     @property
     def status_msg(self):
         return self._payload[self._STATUS_MSG]
+
+    @property
+    def current_time(self):
+        return self._payload[self._TIMESTAMP]
 
     def set_timestamp(self, timestamp):
         """Sets the timestamp to given timestamp.
