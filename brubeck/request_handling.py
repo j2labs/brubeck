@@ -529,7 +529,8 @@ class WebMessageHandler(MessageHandler):
                                  self.status_msg, self.headers)
 
         logging.info('%s %s %s (%s)' % (status_code, self.message.method,
-                                        self.message.path, 'REMOTE_ADDR')) #TODO
+                                        self.message.path,
+                                        self.message.remote_addr))
         return response
 
 
@@ -548,7 +549,8 @@ class JSONMessageHandler(WebMessageHandler):
                                  self.status_msg, self.headers)
 
         logging.info('%s %s %s (%s)' % (self.status_code, self.message.method,
-                                        self.message.path, 'REMOTE_ADDR')) #TODO
+                                        self.message.path,
+                                        self.message.remote_addr))
         return response
         
     

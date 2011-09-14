@@ -83,6 +83,10 @@ class Request(object):
         return self.headers.get('VERSION')
 
     @property
+    def remote_addr(self):
+        return self.headers.get('x-forwarded-for')
+
+    @property
     def cookies(self):
         """Lazy generation of cookies from request headers."""
         if not hasattr(self, "_cookies"):
