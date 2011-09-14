@@ -1,6 +1,6 @@
 from request_handling import zmq
 
-import json
+import ujson as json
 from uuid import uuid4
 import cgi
 import re
