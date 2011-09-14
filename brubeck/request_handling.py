@@ -57,6 +57,7 @@ import cPickle as pickle
 from functools import partial
 
 from mongrel2 import Mongrel2Connection
+import ujson as json
 
 
 ###
@@ -356,32 +357,22 @@ class WebMessageHandler(MessageHandler):
     ### Payload extension
     ###
     
-    _BODY = 'body'
     _HEADERS = 'headers'
 
     def initialize(self):
         """WebMessageHandler extends the payload for body and headers. It
         also provides both fields as properties to mask storage in payload
         """
-        self._payload[self._BODY] = ''
-        self._payload[self._HEADERS] = dict()
+        self.body = ''
+        self.headers = dict()
 
-    @property
-    def headers(self):
-        return self._payload[self._HEADERS]
-
-    @property
-    def body(self):
-        return self._payload[self._BODY]
-
-    def set_body(self, body, status_code=_SUCCESS_CODE, 
-                 headers=None):
+    def set_body(self, body, headers=None, status_code=_SUCCESS_CODE):
         """
         """
-        self._payload[self._BODY] = body
+        self.body = body
         self.set_status(status_code)
         if headers is not None:
-            self._payload[self._HEADERS] = headers
+            self.headers = headers
 
     ###
     ### Supported HTTP request methods are mapped to these functions
@@ -542,6 +533,27 @@ class WebMessageHandler(MessageHandler):
         return response
 
 
+class JSONMessageHandler(WebMessageHandler):
+    """This class is virtually the same as the WebMessageHandler with a slight
+    change to how payloads are handled to make them more appropriate for
+    representing JSON transmissions.
+    """
+    def render(self, status_code=None, **kwargs):
+        if status_code:
+            self.set_status(status_code)
+
+        body = json.dumps(self._payload)
+
+        response = http_response(body, self.status_code,
+                                 self.status_msg, self.headers)
+
+        logging.info('%s %s %s (%s)' % (self.status_code, self.message.method,
+                                        self.message.path, 'REMOTE_ADDR')) #TODO
+        return response
+        
+    
+
+    
 ###
 ### Application logic
 ###
