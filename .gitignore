@@ -1,5 +1,5 @@
 .DS_Store
-dev.db
+*.db
 *.pyc
 *.bak
 *.log
