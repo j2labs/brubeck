@@ -20,6 +20,7 @@ from dictshield.fields import (StringField,
 
 import auth
 from timekeeping import curtime, MillisecondField
+from datamosh import OwnedModelMixin, StreamedModelMixin
 
 
 ###
@@ -98,17 +99,17 @@ class User(Document):
 ### UserProfile
 ###
     
-class UserProfile(Document):
+class UserProfile(Document, OwnedModelMixin, StreamedModelMixin):
     """The basic things a user profile tends to carry. Isolated in separate
     class to keep separate from private data.
     """
-    # ownable
-    owner = ObjectIdField(required=True)
-    username = StringField(max_length=30, required=True)
+    ## ownable # Provided by OwnedModelMixin now. includes a name changes
+    #owner = ObjectIdField(required=True) # owner_id
+    #username = StringField(max_length=30, required=True) # owner_username
 
-    # streamable
-    created_at = MillisecondField()
-    updated_at = MillisecondField()
+    ## streamable # provided by StreamedModelMixin now
+    #created_at = MillisecondField()
+    #updated_at = MillisecondField()
 
     # identity info
     name = StringField(max_length=255)
