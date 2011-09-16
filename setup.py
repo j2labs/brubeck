@@ -3,7 +3,7 @@
 from distutils.core import setup
  
 setup(name='brubeck',
-      version='0.3.4',
+      version='0.3.5',
       description='Python Library for building Mongrel2 / ZeroMQ message handlers',
       author='James Dennis',
       author_email='jdennis@gmail.com',
