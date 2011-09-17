@@ -48,7 +48,7 @@ Then, we must configure our shell to know where to store our virtualenv's. While
 Open your `.profile` or `.bashrc` and add the following two lines.
 
     export WORKON_HOME="~/.virtualenvs"
-    source /usr/local/bin/virtualenvwrapper
+    source /usr/local/bin/virtualenvwrapper.sh
 
 By sourcing virtualenvwrapper, you get a simple interface for creating, managing and removing virutalenv environments.
 
