@@ -19,7 +19,8 @@ class DemoHandler(WebMessageHandler, Jinja2Rendering):
 class FeedHandler(WebMessageHandler):
     def get(self):
         eventlet.sleep(5) # simple way to demo long polling :)
-        self.set_body('The current time is: %s' % datetime.datetime.now())
+        self.set_body('The current time is: %s' % datetime.datetime.now(),
+                      headers={'Content-Type': 'text/plain'})
         return self.render()
 
 
