@@ -25,7 +25,7 @@ try:
     CORO_LIBRARY = 'gevent'
 
 ### Fallback to eventlet
-except:
+except ImportError:
     try:
         import eventlet
         eventlet.patcher.monkey_patch(all=True)
@@ -37,7 +37,7 @@ except:
 
         CORO_LIBRARY = 'eventlet'
 
-    except: ### eventlet or gevent is required.
+    except ImportError: ### eventlet or gevent is required.
         raise EnvironmentError('Y U NO INSTALL CONCURRENCY?!')
 
 
