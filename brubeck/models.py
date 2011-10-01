@@ -1,25 +1,19 @@
-import math
-import logging
-from dateutil.parser import parse
 import re
-import uuid
-
 
 ###
 ### DictShield documents
 ###
 
-from dictshield.base import BaseField, DictPunch
 from dictshield.document import Document
 from dictshield.fields import (StringField,
                                BooleanField,
                                URLField,
                                EmailField,
                                LongField,
-                               ObjectIdField)
+                               )
 
 import auth
-from timekeeping import curtime, MillisecondField
+from timekeeping import curtime
 from datamosh import OwnedModelMixin, StreamedModelMixin
 
 
