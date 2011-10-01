@@ -1,10 +1,5 @@
-from dictshield.document import Document, EmbeddedDocument
+from dictshield.document import EmbeddedDocument
 from dictshield.fields import (StringField,
-                               BooleanField,
-                               URLField,
-                               EmailField,
-                               LongField,
-                               ListField,
                                ObjectIdField)
 
 from brubeck.timekeeping import MillisecondField
