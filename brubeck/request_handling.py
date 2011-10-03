@@ -43,9 +43,6 @@ except ImportError:
 
 from . import version
 
-from uuid import uuid4
-import os
-import sys
 import re
 import time
 import logging
@@ -54,7 +51,6 @@ import Cookie
 import base64
 import hmac
 import cPickle as pickle
-from functools import partial
 
 from mongrel2 import Mongrel2Connection
 import ujson as json
