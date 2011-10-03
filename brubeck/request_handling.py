@@ -384,8 +384,13 @@ class WebMessageHandler(MessageHandler):
     def options(self, *args, **kwargs):
         """Should probably implement this in this class. Got any ideas?
         """
-        
-        return self.unsupported()
+        supported_methods = []
+        for mef in HTTP_METHODS:
+            if callable(getattr(self, mef, False)):
+                supported_methods.append(mef)
+        self.headers["Access-Control-Allow-Methods"] = ", ".join(mef.upper() for mef in supported_methods)
+        return self.render()
+            
 
     def unsupported(self, *args, **kwargs):
         return self.render_error(self._NOT_FOUND)
