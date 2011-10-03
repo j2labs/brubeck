@@ -297,7 +297,7 @@ class MessageHandler(object):
         unsupported function.
 
         In the event that an error has already occurred, _finished will be
-        set to true before this funciton call indicating we should render
+        set to true before this function call indicating we should render
         the handler and nothing else.
 
         In all cases, generating a response for mongrel2 is attempted.
