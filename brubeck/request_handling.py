@@ -311,7 +311,7 @@ class MessageHandler(object):
             mef = self.message.method.lower() # M-E-T-H-O-D man!
 
             # Find function mapped to method on self
-            if mef.lower() in HTTP_METHODS:
+            if mef in HTTP_METHODS:
                 fun = getattr(self, mef, self.unsupported)
             else:
                 fun = self.unsupported
