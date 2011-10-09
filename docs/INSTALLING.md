@@ -78,6 +78,7 @@ To install `gevent` support:
 
     $ pip install -I -r ./envs/gevent.reqs
 
+Note that gevent requires `libevent`, which should be available on the package-manager of your choice.
 
 ### Brubeck Itself
 
