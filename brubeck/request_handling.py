@@ -376,9 +376,8 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Supported HTTP request methods are mapped to these functions
     ###
-
     def options(self, *args, **kwargs):
-        """Should probably implement this in this class. Got any ideas?
+        """Default to allowing all of the methods you have defined and public
         """
         supported_methods = []
         for mef in HTTP_METHODS:
@@ -386,7 +385,6 @@ class WebMessageHandler(MessageHandler):
                 supported_methods.append(mef)
         self.headers["Access-Control-Allow-Methods"] = ", ".join(mef.upper() for mef in supported_methods)
         return self.render()
-            
 
     def unsupported(self, *args, **kwargs):
         return self.render_error(self._NOT_FOUND)
