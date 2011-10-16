@@ -24,6 +24,17 @@ def to_bytes(data, enc='utf8'):
     """
     return data.encode(enc) if isinstance(data, unicode) else bytes(data)
 
+_TO_UNICODE_TYPES = (unicode, type(None))
+def to_unicode(value):
+    """Converts a string argument to a unicode string.
+
+    If the argument is already a unicode string or None, it is returned
+    unchanged.  Otherwise it must be a byte string and is decoded as utf8.
+    """
+    if isinstance(value, _TO_UNICODE_TYPES):
+        return value
+    assert isinstance(value, bytes)
+    return value.decode("utf-8")
 
 class Request(object):
 
@@ -45,7 +56,7 @@ class Request(object):
         self.arguments = {}
         if 'QUERY' in self.headers:
             query = self.headers['QUERY']
-            arguments = cgi.parse_qs(query)
+            arguments = cgi.parse_qs(query.encode("utf-8"))
             for name, values in arguments.iteritems():
                 values = [v for v in values if v]
                 if values: self.arguments[name] = values
@@ -142,7 +153,7 @@ class Request(object):
 
         def clean_value(v):
             v = re.sub(r"[\x00-\x08\x0e-\x1f]", " ", v)
-            v = unicode(v)
+            v = to_unicode(v)
             v = stripper(v)
             return v
 
