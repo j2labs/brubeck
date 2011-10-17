@@ -7,8 +7,6 @@ import re
 import logging
 import Cookie
 
-
-
 ###
 ### Request handling code
 ###
@@ -24,17 +22,10 @@ def to_bytes(data, enc='utf8'):
     """
     return data.encode(enc) if isinstance(data, unicode) else bytes(data)
 
-_TO_UNICODE_TYPES = (unicode, type(None))
-def to_unicode(value):
-    """Converts a string argument to a unicode string.
-
-    If the argument is already a unicode string or None, it is returned
-    unchanged.  Otherwise it must be a byte string and is decoded as utf8.
+def to_unicode(s, enc='utf8'):
+    """Convert anything to unicode
     """
-    if isinstance(value, _TO_UNICODE_TYPES):
-        return value
-    assert isinstance(value, bytes)
-    return value.decode("utf-8")
+    return s if isinstance(s, unicode) else unicode(str(s), encoding=enc)
 
 class Request(object):
 
