@@ -63,6 +63,7 @@ import ujson as json
 ###
 ### Common helpers
 ###
+HTTP_METHODS = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace', 'connect']
 
 HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 def http_response(body, code, status, headers):
@@ -172,7 +173,6 @@ class MessageHandler(object):
     that database connection we created in `initialize` to check the username
     and password from a user.
     """
-    SUPPORTED_METHODS = ()
     _STATUS_CODE = 'status_code'
     _STATUS_MSG = 'status_msg'
     _TIMESTAMP = 'timestamp'
@@ -308,12 +308,11 @@ class MessageHandler(object):
         """
         self.prepare()
         if not self._finished:
-            mef = self.message.method # M-E-T-H-O-D man!
+            mef = self.message.method.lower() # M-E-T-H-O-D man!
 
             # Find function mapped to method on self
-            if mef in self.SUPPORTED_METHODS:
-                mef = mef.lower()
-                fun = getattr(self, mef)
+            if mef in HTTP_METHODS:
+                fun = getattr(self, mef, self.unsupported)
             else:
                 fun = self.unsupported
 
@@ -340,7 +339,6 @@ class WebMessageHandler(MessageHandler):
 
     Tornado's design inspired this design.
     """
-    SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PUT", "OPTIONS")
     _DEFAULT_STATUS = 500 # default to server error
     _SUCCESS_CODE = 200
     _AUTH_FAILURE = 401
@@ -382,26 +380,15 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Supported HTTP request methods are mapped to these functions
     ###
-
-    def head(self, *args, **kwargs):
-        return self.unsupported()
-
-    def get(self, *args, **kwargs):
-        return self.unsupported()
-
-    def post(self, *args, **kwargs):
-        return self.unsupported()
-
-    def delete(self, *args, **kwargs):
-        return self.unsupported()
-
-    def put(self, *args, **kwargs):
-        return self.unsupported()
-
     def options(self, *args, **kwargs):
-        """Should probably implement this in this class. Got any ideas?
+        """Default to allowing all of the methods you have defined and public
         """
-        return self.unsupported()
+        supported_methods = []
+        for mef in HTTP_METHODS:
+            if callable(getattr(self, mef, False)):
+                supported_methods.append(mef)
+        self.headers["Access-Control-Allow-Methods"] = ", ".join(mef.upper() for mef in supported_methods)
+        return self.render()
 
     def unsupported(self, *args, **kwargs):
         return self.render_error(self._NOT_FOUND)
