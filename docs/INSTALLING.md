@@ -7,7 +7,7 @@ All three packages live in github, so we'll clone the repos to our Desktop.
     $ cd ~/Desktop/
     $ git clone https://github.com/j2labs/brubeck.git
     $ git clone https://github.com/zedshaw/mongrel2.git
-    $ wget http://download.zeromq.org/zeromq-2.1.9.tar.gz 
+    $ wget http://download.zeromq.org/historic/zeromq-2.1.9.tar.gz 
     $ tar zxf zeromq-2.1.9.tar.gz
 
 
