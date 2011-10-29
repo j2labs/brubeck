@@ -52,9 +52,8 @@ import base64
 import hmac
 import cPickle as pickle
 
-from mongrel2 import Mongrel2Connection
+from mongrel2 import Mongrel2Connection, to_bytes, to_unicode
 import ujson as json
-
 
 ###
 ### Common helpers
@@ -68,20 +67,12 @@ def http_response(body, code, status, headers):
     payload = {'code': code, 'status': status, 'body': body}
     content_length = 0
     if body is not None:
-        content_length = len(body)
+        content_length = len(to_bytes(body))
     headers['Content-Length'] = content_length
     payload['headers'] = "\r\n".join('%s: %s' % (k,v) for k,v in
                                      headers.items())
 
     return HTTP_FORMAT % payload
-
-### Knowledge of `to_bytes` and `to_unicode` should be together
-from mongrel2 import to_bytes
-
-def to_unicode(s, enc='utf8'):
-    """Convert anything to unicode
-    """
-    return s if isinstance(s, unicode) else unicode(str(s), encoding=enc)
 
 def _lscmp(a, b):
     """Compares two strings in a cryptographically safe way

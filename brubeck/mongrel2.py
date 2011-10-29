@@ -7,8 +7,6 @@ import re
 import logging
 import Cookie
 
-
-
 ###
 ### Request handling code
 ###
@@ -24,6 +22,10 @@ def to_bytes(data, enc='utf8'):
     """
     return data.encode(enc) if isinstance(data, unicode) else bytes(data)
 
+def to_unicode(s, enc='utf8'):
+    """Convert anything to unicode
+    """
+    return s if isinstance(s, unicode) else unicode(str(s), encoding=enc)
 
 class Request(object):
 
@@ -45,7 +47,7 @@ class Request(object):
         self.arguments = {}
         if 'QUERY' in self.headers:
             query = self.headers['QUERY']
-            arguments = cgi.parse_qs(query)
+            arguments = cgi.parse_qs(query.encode("utf-8"))
             for name, values in arguments.iteritems():
                 values = [v for v in values if v]
                 if values: self.arguments[name] = values
@@ -142,7 +144,7 @@ class Request(object):
 
         def clean_value(v):
             v = re.sub(r"[\x00-\x08\x0e-\x1f]", " ", v)
-            v = unicode(v)
+            v = to_unicode(v)
             v = stripper(v)
             return v
 
