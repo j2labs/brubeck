@@ -560,6 +560,9 @@ class Brubeck(object):
         # (while i figure out how to do a good abstraction via zmq)
         logging.basicConfig(level=log_level)
 
+        # Log whether we're using eventlet or gevent.
+        logging.info('Using coroutine library: %s' % CORO_LIBRARY)
+
         # A Mongrel2Connection is currently just a way to manage
         # the sockets we need to open with a Mongrel2 instance and
         # identify this particular Brubeck instance as the sender
