@@ -570,7 +570,7 @@ class Brubeck(object):
             (pull_addr, pub_addr) = mongrel2_pair
             self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
         else:
-            raise ValueException('No mongrel2 connection possible.')
+            raise ValueError('No mongrel2 connection possible.')
 
         # Class based route lists should be handled this way.
         # It is also possible to use `add_route`, a decorator provided by a
@@ -585,7 +585,7 @@ class Brubeck(object):
         elif callable(pool):
             self.pool = pool()
         else:
-            raise ValueException('Unable to initialize coroutine pool')
+            raise ValueError('Unable to initialize coroutine pool')
 
         # Set a base_handler for handling errors (eg. 404 handler)
         self.base_handler = base_handler
@@ -608,7 +608,7 @@ class Brubeck(object):
             if loaded_env:
                 self.template_env = loaded_env
             else:
-                raise ValueException('template_env failed to load.')
+                raise ValueError('template_env failed to load.')
 
     ###
     ### Message routing funcitons
