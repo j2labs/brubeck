@@ -4,7 +4,7 @@ import sys
 from brubeck.request_handling import Brubeck, WebMessageHandler
 from brubeck.templating import Jinja2Rendering, load_jinja2_env
 
-class DemoHandler(WebMessageHandler, Jinja2Rendering):
+class DemoHandler(Jinja2Rendering, WebMessageHandler):
     def get(self):
         name = self.get_argument('name', 'dude')
         context = {

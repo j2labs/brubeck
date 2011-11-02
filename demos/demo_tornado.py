@@ -4,7 +4,7 @@ import sys
 from brubeck.request_handling import Brubeck, WebMessageHandler
 from brubeck.templating import TornadoRendering, load_tornado_env
 
-class DemoHandler(WebMessageHandler, TornadoRendering):
+class DemoHandler(TornadoRendering, WebMessageHandler):
     def get(self):
         name = self.get_argument('name', 'dude')
         context = {
