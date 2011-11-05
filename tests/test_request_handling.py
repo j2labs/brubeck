@@ -3,25 +3,35 @@
 import unittest
 import sys
 import brubeck
-from brubeck.request_handling import Brubeck, WebMessageHandler
+from handlers.method_handlers import simple_handler_method
+from brubeck.request_handling import Brubeck, WebMessageHandler, JSONMessageHandler
 from brubeck.mongrel2 import to_bytes, Request
-from brubeck.request_handling import cookie_encode, cookie_decode, cookie_is_encoded, http_response
+from brubeck.request_handling import(
+    cookie_encode, cookie_decode,
+    cookie_is_encoded, http_response
+)
+from handlers.object_handlers import(
+    SimpleWebHandlerObject, CookieWebHandlerObject,
+    SimpleJSONHandlerObject, CookieAddWebHandlerObject,
+    PrepareHookWebHandlerObject, InitializeHookWebHandlerObject
+)
 
 """ our simple messages for testing """
-HTTP_REQUEST_BRUBECK_MESSAGE = '34f9ceee-cd52-4b7f-b197-88bf2f0ec378 3 /brubeck 508:{"PATH":"/brubeck","x-forwarded-for":"127.0.0.1","cache-control":"max-age=0","accept-language":"en-US,en;q=0.8","accept-encoding":"gzip,deflate,sdch","connection":"keep-alive","accept-charset":"ISO-8859-1,utf-8;q=0.7,*;q=0.3","accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","user-agent":"Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.106 Safari/535.2","host":"127.0.0.1:6767","METHOD":"GET","VERSION":"HTTP/1.1","URI":"/brubeck","PATTERN":"/"},0:,\n'
+HTTP_REQUEST_BRUBECK = file('./fixtures/http_request_brubeck.txt','r').read()
 
-HTTP_REQUEST_ROOT_MESSAGE = '34f9ceee-cd52-4b7f-b197-88bf2f0ec378 5 / 466:{"PATH":"/","x-forwarded-for":"127.0.0.1","accept-language":"en-US,en;q=0.8","accept-encoding":"gzip,deflate,sdch","connection":"keep-alive","accept-charset":"ISO-8859-1,utf-8;q=0.7,*;q=0.3","accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","user-agent":"Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.106 Safari/535.2","host":"127.0.0.1:6767","METHOD":"GET","VERSION":"HTTP/1.1","URI":"/","PATTERN":"/"},0:,\n'
+HTTP_REQUEST_ROOT = file('./fixtures/http_request_root.txt','r').read()
 
-HTTP_REQUEST_ROOT_MESSAGE_WITH_COOKIE = '34f9ceee-cd52-4b7f-b197-88bf2f0ec378 5 / 487:{"PATH":"/","x-forwarded-for":"127.0.0.1","accept-language":"en-US,en;q=0.8","accept-encoding":"gzip,deflate,sdch","connection":"keep-alive","accept-charset":"ISO-8859-1,utf-8;q=0.7,*;q=0.3","accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","user-agent":"Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.106 Safari/535.2","host":"127.0.0.1:6767","cookie":"key=value","METHOD":"GET","VERSION":"HTTP/1.1","URI":"/","PATTERN":"/"},0:,\n'
-
-HTTP_RESPONSE_OBJECT_ROOT_MESSAGE = 'HTTP/1.1 200 OK\r\nContent-Length: 29\r\n\r\nTake five dude object handler'
-HTTP_RESPONSE_METHOD_ROOT_MESSAGE = 'HTTP/1.1 200 OK\r\nContent-Length: 29\r\n\r\nTake five dude method handler'
-
-HTTP_RESPONSE_OBJECT_ROOT_MESSAGE_WITH_COOKIE = 'HTTP/1.1 200 OK\r\nSet-Cookie: key=value\r\nContent-Length: 29\r\n\r\nTake five dude object handler'
+HTTP_REQUEST_ROOT_WITH_COOKIE = file('./fixtures/http_request_root_with_cookie.txt','r').read()
 
 """ our test body text """
-TEST_BODY_METHOD_HANDLER="Take five dude method handler"
-TEST_BODY_OBJECT_HANDLER="Take five dude object handler"
+TEST_BODY_METHOD_HANDLER = file('./fixtures/test_body_method_handler.txt','r').read().rstrip('\n')
+TEST_BODY_OBJECT_HANDLER = file('./fixtures/test_body_object_handler.txt','r').read().rstrip('\n')
+
+HTTP_RESPONSE_OBJECT_ROOT =      'HTTP/1.1 200 OK\r\nContent-Length: ' + str(len(TEST_BODY_OBJECT_HANDLER)) + '\r\n\r\n' + TEST_BODY_OBJECT_HANDLER
+HTTP_RESPONSE_METHOD_ROOT =      'HTTP/1.1 200 OK\r\nContent-Length: ' + str(len(TEST_BODY_METHOD_HANDLER)) + '\r\n\r\n' + TEST_BODY_METHOD_HANDLER
+HTTP_RESPONSE_JSON_OBJECT_ROOT = 'HTTP/1.1 200 OK\r\nContent-Length: 90\r\n\r\n{"status_code":200,"status_msg":"OK","message":"Take five dude","timestamp":1320456118809}'
+
+HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE = 'HTTP/1.1 200 OK\r\nSet-Cookie: key=value\r\nContent-Length: ' + str(len(TEST_BODY_OBJECT_HANDLER)) + '\r\n\r\n' + TEST_BODY_OBJECT_HANDLER
 
 ###
 ### Message handling (non)coroutines for testing
@@ -47,27 +57,9 @@ class MockPool(object):
     def spawn(function, app, message, *a, **kw):
         pass
 
-class SimpleHandlerObject(WebMessageHandler):
-    def get(self):
-        self.set_body(TEST_BODY_OBJECT_HANDLER)
-        return self.render()
-
-class CookieHandlerObject(WebMessageHandler):
-    def get(self):
-        self.set_cookie("key", self.get_cookie("key"));
-        self.set_body(TEST_BODY_OBJECT_HANDLER)
-        return self.render()
-
-class CookieAddHandlerObject(WebMessageHandler):
-    def get(self):
-        self.set_cookie("key", "value");
-        self.set_body(TEST_BODY_OBJECT_HANDLER)
-        return self.render()
-
-
 class MockMessage(object):
     """ we are a static zmq message """
-    def __init__(self, path = '/', msg = HTTP_REQUEST_ROOT_MESSAGE):
+    def __init__(self, path = '/', msg = HTTP_REQUEST_ROOT):
         self.path = path
         self.msg = msg
 
@@ -108,7 +100,7 @@ class TestRequestHandling(unittest.TestCase):
         self.assertEqual(hasattr(self.app, '_routes'), False)
 
         """ Create a tuple """
-        routes = [ (r'^/', self.route_handler_method), (r'^/brubeck', self.route_handler_method) ]
+        routes = [ (r'^/', simple_handler_method), (r'^/brubeck', simple_handler_method) ]
         self.app.init_routes( routes )
 
         """ Make sure we have two routes """
@@ -119,7 +111,7 @@ class TestRequestHandling(unittest.TestCase):
         self.assertEqual(hasattr(self.app, '_routes'), False)
 
         """ Create a tuple of routes with object handlers """
-        routes = [(r'^/', SimpleHandlerObject), (r'^/brubeck', SimpleHandlerObject)]
+        routes = [(r'^/', SimpleWebHandlerObject), (r'^/brubeck', SimpleWebHandlerObject)]
         self.app.init_routes( routes )
 
         """ Make sure we have two routes """
@@ -130,7 +122,7 @@ class TestRequestHandling(unittest.TestCase):
         self.assertEqual(hasattr(self.app, '_routes'), False)
 
         """ Create a tuple of routes with method handlers """
-        routes = [(r'^/', SimpleHandlerObject), (r'^/brubeck', self.route_handler_method)]
+        routes = [(r'^/', SimpleWebHandlerObject), (r'^/brubeck', simple_handler_method)]
         self.app.init_routes( routes )
 
         """ Make sure we have two routes """
@@ -183,45 +175,54 @@ class TestRequestHandling(unittest.TestCase):
         decoded_cookie = cookie_decode(encoded_cookie, cookie_key)
         self.assertEqual(decoded_cookie, cookie_value)
 
-    def test_request_handling_with_object(self):
+    def test_web_request_handling_with_object(self):
         self.setup_route_with_object()
-        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT_MESSAGE))
-        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_MESSAGE, response)
+        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT))
+        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT, response)
 
-    def test_request_handling_with_method(self):
+    def test_web_request_handling_with_method(self):
         self.setup_route_with_method()
-        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT_MESSAGE))
-        self.assertEqual(HTTP_RESPONSE_METHOD_ROOT_MESSAGE, response)
+        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT))
+        self.assertEqual(HTTP_RESPONSE_METHOD_ROOT, response)
+
+    def test_json_request_handling_with_object(self):
+        self.app.add_route_rule(r'^/$',SimpleJSONHandlerObject)
+        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT))
+        self.assertEqual(HTTP_RESPONSE_JSON_OBJECT_ROOT, response)
 
     def test_request_with_cookie_handling_with_object(self):
-        self.app.add_route_rule(r'^/',CookieHandlerObject)
-        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT_MESSAGE_WITH_COOKIE))
-        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_MESSAGE_WITH_COOKIE, response)
+        self.app.add_route_rule(r'^/$',CookieWebHandlerObject)
+        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT_WITH_COOKIE))
+        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE, response)
 
     def test_request_with_cookie_response_with_cookie_handling_with_object(self):
-        self.app.add_route_rule(r'^/',CookieHandlerObject)
-        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT_MESSAGE_WITH_COOKIE))
-        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_MESSAGE_WITH_COOKIE, response)
+        self.app.add_route_rule(r'^/$',CookieWebHandlerObject)
+        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT_WITH_COOKIE))
+        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE, response)
 
     def test_request_without_cookie_response_with_cookie_handling_with_object(self):
-        self.app.add_route_rule(r'^/',CookieAddHandlerObject)
-        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT_MESSAGE))
-        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_MESSAGE_WITH_COOKIE, response)
+        self.app.add_route_rule(r'^/$',CookieAddWebHandlerObject)
+        response = route_message(self.app, Request.parse_msg(HTTP_REQUEST_ROOT))
+        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE, response)
 
     def test_build_http_response(self):
         response = http_response(TEST_BODY_OBJECT_HANDLER, 200, 'OK', dict())
-        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT_MESSAGE, response)
+        self.assertEqual(HTTP_RESPONSE_OBJECT_ROOT, response)
+
+    def test_handler_initialize_hook(self):
+        handler = InitializeHookWebHandlerObject(self.app, Request.parse_msg(HTTP_REQUEST_ROOT))
+        self.assertEqual(handler(), HTTP_RESPONSE_OBJECT_ROOT)
+
+    def test_handler_prepare_hook(self):
+        handler = PrepareHookWebHandlerObject(self.app, Request.parse_msg(HTTP_REQUEST_ROOT))
+        self.assertEqual(handler(), HTTP_RESPONSE_OBJECT_ROOT)
 
     """ some helper functions """
-    def route_handler_method(self, application, *args):
-        """" dummy request action """
-        return http_response(TEST_BODY_METHOD_HANDLER, 200, 'OK', dict())
+    def setup_route_with_object(self, url_pattern='^/$'):
+        self.app.add_route_rule(url_pattern,SimpleWebHandlerObject)
 
-    def setup_route_with_object(self, url_pattern='^/'):
-        self.app.add_route_rule(url_pattern,SimpleHandlerObject)
-
-    def setup_route_with_method(self, url_pattern='^/'):
-        method = self.route_handler_method
+    def setup_route_with_method(self, url_pattern='^/$'):
+        method = simple_handler_method
         self.app.add_route_rule(url_pattern, method)
 
 """ This will run our tests """
