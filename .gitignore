@@ -7,4 +7,6 @@
 MANIFEST
 build
 dist
-
+*.pid
+.*.swp
+.*.swo
