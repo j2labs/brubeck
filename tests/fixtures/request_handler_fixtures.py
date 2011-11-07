@@ -2,7 +2,7 @@ import os
 ##
 ## setup our simple messages for testing """
 ##
-dir = os.path.abspath(__file__)[0:len(os.path.abspath(__file__))-28]
+dir = os.path.abspath(__file__)[0:len(os.path.abspath(__file__))-28] + '/'
 
 HTTP_REQUEST_BRUBECK = file( dir + 'http_request_brubeck.txt','r').read()
 
