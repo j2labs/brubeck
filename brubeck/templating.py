@@ -43,7 +43,8 @@ def load_jinja2_env(template_dir, *args, **kwargs):
     def loader():
         from jinja2 import Environment, FileSystemLoader
         if template_dir is not None:
-            return Environment(loader=FileSystemLoader(template_dir or '.'), *args, **kwargs)
+            return Environment(loader=FileSystemLoader(template_dir or '.'),
+                               *args, **kwargs)
         else:
             return None
     return loader
