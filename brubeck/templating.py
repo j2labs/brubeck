@@ -16,7 +16,7 @@ def load_mako_env(template_dir, *args, **kwargs):
             return None
     return loader
   
-class MakoRendering(object):
+class MakoRendering(WebMessageHandler):
     def render_template(self, template_file,
                         _status_code=WebMessageHandler._SUCCESS_CODE,
                         **context):
@@ -49,7 +49,7 @@ def load_jinja2_env(template_dir, *args, **kwargs):
             return None
     return loader
 
-class Jinja2Rendering():
+class Jinja2Rendering(WebMessageHandler):
     """Jinja2Rendering is a mixin for for loading a Jinja2 rendering
     environment.
 
@@ -90,7 +90,7 @@ def load_tornado_env(template_dir, *args, **kwargs):
             return None
     return loader
 
-class TornadoRendering():
+class TornadoRendering(WebMessageHandler):
     """TornadoRendering is a mixin for for loading a Tornado rendering
     environment.
 

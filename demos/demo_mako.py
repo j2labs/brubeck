@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import sys
-from brubeck.request_handling import Brubeck, WebMessageHandler
+from brubeck.request_handling import Brubeck
 from brubeck.templating import MakoRendering, load_mako_env
 
 
-class DemoHandler(MakoRendering, WebMessageHandler):
+class DemoHandler(MakoRendering):
   def get(self):
     name = self.get_argument('name', 'dude')
     context = {'name': name}

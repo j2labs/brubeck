@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-from brubeck.request_handling import Brubeck, WebMessageHandler
+from brubeck.request_handling import Brubeck
 from brubeck.templating import Jinja2Rendering, load_jinja2_env
 
-class DemoHandler(Jinja2Rendering, WebMessageHandler):
+class DemoHandler(Jinja2Rendering):
     def get(self):
         name = self.get_argument('name', 'dude')
         context = {
