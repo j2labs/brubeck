@@ -148,7 +148,7 @@ class MessageHandler(object):
     unique to the message our handler is designed for. Mix in logic as you
     realize you need it. Or rip it out. Keep your handlers lean.
 
-    Two callbacks are offered for state preperation.
+    Two callbacks are offered for state preparation.
 
     The `initialize` function allows users to add steps to object
     initialization. A mixin, however, should never use this. You could hook
@@ -473,7 +473,7 @@ class WebMessageHandler(MessageHandler):
         self.set_cookie(key, '', **kwargs)
 
     def delete_cookies(self):
-        """Deleats every cookie received from the user.
+        """Deletes every cookie received from the user.
         """
         for key in self.message.cookies.iterkeys():
             self.delete_cookie(key)
@@ -481,6 +481,14 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Output generation
     ###
+
+    def convert_cookies(self):
+        """ Resolves cookies into multiline values.
+        """
+        cookie_vals = [c.OutputString() for c in self.cookies.values()]
+        if len(cookie_vals) > 0:
+            cookie_str = '\nSet-Cookie: '.join(cookie_vals)
+            self.headers['Set-Cookie'] = cookie_str
 
     def render(self, status_code=None, http_200=False, **kwargs):
         """Renders payload and prepares the payload for a successful HTTP
@@ -498,11 +506,7 @@ class WebMessageHandler(MessageHandler):
         if http_200:
             status_code = 200
 
-        # Resolve cookies into multiline value
-        cookie_vals = [c.OutputString() for c in self.cookies.values()]
-        if len(cookie_vals) > 0:
-            cookie_str = '\nSet-Cookie: '.join(cookie_vals)
-            self.headers['Set-Cookie'] = cookie_str
+        self.convert_cookies()
 
         response = http_response(self.body, status_code,
                                  self.status_msg, self.headers)
@@ -521,6 +525,10 @@ class JSONMessageHandler(WebMessageHandler):
     def render(self, status_code=None, **kwargs):
         if status_code:
             self.set_status(status_code)
+
+        self.convert_cookies()
+        
+        self.headers['Content-Type'] = 'application/json'
 
         body = json.dumps(self._payload)
 
@@ -611,7 +619,7 @@ class Brubeck(object):
                 raise ValueError('template_env failed to load.')
 
     ###
-    ### Message routing funcitons
+    ### Message routing functions
     ###
     
     def init_routes(self, handler_tuples):
