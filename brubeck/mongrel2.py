@@ -35,7 +35,7 @@ class Request(object):
         self.headers = headers
         self.body = body
 
-        if self.headers['METHOD'] == 'JSON':
+        if self.method == 'JSON':
             self.data = json.loads(body)
         else:
             self.data = {}
