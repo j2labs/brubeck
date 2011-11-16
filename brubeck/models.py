@@ -1,16 +1,18 @@
 import re
-
+import json
 ###
 ### DictShield documents
 ###
 
 from dictshield.document import Document
+from dictshield.base import ShieldException
 from dictshield.fields import (StringField,
                                BooleanField,
                                URLField,
                                EmailField,
                                LongField,
                                )
+from brubeck.request_handling import JSONMessageHandler
 
 import auth
 from timekeeping import curtime
@@ -122,5 +124,133 @@ class UserProfile(Document, OwnedModelMixin, StreamedModelMixin):
 
     def __unicode__(self):
         return u'%s' % (self.name)
+
+
+
+
+###
+### API mixin
+###
+
+
+class APIableMixin(object):
+    def __init__(self, queryset=None, dicttype=None):
+        pass
+        #create class with self as model  and queryset to pull them
+        #register new class to routes
+        #register itself with brubeck's manafest
+
+class AutoAPIBase(JSONMessageHandler):
+    def __init__(self, dicttype, queryset):
+        self.dicttype = dicttype
+        self.queries = queryset
+
+
+class APIListHandler(AutoAPIBase):
+    def get(self):
+        instances = self.queries.get_list()
+        instances = json.dumps(instances)
+        self.add_to_payload('data', instances)
+        return self.render(status_code=200)
+    def post(self):
+        data = json.loads(self.arguments['data'])
+        shield = self.dicttype(**data)
+        try:
+            shield.validate()
+        except ShieldException:
+            return self.render(status_code=400)
+        self.queries.save_single(shield)
+        return self.render(status_code=200)
+    #def put(self):
+        #replace the entire collection with a new one. This seems dangerous 
+    #def delete(self):
+        #delete the entire collection. This seems dangerous 
+    #def head(self):
+        #return metadata about the resource - the headers should be the same as a get requets, but no content body
+
+class APISingleHandler(AutoAPIBase):
+    def get(self, item_id):
+        instance = self.queries.get_single(item_id)
+        instance = json.dumps([instance])
+        self.add_to_payload('data', instance)
+        return self.render(status_code=200)
+    #def post(self):
+        # not sure what to do with this - generalized post to item syntax makes me think that:
+        # we should check for collection at location.
+        # if it's there blow it away with new value, if not assign into collection. Need to read up on this
+
+    #def head(self):
+        #return metadata about the resource - the headers should be the same as a get requets, but no content body
+    def put(self, item_id):
+        data = json.loads(self.arguments['data'])
+        shield = self.dicttype(**data)
+        try:
+            shield.validate()
+        except ShieldException:
+            return self.render(status_code=400)
+        self.queries.save_single(item_id, shield)
+        return self.render(status_code=200)
+    def delete(self, item_id):
+        self.queries.delete(item_id)
+        return self.render(status_code=200)
+        
+    
+class APISeveralHandler(AutoAPIBase):
+    def get(self, item_ids):
+        """ Return a list of resources
+        """
+        self.ids = item_ids.split(';')
+        instances = self.queries.getseveral(self.ids)
+        instances = json.dumps(instances)
+        self.add_to_payload('data', instances)
+        return self.render(status_code=200)
+    #def head(self):
+        #return metadata about the resource - the headers should be the same as a get requets, but no content body
+    def put(self, item_ids):
+        """Updates a list of items in place. Used as a cheat to combine what could be several requests into a single one
+        """
+        self.ids = item_ids.split(';')
+        valid, invalid = [], []
+        data = json.loads(self.arguments['data'])
+        for item in data:
+            #have we been given an id that was not requested
+            shield = self.dicttype(**item)
+            try:
+                id = shield[shield._meta['id_field']]
+                self.ids.remove(id)
+            except ValueError:
+                #item included in data that shouldn't have been. Bail.
+                return self.render(status_code=400)
+            try:
+                #did we get good data
+                shield.validate()
+                valid.append(item)
+            except ShieldException:
+                invalid.append(item)
+
+        #the request asked for more resources than they actually needed. Enforce a good request!
+        if self.ids:
+            return self.render(status_code=400)
+        #commit this to the db
+        self.queries.save_several(valid)
+
+        if not invalid:
+            #we're all good, so return the all clear
+            return self.render(status_code=200)
+
+        #some failed - return a list of which ones worked
+        else:
+            data = []
+            [data.append({'id': id, 'status' : '400'}) for id in invalid]
+            [data.append({'id': id, 'status' : '200'}) for id in valid]
+            data = json.dumps(data)
+            self.add_to_payload('data', data)
+            return self.render(status_code=400)
+            
+    def delete(self, item_ids):
+        self.ids = item_ids.split(';')
+        self.queries.delete_several(self.ids)
+        return self.render(status_code=200)
+
 
 
