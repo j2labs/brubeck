@@ -1,6 +1,6 @@
 from dictshield.document import EmbeddedDocument
-from dictshield.fields import (StringField,
-                               ObjectIdField)
+from dictshield.base import UUIDField
+from dictshield.fields import StringField
 
 from brubeck.timekeeping import MillisecondField
 
@@ -37,7 +37,7 @@ def get_typed_argument(arg_name, default, handler, type_fun):
 class OwnedModelMixin(EmbeddedDocument):
     """This class standardizes the approach to expressing ownership of data
     """
-    owner_id = ObjectIdField(required=True)
+    owner_id = UUIDField(required=True)
     owner_username = StringField(max_length=30, required=True)
     meta = {'mixin': True}
 
