@@ -705,6 +705,11 @@ class Brubeck(object):
 
         return handler
 
+    def register_api(self, APIClass):
+        pattern = APIClass.model.__name__
+        pattern = pattern + "/((?P<item_ids>[\w\d;]*)/)?"
+        self.add_route_rule(pattern, APIClass)
+
     ###
     ### Application running functions
     ###
