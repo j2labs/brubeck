@@ -1,6 +1,6 @@
 from dictshield.document import EmbeddedDocument
-from dictshield.fields import (StringField,
-                               ObjectIdField)
+from dictshield.fields import StringField
+from dictshield.fields.bson import ObjectIdField
 
 from brubeck.timekeeping import MillisecondField
 
