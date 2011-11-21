@@ -317,7 +317,8 @@ class MessageHandler(object):
                 if not hasattr(self, '_url_args') or self._url_args is None:
                     self._url_args = []
                 if isinstance(self._url_args, dict):
-                    rendered = fun(**self._url_args)
+                    #if we got none, filter it out so the functions default takes priority
+                    rendered = fun(**dict((k, v) for k,v in self._url_args if v)) 
                 else:
                     rendered = fun(*self._url_args)
                 if rendered is None:
@@ -701,7 +702,8 @@ class Brubeck(object):
                 else:
                     # Can't instantiate a function
                     if isinstance(url_args, dict):
-                        handler = lambda: kallable(self, message, **url_args)
+                        #if we got none, filter it out so the functions default takes priority
+                        handler = lambda: kallable(self, message, **dict((k, v) for k,v in url_args if v))
                     else:
                         handler = lambda: kallable(self, message, *url_args)
                     return handler
