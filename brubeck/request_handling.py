@@ -316,7 +316,10 @@ class MessageHandler(object):
             try:
                 if not hasattr(self, '_url_args') or self._url_args is None:
                     self._url_args = []
-                rendered = fun(*self._url_args)
+                if isinstance(self._url_args, dict):
+                    rendered = fun(**self._url_args)
+                else:
+                    rendered = fun(*self._url_args)
                 if rendered is None:
                     logging.debug('Handler had no return value: %s' % fun)
                     return ''
@@ -687,7 +690,7 @@ class Brubeck(object):
 
             if url_check:
                 # Default must be empty list - `None` will fail
-                url_args = url_check.groups()
+                url_args = url_check.groupdict() or url_check.groups() or []
 
                 if inspect.isclass(kallable):
                     # Handler classes must be instantiated
@@ -697,7 +700,10 @@ class Brubeck(object):
                     return handler
                 else:
                     # Can't instantiate a function
-                    handler = lambda: kallable(self, message, *url_args)
+                    if isinstance(url_args, dict):
+                        handler = lambda: kallable(self, message, **url_args)
+                    else:
+                        handler = lambda: kallable(self, message, *url_args)
                     return handler
             
         if handler is None:
