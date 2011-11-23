@@ -136,9 +136,81 @@ class UserProfile(Document, OwnedModelMixin, StreamedModelMixin):
 class FourOhFourException(Exception):
     pass
 
+    
+class AbstractQueryset(object):
+    def __init__(self, db_conn=None):
+        self.db_conn = db_conn
+
+
+    def read(self, ids):
+        """Returns a list of items that match ids
+        """
+        if not ids:
+            return self.read_all()
+        elif len(ids) == 1:
+            return self.read_one(ids[0])
+        else:
+            return self.read_many(ids)
+        
+
+    def read_all(self):
+        """Returns a list of objects in the db
+        """
+        raise NotImplementedError
+
+    def read_one(self, i):
+        """Returns a single item from the db
+        """
+        raise NotImplementedError
+
+    def read_many(self, ids):
+        """Returns a list of objects matching ids from the db
+        """
+        raise NotImplementedError
+
+    def create(self, shields):
+        """Commits a list of new shields to the database
+        """
+        if len(shields) == 1:
+            return self.create_one(shields[0])
+        else:
+            return self.create_many(shields)
+    
+    def create_one(self, shield):
+        raise NotImplementedError
+
+    def create_many(self, shields):
+        raise NotImplementedError
+
+    def update(self, shields):
+        if len(shields) == 1:
+            return self.update_one(shields)
+        else:
+            return self.update_many(shields)
+    
+    def update_one(self, shield):
+        raise NotImplementedError
+
+    def update_many(self, shields):
+        raise NotImplementedError
+
+    def delete(self, item_ids):
+        """ Removes items from the datastore
+        """
+        if len(item_ids) == 1:
+            return self.delete_one(item_ids[0])
+        else:
+            return self.delete_many(item_ids)
+
+    def delete_one(self, i):
+        raise NotImplementedError
+
+    def delete_many(self, ids):
+        raise NotImplementedError
+    
 class AutoAPIBase(JSONMessageHandler):
     model = None
-    queries = None
+    queries = AbstractQueryset()
 
     ###
     ### configuring input and output formats
@@ -147,8 +219,7 @@ class AutoAPIBase(JSONMessageHandler):
     def _get_shields_from_postbody(self):
         """ Describes how our incoming data looks
         """
-        data = json.dumps(self.arguments['data'])
-        items = data['data']
+        items = json.loads(self.get_argument('data'))
         shields = [self.model(**item) for item in items]
         return shields
 
@@ -157,11 +228,11 @@ class AutoAPIBase(JSONMessageHandler):
         """Passed a list of shields and the state they're in, and creates a response
         """
         status = []
-        status.extend([{'status':201, 'id':shield.id, 'href':self.uri_for_shield(shield)} for shield in created])
-        status.extend([{'status':200, 'id':shield.id, 'href':self.uri_for_shield(shield)} for shield in updated])
-        status.extend([{'status':400, 'id':shield.id, 'href':self.uri_for_shield(shield)} for shield in failed])
+        status.extend([{'status':201, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in created])
+        status.extend([{'status':200, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in updated])
+        status.extend([{'status':400, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in failed])
 
-        self.add_to_payload('data', json.dumps([shield.to_json() for shield in chain(created, updated, failed)]))
+        self.add_to_payload('data', json.dumps([shield.to_json(encode=False) for shield in chain(created, updated, failed)]))
         self.add_to_payload('multistatus', json.dumps(status))
 
         status_code = self._get_status_code(updated, failed, created)
@@ -184,7 +255,7 @@ class AutoAPIBase(JSONMessageHandler):
                 status_code = 400
             elif created:
                 status_code = 201
-            elif updated:
+            else:
                 status_code = 200
         return status_code
 
@@ -226,7 +297,7 @@ class AutoAPIBase(JSONMessageHandler):
         return True
 
     def uri_for_shield(self, shield):
-        return shield.id
+        return str(shield.id)
 
     ###
     ### HTTP methods
@@ -236,10 +307,10 @@ class AutoAPIBase(JSONMessageHandler):
         """Handles read - either with a filter (item_ids) or a total list
         """
         try:
-            shields = self.read(item_ids.split(';'))
+            shields = self.read([v for v in item_ids.split(';') if v])
         except FourOhFourException:
             return self.render(status_code=404)
-        return self._create_response(self, shields)
+        return self._create_response(shields)
 
 
     def post(self, item_ids=""):
@@ -271,7 +342,7 @@ class AutoAPIBase(JSONMessageHandler):
         if item_ids == "":
 
             created, updated, failed = self.create(shields)
-        
+            return self._create_response(updated, failed, created)
         else:
             if not self.url_matches_body(item_ids.split(';'), shields):
                 #TODO: add error message so client knows why the request failed
@@ -279,7 +350,7 @@ class AutoAPIBase(JSONMessageHandler):
 
             successes, failures = self.update(shields)
 
-            return self._create_response(self, successes, failures)
+            return self._create_response(successes, failures)
             
     def put(self, item_ids):
         """ Handles update for 1 or many items.
@@ -365,83 +436,10 @@ class AutoAPIBase(JSONMessageHandler):
         successes, failures = self.update(shields)
         """
         return self.queries.update(item_ids)
-        
-    
-class AbstractQueryset(object):
-    def __init__(self, db_conn=None):
-        self.db_conn = db_conn
 
-
-    def read(self, ids):
-        """Returns a list of items that match ids
-        """
-        if not ids:
-            return self.read_all()
-        elif len(ids) == 1:
-            return self.read_one(ids[0])
-        else:
-            return self.read_many(ids)
-        
-
+class DictQueryset(AbstractQueryset):
     def read_all(self):
-        """Returns a list of objects in the db
-        """
-        raise NotImplementedError
-
-    def read_one(self, i):
-        """Returns a single item from the db
-        """
-        raise NotImplementedError
-
-    def read_many(self, ids):
-        """Returns a list of objects matching ids from the db
-        """
-        raise NotImplementedError
-
-    def create(self, shields):
-        """Commits a list of new shields to the database
-        """
-        if len(shields) == 1:
-            return self.create_one(shields[0])
-        else:
-            return self.create_many(shields)
-    
-    def create_one(self, shield):
-        raise NotImplementedError
-
-    def create_many(self, shields):
-        raise NotImplementedError
-
-    def update(self, shields):
-        if len(shields) == 1:
-            return self.update_one(shields)
-        else:
-            return self.update_many(shields)
-    
-    def update_one(self, shield):
-        raise NotImplementedError
-
-    def update_many(self, shields):
-        raise NotImplementedError
-
-    def delete(self, item_ids):
-        """ Removes items from the datastore
-        """
-        if len(item_ids) == 1:
-            return self.delete_one(item_ids[0])
-        else:
-            return self.delete_many(item_ids)
-
-    def delete_one(self, i):
-        raise NotImplementedError
-
-    def delete_many(self, ids):
-        raise NotImplementedError
-    
-
-def DictQueryset(AbstractQueryset):
-    def read_all(self):
-        return self.db_conn.iter_values()
+        return self.db_conn.itervalues()
 
     def read_one(self, i):
         return self.read_many([i])
@@ -456,7 +454,7 @@ def DictQueryset(AbstractQueryset):
         return self.create_many([shield])
     
     def create_many(self, shields):
-        created, updated = []
+        created, updated = [], []
         for shield in shields:
             if shield.id in self.db_conn:
                 updated.append(shield)
