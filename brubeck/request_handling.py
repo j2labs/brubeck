@@ -307,8 +307,9 @@ class MessageHandler(object):
             try:
                 if not hasattr(self, '_url_args') or self._url_args is None:
                     self._url_args = []
+
                 if isinstance(self._url_args, dict):
-                    #if we got none, filter it out so the functions default takes priority
+                    #if the value was optional and not included, filter it out so the functions default takes priority
                     rendered = fun(**dict((k, v) for k,v in self._url_args.items() if v)) 
                 else:
                     rendered = fun(*self._url_args)
@@ -692,7 +693,9 @@ class Brubeck(object):
             url_check = regex.match(message.path)
 
             if url_check:
-                # Default must be empty list - `None` will fail
+                # `None` will fail, so we have to use at least an empty list
+                # We should try to use named arguments first, and if they're not present
+                # fall back to positional arguments
                 url_args = url_check.groupdict() or url_check.groups() or []
 
                 if inspect.isclass(kallable):
@@ -704,7 +707,7 @@ class Brubeck(object):
                 else:
                     # Can't instantiate a function
                     if isinstance(url_args, dict):
-                        #if we got none, filter it out so the functions default takes priority
+                        #if the value was optional and not included, filter it out so the functions default takes priority
                         handler = lambda: kallable(self, message, **dict((k, v) for k,v in url_args.items() if v))
                     else:
                         handler = lambda: kallable(self, message, *url_args)
@@ -717,7 +720,7 @@ class Brubeck(object):
 
     def register_api(self, APIClass):
         pattern = APIClass.model.__name__.lower()
-        pattern = "/" + pattern + "/((?P<item_ids>[\w\d;]*)/)?"
+        pattern = "/" + pattern + "/((?P<item_ids>[-\w\d;]+)/|$)"
         print pattern
         self.add_route_rule(pattern, APIClass)
 
