@@ -52,9 +52,8 @@ import base64
 import hmac
 import cPickle as pickle
 
-from mongrel2 import Mongrel2Connection
+from mongrel2 import Mongrel2Connection, to_bytes, to_unicode
 import ujson as json
-
 
 ###
 ### Common helpers
@@ -68,20 +67,12 @@ def http_response(body, code, status, headers):
     payload = {'code': code, 'status': status, 'body': body}
     content_length = 0
     if body is not None:
-        content_length = len(body)
+        content_length = len(to_bytes(body))
     headers['Content-Length'] = content_length
     payload['headers'] = "\r\n".join('%s: %s' % (k,v) for k,v in
                                      headers.items())
 
     return HTTP_FORMAT % payload
-
-### Knowledge of `to_bytes` and `to_unicode` should be together
-from mongrel2 import to_bytes
-
-def to_unicode(s, enc='utf8'):
-    """Convert anything to unicode
-    """
-    return s if isinstance(s, unicode) else unicode(str(s), encoding=enc)
 
 def _lscmp(a, b):
     """Compares two strings in a cryptographically safe way
@@ -157,7 +148,7 @@ class MessageHandler(object):
     unique to the message our handler is designed for. Mix in logic as you
     realize you need it. Or rip it out. Keep your handlers lean.
 
-    Two callbacks are offered for state preperation.
+    Two callbacks are offered for state preparation.
 
     The `initialize` function allows users to add steps to object
     initialization. A mixin, however, should never use this. You could hook
@@ -482,7 +473,7 @@ class WebMessageHandler(MessageHandler):
         self.set_cookie(key, '', **kwargs)
 
     def delete_cookies(self):
-        """Deleats every cookie received from the user.
+        """Deletes every cookie received from the user.
         """
         for key in self.message.cookies.iterkeys():
             self.delete_cookie(key)
@@ -490,6 +481,14 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Output generation
     ###
+
+    def convert_cookies(self):
+        """ Resolves cookies into multiline values.
+        """
+        cookie_vals = [c.OutputString() for c in self.cookies.values()]
+        if len(cookie_vals) > 0:
+            cookie_str = '\nSet-Cookie: '.join(cookie_vals)
+            self.headers['Set-Cookie'] = cookie_str
 
     def render(self, status_code=None, http_200=False, **kwargs):
         """Renders payload and prepares the payload for a successful HTTP
@@ -507,11 +506,7 @@ class WebMessageHandler(MessageHandler):
         if http_200:
             status_code = 200
 
-        # Resolve cookies into multiline value
-        cookie_vals = [c.OutputString() for c in self.cookies.values()]
-        if len(cookie_vals) > 0:
-            cookie_str = '\nSet-Cookie: '.join(cookie_vals)
-            self.headers['Set-Cookie'] = cookie_str
+        self.convert_cookies()
 
         response = http_response(self.body, status_code,
                                  self.status_msg, self.headers)
@@ -530,6 +525,10 @@ class JSONMessageHandler(WebMessageHandler):
     def render(self, status_code=None, **kwargs):
         if status_code:
             self.set_status(status_code)
+
+        self.convert_cookies()
+        
+        self.headers['Content-Type'] = 'application/json'
 
         body = json.dumps(self._payload)
 
@@ -569,6 +568,9 @@ class Brubeck(object):
         # (while i figure out how to do a good abstraction via zmq)
         logging.basicConfig(level=log_level)
 
+        # Log whether we're using eventlet or gevent.
+        logging.info('Using coroutine library: %s' % CORO_LIBRARY)
+
         # A Mongrel2Connection is currently just a way to manage
         # the sockets we need to open with a Mongrel2 instance and
         # identify this particular Brubeck instance as the sender
@@ -576,7 +578,7 @@ class Brubeck(object):
             (pull_addr, pub_addr) = mongrel2_pair
             self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
         else:
-            raise ValueException('No mongrel2 connection possible.')
+            raise ValueError('No mongrel2 connection possible.')
 
         # Class based route lists should be handled this way.
         # It is also possible to use `add_route`, a decorator provided by a
@@ -591,7 +593,7 @@ class Brubeck(object):
         elif callable(pool):
             self.pool = pool()
         else:
-            raise ValueException('Unable to initialize coroutine pool')
+            raise ValueError('Unable to initialize coroutine pool')
 
         # Set a base_handler for handling errors (eg. 404 handler)
         self.base_handler = base_handler
@@ -614,10 +616,10 @@ class Brubeck(object):
             if loaded_env:
                 self.template_env = loaded_env
             else:
-                raise ValueException('template_env failed to load.')
+                raise ValueError('template_env failed to load.')
 
     ###
-    ### Message routing funcitons
+    ### Message routing functions
     ###
     
     def init_routes(self, handler_tuples):

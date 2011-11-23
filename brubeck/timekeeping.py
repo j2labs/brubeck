@@ -57,19 +57,19 @@ def prettydate(d):
     elif diff.days == 1:
         return '1 day ago'
     elif diff.days > 1:
-        return '{} days ago'.format(diff.days)
+        return '{0} days ago'.format(diff.days)
     elif s <= 1:
         return 'just now'
     elif s < 60:
-        return '{} seconds ago'.format(s)
+        return '{0} seconds ago'.format(s)
     elif s < 120:
         return '1 minute ago'
     elif s < 3600:
-        return '{} minutes ago'.format(s/60)
+        return '{0} minutes ago'.format(s/60)
     elif s < 7200:
         return '1 hour ago'
     else:
-        return '{} hours ago'.format(s/3600)
+        return '{0} hours ago'.format(s/3600)
 
 ###
 ### Custom DictShield Field

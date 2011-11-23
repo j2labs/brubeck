@@ -8,3 +8,6 @@ MANIFEST
 build
 dist
 .rope*
+*.pid
+.*.swp
+.*.swo
