@@ -185,7 +185,7 @@ class AbstractQueryset(object):
 
     def update(self, shields):
         if len(shields) == 1:
-            return self.update_one(shields)
+            return self.update_one(shields[0])
         else:
             return self.update_many(shields)
     
@@ -195,18 +195,18 @@ class AbstractQueryset(object):
     def update_many(self, shields):
         raise NotImplementedError
 
-    def delete(self, item_ids):
+    def destroy(self, item_ids):
         """ Removes items from the datastore
         """
         if len(item_ids) == 1:
-            return self.delete_one(item_ids[0])
+            return self.destroy_one(item_ids[0])
         else:
-            return self.delete_many(item_ids)
+            return self.destroy_many(item_ids)
 
-    def delete_one(self, i):
+    def destroy_one(self, i):
         raise NotImplementedError
 
-    def delete_many(self, ids):
+    def destroy_many(self, ids):
         raise NotImplementedError
     
 class AutoAPIBase(JSONMessageHandler):
@@ -233,8 +233,8 @@ class AutoAPIBase(JSONMessageHandler):
         status.extend([{'status':200, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in updated])
         status.extend([{'status':400, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in failed])
 
-        self.add_to_payload('data', json.dumps([shield.to_json(encode=False) for shield in chain(created, updated, failed)]))
-        self.add_to_payload('multistatus', json.dumps(status))
+        self.add_to_payload('data', [shield.to_json(encode=False) for shield in chain(created, updated, failed)])
+        self.add_to_payload('multistatus', status)
 
         status_code = self._get_status_code(updated, failed, created)
         
@@ -383,7 +383,7 @@ class AutoAPIBase(JSONMessageHandler):
             #TODO: add error message so client knows why the request failed
             return self.render(status_code=400)
         successes, failures = self.update(shields)
-        return self._create_response(self, successes, failures)
+        return self._create_response(successes, failures)
 
     def delete(self, item_ids):
         """ Handles delete for 1 or many items. Since this doesn't take a postbody, and just
@@ -436,7 +436,9 @@ class AutoAPIBase(JSONMessageHandler):
         Such that:
         successes, failures = self.update(shields)
         """
-        return self.queries.update(item_ids)
+        import pdb
+        pdb.set_trace()
+        return self.queries.update(shields)
 
 class DictQueryset(AbstractQueryset):
     def read_all(self):
@@ -461,7 +463,7 @@ class DictQueryset(AbstractQueryset):
                 updated.append(shield)
             else:
                 created.append(shield)
-            self.db_conn[shield.id] = shield.to_python()
+            self.db_conn[str(shield.id)] = shield.to_python()
         return created, updated, []
                 
     def update_one(self, shield):
@@ -469,16 +471,16 @@ class DictQueryset(AbstractQueryset):
 
     def update_many(self, shields):
         for shield in shields:
-            self.db_conn[shield.id] = shield.to_python()
+            self.db_conn[str(shield.id)] = shield.to_python()
         return shields, []
     
-    def delete_one(self, item_id):
-        return self.delete_many([item_id])
+    def destroy_one(self, item_id):
+        return self.destroy_many([item_id])
 
-    def delete_many(self, item_ids):
+    def destroy_many(self, item_ids):
         try:
             for i in item_ids:
                 del self.db_conn[i]
         except KeyError:
             raise FourOhFourException
-        return item_ids
+        return item_ids, []
