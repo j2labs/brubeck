@@ -14,6 +14,7 @@ from dictshield.fields import (StringField,
                                LongField,
                                )
 from brubeck.request_handling import JSONMessageHandler
+from dictshield.fields.bson import ObjectIdField
 
 import auth
 from timekeeping import curtime
@@ -100,11 +101,11 @@ class UserProfile(Document, OwnedModelMixin, StreamedModelMixin):
     """The basic things a user profile tends to carry. Isolated in separate
     class to keep separate from private data.
     """
-    ## ownable # Provided by OwnedModelMixin now. includes a name changes
-    #owner = ObjectIdField(required=True) # owner_id
-    #username = StringField(max_length=30, required=True) # owner_username
+    # Provided by OwnedModelMixin
+    #owner_id = ObjectIdField(required=True)
+    #owner_username = StringField(max_length=30, required=True)
 
-    ## streamable # provided by StreamedModelMixin now
+    # streamable # provided by StreamedModelMixin now
     #created_at = MillisecondField()
     #updated_at = MillisecondField()
 
@@ -117,7 +118,7 @@ class UserProfile(Document, OwnedModelMixin, StreamedModelMixin):
     avatar_url = URLField(max_length=255)
 
     _private_fields = [
-        'owner',
+        'owner_id',
     ]
 
     def __init__(self, *args, **kwargs):
