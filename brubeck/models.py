@@ -436,8 +436,6 @@ class AutoAPIBase(JSONMessageHandler):
         Such that:
         successes, failures = self.update(shields)
         """
-        import pdb
-        pdb.set_trace()
         return self.queries.update(shields)
 
 class DictQueryset(AbstractQueryset):

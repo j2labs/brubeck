@@ -544,15 +544,38 @@ class JSONMessageHandler(WebMessageHandler):
                                         self.message.path,
                                         self.message.remote_addr))
         return response
-        
-    
 
-    
+
+class JsonSchemaMessageHandler(WebMessageHandler):
+    manifest = {}
+
+    @classmethod
+    def add_model(self, model):
+        self.manifest[model.__name__.lower()]  = model.for_jsonschema()
+
+    def get(self):
+        self.set_body(json.dumps(self.manifest.values()))
+        return self.render(status_code=200)
+
+    def render(self, status_code=None, **kwargs):
+        if status_code:
+            self.set_status(status_code)
+
+        self.convert_cookies()
+        self.headers['Content-Type'] = "application/schema+json"
+
+
+        response = http_response(self.body, status_code,
+                                 self.status_msg, self.headers)
+        
+        return response
+
 ###
 ### Application logic
 ###
 
 class Brubeck(object):
+
     def __init__(self, mongrel2_pair=None, handler_tuples=None, pool=None,
                  no_handler=None, base_handler=None, template_loader=None,
                  log_level=logging.INFO, login_url=None, db_conn=None,
@@ -719,10 +742,17 @@ class Brubeck(object):
         return handler
 
     def register_api(self, APIClass):
-        pattern = APIClass.model.__name__.lower()
-        pattern = "/" + pattern + "/((?P<item_ids>[-\w\d;]+)/|$)"
-        print pattern
+        model, model_name = APIClass.model, APIClass.model.__name__.lower()
+
+        if not JsonSchemaMessageHandler.manifest:
+            manifest_pattern = "/manifest.json"
+            self.add_route_rule(manifest_pattern, JsonSchemaMessageHandler)
+        
+        pattern = "/" + model_name  + "/((?P<item_ids>[-\w\d;]+)/|$)"
         self.add_route_rule(pattern, APIClass)
+        JsonSchemaMessageHandler.add_model(model)
+
+        
 
     ###
     ### Application running functions
