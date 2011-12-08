@@ -1,5 +1,4 @@
 from dictshield.document import EmbeddedDocument
-from dictshield.fields.bson import ObjectIdField
 from dictshield.fields.base import UUIDField, StringField
 
 
