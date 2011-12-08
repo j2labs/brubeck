@@ -1,5 +1,6 @@
 import re
 
+
 ###
 ### DictShield documents
 ###
@@ -10,7 +11,7 @@ from dictshield.fields import (StringField,
                                URLField,
                                EmailField,
                                LongField)
-from dictshield.fields.bson import ObjectIdField
+from dictshield.fields.mongo import ObjectIdField
 
 import auth
 from timekeeping import curtime
