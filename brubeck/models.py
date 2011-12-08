@@ -11,10 +11,11 @@ from dictshield.fields import (StringField,
                                BooleanField,
                                URLField,
                                EmailField,
-                               LongField,
-                               )
-from brubeck.request_handling import JSONMessageHandler
+                               LongField)
 from dictshield.fields.mongo import ObjectIdField
+
+from brubeck.request_handling import JSONMessageHandler
+
 
 import auth
 from timekeeping import curtime

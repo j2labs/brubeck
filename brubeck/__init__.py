@@ -2,8 +2,8 @@
 
 """The Brubeck Message Handling system."""
 
-version = "0.3.5"
-version_info = (0, 3, 5)
+version = "0.3.6"
+version_info = (0, 3, 6)
 __all__ = [ 'auth',
             'caching',
             'datamosh',
