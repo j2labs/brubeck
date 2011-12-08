@@ -14,12 +14,14 @@ from dictshield.fields import (StringField,
                                LongField,
                                )
 from brubeck.request_handling import JSONMessageHandler
-from dictshield.fields.bson import ObjectIdField
+from dictshield.fields.mongo import ObjectIdField
 
 import auth
 from timekeeping import curtime
 from datamosh import OwnedModelMixin, StreamedModelMixin
 
+
+MULTIPLE_ITEM_SEP = ','
 
 ###
 ### User Document
@@ -308,7 +310,7 @@ class AutoAPIBase(JSONMessageHandler):
         """Handles read - either with a filter (item_ids) or a total list
         """
         try:
-            shields = self.read([v for v in item_ids.split(';') if v])
+            shields = self.read([v for v in item_ids.split(MULTIPLE_ITEM_SEP) if v])
         except FourOhFourException:
             return self.render(status_code=404)
         return self._create_response(shields)
@@ -345,7 +347,7 @@ class AutoAPIBase(JSONMessageHandler):
             created, updated, failed = self.create(shields)
             return self._create_response(updated, failed, created)
         else:
-            if not self.url_matches_body(item_ids.split(';'), shields):
+            if not self.url_matches_body(item_ids.split(MULTIPLE_ITEM_SEP), shields):
                 #TODO: add error message so client knows why the request failed
                 return self.render(status_code=400)
 
@@ -379,7 +381,7 @@ class AutoAPIBase(JSONMessageHandler):
         shields, invalid = self._pre_alter_validation()
         if invalid:
             return self.render(status_code=400)
-        if not self.url_matches_body(item_ids.split(';'), shields):
+        if not self.url_matches_body(item_ids.split(MULTIPLE_ITEM_SEP), shields):
             #TODO: add error message so client knows why the request failed
             return self.render(status_code=400)
         successes, failures = self.update(shields)
@@ -389,7 +391,7 @@ class AutoAPIBase(JSONMessageHandler):
         """ Handles delete for 1 or many items. Since this doesn't take a postbody, and just
         Item ids, pass those on directly to destroy
         """
-        item_ids = item_ids.split(';')
+        item_ids = item_ids.split(MULTIPLE_ITEM_SEP)
         try:
             successes, failures = self.destroy(item_ids)
         except FourOhFourException:
