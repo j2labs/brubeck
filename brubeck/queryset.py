@@ -1,9 +1,9 @@
 from request_handling import FourOhFourException
 
 class AbstractQueryset(object):
-    def __init__(self, db_conn=None):
+    def __init__(self, db_conn=None, api_id='id'):
         self.db_conn = db_conn
-
+        self.api_id=api_id
 
     def read(self, ids):
         """Returns a list of items that match ids
@@ -94,7 +94,7 @@ class DictQueryset(AbstractQueryset):
                 updated.append(shield)
             else:
                 created.append(shield)
-            self.db_conn[str(shield.id)] = shield.to_python()
+            self.db_conn[str(getattr(shield, self.api_id))] = shield.to_python()
         return created, updated, []
                 
     def update_one(self, shield):
@@ -102,7 +102,7 @@ class DictQueryset(AbstractQueryset):
 
     def update_many(self, shields):
         for shield in shields:
-            self.db_conn[str(shield.id)] = shield.to_python()
+            self.db_conn[str(getattr(shield, self.api_id))] = shield.to_python()
         return shields, []
     
     def destroy_one(self, item_id):
