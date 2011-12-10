@@ -592,7 +592,7 @@ class AutoAPIBase(JSONMessageHandler):
     def _get_shields_from_postbody(self):
         """ Describes how our incoming data looks
         """
-        items = json.loads(self.get_argument('data'))
+        items = json.loads(str(self.get_argument('data'))) #ujson doesn't take unicode
         shields = [self.model(**item) for item in items]
         return shields
 
