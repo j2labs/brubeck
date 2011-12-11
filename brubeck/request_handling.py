@@ -713,7 +713,6 @@ class AutoAPIBase(JSONMessageHandler):
         if invalid:
             return self.render(status_code=400)
         if item_ids == "":
-
             created, updated, failed = self.create(shields)
             return self._create_response(updated, failed, created)
         else:
