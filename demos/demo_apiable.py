@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 from brubeck.request_handling import Brubeck, AutoAPIBase, WebMessageHandler
 from brubeck.queryset import DictQueryset
 from brubeck.templating import Jinja2Rendering, load_jinja2_env
@@ -7,8 +8,7 @@ from brubeck.templating import Jinja2Rendering, load_jinja2_env
 
 from dictshield.document import Document
 from dictshield.fields import (StringField,
-                               BooleanField,
-                               )
+                               BooleanField)
 
 
 class Todo(Document):
@@ -29,10 +29,10 @@ class TodosAPI(AutoAPIBase):
     queries = DictQueryset(db_conn={})
     model = Todo
 
-class BaseHandler(WebMessageHandler):
+class BaseHandler(Jinja2Rendering):
     pass
 
-class TodosHandler(BaseHandler, Jinja2Rendering):
+class TodosHandler(BaseHandler):
     def get(self):
         """A list display matching the parameters of a user's dashboard. The
         parameters essentially map to the variation in how `load_listitems` is
@@ -54,7 +54,7 @@ handler_tuples = [
 config = {
     'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
     'handler_tuples': handler_tuples,
-    'template_loader': load_jinja2_env('.'),
+    'template_loader': load_jinja2_env('./templates/apiable'),
 }
 
 # Instantiate app instance
