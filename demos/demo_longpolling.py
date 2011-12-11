@@ -7,9 +7,12 @@ import sys
 import datetime
 import time
 
-import eventlet
+try:
+    import eventlet
+except:
+    import gevent
 
-class DemoHandler(WebMessageHandler, Jinja2Rendering):
+class DemoHandler(Jinja2Rendering):
     def get(self):
         name = self.get_argument('name', 'dude')
         self.set_body('Take five, %s!' % name)
@@ -18,7 +21,10 @@ class DemoHandler(WebMessageHandler, Jinja2Rendering):
 
 class FeedHandler(WebMessageHandler):
     def get(self):
-        eventlet.sleep(5) # simple way to demo long polling :)
+        try:
+            eventlet.sleep(5) # simple way to demo long polling :)
+        except:
+            gevent.sleep(5)
         self.set_body('The current time is: %s' % datetime.datetime.now(),
                       headers={'Content-Type': 'text/plain'})
         return self.render()
