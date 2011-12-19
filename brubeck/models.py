@@ -1,4 +1,3 @@
-import re
 ###
 ### DictShield documents
 ###
@@ -14,6 +13,8 @@ from dictshield.fields import (StringField,
 import auth
 from timekeeping import curtime
 from datamosh import OwnedModelMixin, StreamedModelMixin
+
+import re
 
 ###
 ### User Document
