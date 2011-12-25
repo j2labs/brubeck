@@ -1,9 +1,9 @@
-Cython==0.15
+Cython==0.15.1
 Jinja2==2.6
-Mako==0.4.2
-dictshield==0.3.0
+Mako==0.5.0
+dictshield==0.3.6
 py-bcrypt==0.2
-pymongo==2.0.1
+pymongo==2.1
 python-dateutil==2.0
-pyzmq==2.1.9
-ujson==1.8
+pyzmq==2.1.11
+ujson==1.15
