@@ -19,8 +19,8 @@ import logging
 ###
 
 BCRYPT = 'bcrypt'
-
 PASSWD_DELIM = '|||'
+
 
 def gen_hexdigest(raw_password, algorithm=BCRYPT, salt=None):
     """Takes the algorithm, salt and password and uses Python's
@@ -35,11 +35,13 @@ def gen_hexdigest(raw_password, algorithm=BCRYPT, salt=None):
         return (algorithm, salt, bcrypt.hashpw(raw_password, salt))
     raise ValueError('Unknown password algorithm')
 
+
 def build_passwd_line(algorithm, salt, digest):
     """Simply takes the inputs for a passwd entry and puts them
     into the convention for storage
     """
     return PASSWD_DELIM.join([algorithm, salt, digest])
+
 
 def split_passwd_line(password_line):
     """Takes a password line and returns the line split by PASSWD_DELIM
@@ -62,6 +64,7 @@ def authenticated(method):
             return self.render_error(self._AUTH_FAILURE)
         return method(self, *args, **kwargs)
     return wrapper
+
 
 def web_authenticated(method):
     """Same as `authenticated` except it redirects a user to the login page
@@ -90,7 +93,7 @@ class UserHandlingMixin(object):
     above. This mixin is intended to make the interaction with authentication
     generic without insisting on a particular strategy.
     """
-    
+
     @property
     def current_user(self):
         """The authenticated user for this message.
@@ -105,7 +108,7 @@ class UserHandlingMixin(object):
         """
         if not hasattr(self, "_current_user"):
             self._current_user = self.get_current_user()
-        return self._current_user        
+        return self._current_user
 
     def get_current_user(self):
         """Override to determine the current user from, e.g., a cookie.
