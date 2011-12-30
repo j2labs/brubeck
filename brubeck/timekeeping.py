@@ -27,12 +27,14 @@ def datestring_to_millis(ds):
     dt = parse(ds)
     return datetime_to_millis(dt)
 
+
 def datetime_to_millis(dt):
     """Takes a datetime instances and converts it to milliseconds since epoch.
     """
     seconds = dt.timetuple()
     seconds_from_epoch = time.mktime(seconds)
-    return seconds_from_epoch * 1000 # milliseconds
+    return seconds_from_epoch * 1000  # milliseconds
+
 
 def millis_to_datetime(ms):
     """Converts milliseconds into it's datetime equivalent
@@ -47,7 +49,7 @@ def millis_to_datetime(ms):
 
 def prettydate(d):
     """I <3 U, StackOverflow.
-    
+
     http://stackoverflow.com/questions/410221/natural-relative-days-in-python
     """
     diff = datetime.utcnow() - d
@@ -65,11 +67,12 @@ def prettydate(d):
     elif s < 120:
         return '1 minute ago'
     elif s < 3600:
-        return '{0} minutes ago'.format(s/60)
+        return '{0} minutes ago'.format(s / 60)
     elif s < 7200:
         return '1 hour ago'
     else:
-        return '{0} hours ago'.format(s/3600)
+        return '{0} hours ago'.format(s / 3600)
+
 
 ###
 ### Custom DictShield Field
@@ -85,5 +88,3 @@ class MillisecondField(LongField):
         if isinstance(value, (str, unicode)):
             value = datestring_to_millis(value)
         instance._data[self.field_name] = value
-
-

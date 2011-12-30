@@ -43,18 +43,19 @@ class OwnedModelMixin(EmbeddedDocument):
 
 
 class OwnedHandlerMixin:
-    """This mixin supports receiving an argument called `owner`, intended to map
-    to the `owner_username` field in the Model above.
+    """This mixin supports receiving an argument called `owner`, intended to
+    map to the `owner_username` field in the Model above.
     """
     def get_owner_username(self, default_usernam=None):
-        owner_username = get_typed_argument('owner', default_username, self, str)
+        owner_username = get_typed_argument('owner', default_username, self,
+                                            str)
         return owner_username
 
 
 ###
 ### Streamable Data Handling
 ###
-    
+
 class StreamedModelMixin(EmbeddedDocument):
     """This class standardizes the way streaming data is handled by adding two
     fields that can be used to sort the list.
@@ -73,7 +74,7 @@ class StreamedHandlerMixin:
         """
         since = get_typed_argument('since', default_since, self, long)
         return since
-    
+
     def get_paging_arguments(self, default_page=0, default_count=25,
                              max_count=25):
         """This function checks for arguments called `page` and `count`. It
@@ -91,4 +92,3 @@ class StreamedHandlerMixin:
         skip = get_typed_argument('skip', default_skip, self, int)
 
         return (page, count, skip)
-

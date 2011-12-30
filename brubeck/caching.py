@@ -11,6 +11,7 @@ def generate_session_id():
     """
     return os.urandom(32).encode('hex')
 
+
 ###
 ### Cache storage
 ###
@@ -42,7 +43,7 @@ class BaseCacheStore(object):
         try:
             if key in self._cache_store:
                 data = self._cache_store[key]
-                
+
                 # It's an in memory cache, so we must manage
                 if data.get('expire', None) and data['expire'] > time.time():
                     return data

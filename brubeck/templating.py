@@ -1,5 +1,6 @@
 from request_handling import WebMessageHandler
 
+
 ###
 ### Mako templates
 ###
@@ -15,7 +16,8 @@ def load_mako_env(template_dir, *args, **kwargs):
         else:
             return None
     return loader
-  
+
+
 class MakoRendering(WebMessageHandler):
     def render_template(self, template_file,
                         _status_code=WebMessageHandler._SUCCESS_CODE,
@@ -25,7 +27,7 @@ class MakoRendering(WebMessageHandler):
         body = template.render(**context or {})
         self.set_body(body, status_code=_status_code)
         return self.render()
-  
+
     def render_error(self, error_code):
         return self.render_template('errors.html', _status_code=error_code,
                                     **{'error_code': error_code})
@@ -48,6 +50,7 @@ def load_jinja2_env(template_dir, *args, **kwargs):
         else:
             return None
     return loader
+
 
 class Jinja2Rendering(WebMessageHandler):
     """Jinja2Rendering is a mixin for for loading a Jinja2 rendering
@@ -89,6 +92,7 @@ def load_tornado_env(template_dir, *args, **kwargs):
         else:
             return None
     return loader
+
 
 class TornadoRendering(WebMessageHandler):
     """TornadoRendering is a mixin for for loading a Tornado rendering

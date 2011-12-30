@@ -1,9 +1,10 @@
 from request_handling import FourOhFourException
 
+
 class AbstractQueryset(object):
     def __init__(self, db_conn=None, api_id='id'):
         self.db_conn = db_conn
-        self.api_id=api_id
+        self.api_id = api_id
 
     def read(self, ids):
         """Returns a list of items that match ids
@@ -14,7 +15,6 @@ class AbstractQueryset(object):
             return self.read_one(ids[0])
         else:
             return self.read_many(ids)
-        
 
     def read_all(self):
         """Returns a list of objects in the db
@@ -38,7 +38,7 @@ class AbstractQueryset(object):
             return self.create_one(shields[0])
         else:
             return self.create_many(shields)
-    
+
     def create_one(self, shield):
         raise NotImplementedError
 
@@ -50,7 +50,7 @@ class AbstractQueryset(object):
             return self.update_one(shields[0])
         else:
             return self.update_many(shields)
-    
+
     def update_one(self, shield):
         raise NotImplementedError
 
@@ -70,7 +70,8 @@ class AbstractQueryset(object):
 
     def destroy_many(self, ids):
         raise NotImplementedError
-    
+
+
 class DictQueryset(AbstractQueryset):
     def read_all(self):
         return self.db_conn.itervalues()
@@ -83,10 +84,10 @@ class DictQueryset(AbstractQueryset):
             return [self.db_conn[i] for i in ids]
         except KeyError:
             raise FourOhFourException
-                
+
     def create_one(self, shield):
         return self.create_many([shield])
-    
+
     def create_many(self, shields):
         created, updated = [], []
         for shield in shields:
@@ -94,17 +95,20 @@ class DictQueryset(AbstractQueryset):
                 updated.append(shield)
             else:
                 created.append(shield)
-            self.db_conn[str(getattr(shield, self.api_id))] = shield.to_python()
+
+            shield_key = str(getattr(shield, self.api_id))
+            self.db_conn[shield_key] = shield.to_python()
         return created, updated, []
-                
+
     def update_one(self, shield):
         return self.update_many([shield])
 
     def update_many(self, shields):
         for shield in shields:
-            self.db_conn[str(getattr(shield, self.api_id))] = shield.to_python()
+            shield_key = str(getattr(shield, self.api_id))
+            self.db_conn[shield_key] = shield.to_python()
         return shields, []
-    
+
     def destroy_one(self, item_id):
         return self.destroy_many([item_id])
 

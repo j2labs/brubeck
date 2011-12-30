@@ -7,30 +7,34 @@ import re
 import logging
 import Cookie
 
+
 ###
 ### Request handling code
 ###
 
 def parse_netstring(ns):
-    len, rest = ns.split(':', 1)
-    len = int(len)
-    assert rest[len] == ',', "Netstring did not end in ','"
-    return rest[:len], rest[len+1:]
+    length, rest = ns.split(':', 1)
+    length = int(length)
+    assert rest[length] == ',', "Netstring did not end in ','"
+    return rest[:length], rest[length + 1:]
+
 
 def to_bytes(data, enc='utf8'):
     """Convert anything to bytes
     """
     return data.encode(enc) if isinstance(data, unicode) else bytes(data)
 
+
 def to_unicode(s, enc='utf8'):
     """Convert anything to unicode
     """
     return s if isinstance(s, unicode) else unicode(str(s), encoding=enc)
 
-class Request(object):
 
-    def __init__(self, sender, conn_id, path, headers, body,
-                 *args, **kwargs):
+class Request(object):
+    """Word.
+    """
+    def __init__(self, sender, conn_id, path, headers, body, *args, **kwargs):
         self.sender = sender
         self.path = path
         self.conn_id = conn_id
@@ -42,17 +46,17 @@ class Request(object):
         else:
             self.data = {}
 
-
-        # populate arguments with QUERY string
+        ### populate arguments with QUERY string
         self.arguments = {}
         if 'QUERY' in self.headers:
             query = self.headers['QUERY']
             arguments = cgi.parse_qs(query.encode("utf-8"))
             for name, values in arguments.iteritems():
                 values = [v for v in values if v]
-                if values: self.arguments[name] = values
+                if values:
+                    self.arguments[name] = values
 
-        # handle data, multipart or not
+        ### handle data, multipart or not
         if self.method in ("POST", "PUT") and self.content_type:
             form_encoding = "application/x-www-form-urlencoded"
             if self.content_type.startswith(form_encoding):
@@ -170,7 +174,12 @@ class Request(object):
 CTX = zmq.Context()
 MAX_IDENTS = 100
 
+
 class Mongrel2Connection(object):
+    """This class is an abstraction for how Brubeck sends and receives
+    messages. This abstraction makes it possible for something other than
+    Mongrel2 to be used easily.
+    """
 
     def __init__(self, pull_addr, pub_addr):
         """sender_id = uuid.uuid4() or anything unique
@@ -206,7 +215,7 @@ class Mongrel2Connection(object):
         return req
 
     def send(self, uuid, conn_id, msg):
-        """Raw send to the given connection ID at the given uuid, mostly used 
+        """Raw send to the given connection ID at the given uuid, mostly used
         internally.
         """
         header = "%s %d:%s," % (uuid, len(str(conn_id)), str(conn_id))
@@ -235,4 +244,3 @@ class Mongrel2Connection(object):
         """Same as close but does it to a whole bunch of idents at a time.
         """
         self.reply_bulk(uuid, idents, "")
-
