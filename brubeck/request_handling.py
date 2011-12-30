@@ -19,6 +19,7 @@ try:
     from gevent_zeromq import zmq
 
     coro_pool = pool.Pool
+
     def coro_spawn(function, app, message, *a, **kw):
         app.pool.spawn(function, app, message, *a, **kw)
 
@@ -32,12 +33,13 @@ except ImportError:
         from eventlet.green import zmq
 
         coro_pool = eventlet.GreenPool
+
         def coro_spawn(function, app, message, *a, **kw):
             app.pool.spawn_n(function, app, message, *a, **kw)
 
         CORO_LIBRARY = 'eventlet'
 
-    except ImportError: ### eventlet or gevent is required.
+    except ImportError:  # eventlet or gevent is required.
         raise EnvironmentError('Y U NO INSTALL CONCURRENCY?!')
 
 
@@ -56,20 +58,22 @@ from itertools import chain
 from mongrel2 import Mongrel2Connection, to_bytes, to_unicode
 from dictshield.base import ShieldException
 
-
-
 import ujson as json
 
 ###
 ### Common helpers
 ###
-HTTP_METHODS = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace', 'connect']
+
+HTTP_METHODS = ['get', 'post', 'put', 'delete',
+                'head', 'options', 'trace', 'connect']
+
+HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
+
 
 class FourOhFourException(Exception):
     pass
 
 
-HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 def http_response(body, code, status, headers):
     """Renders arguments into an HTTP response.
     """
@@ -78,15 +82,17 @@ def http_response(body, code, status, headers):
     if body is not None:
         content_length = len(to_bytes(body))
     headers['Content-Length'] = content_length
-    payload['headers'] = "\r\n".join('%s: %s' % (k,v) for k,v in
-                                     headers.items())
+    payload['headers'] = "\r\n".join('%s: %s' % (k, v)
+                                     for k, v in headers.items())
 
     return HTTP_FORMAT % payload
+
 
 def _lscmp(a, b):
     """Compares two strings in a cryptographically safe way
     """
-    return not sum(0 if x==y else 1 for x, y in zip(a, b)) and len(a) == len(b)
+    return not sum(0 if x == y else 1
+                   for x, y in zip(a, b)) and len(a) == len(b)
 
 
 ###
@@ -103,6 +109,7 @@ def route_message(application, message):
     handler = application.route_message(message)
     coro_spawn(request_handler, application, message, handler)
 
+
 def request_handler(application, message, handler):
     """Coroutine for handling the request itself. It simply returns the request
     path in reverse for now.
@@ -110,7 +117,8 @@ def request_handler(application, message, handler):
     if callable(handler):
         response = handler()
         coro_spawn(result_handler, application, message, response)
-    
+
+
 def result_handler(application, message, response):
     """The request has been processed and this is called to do any post
     processing and then send the data back to mongrel2.
@@ -129,6 +137,7 @@ def cookie_encode(data, key):
     sig = base64.b64encode(hmac.new(key, msg).digest())
     return to_bytes('!') + sig + to_bytes('?') + msg
 
+
 def cookie_decode(data, key):
     ''' Verify and decode an encoded string. Return an object or None.'''
     data = to_bytes(data)
@@ -137,6 +146,7 @@ def cookie_decode(data, key):
         if _lscmp(sig[1:], base64.b64encode(hmac.new(key, msg).digest())):
             return pickle.loads(base64.b64decode(msg))
     return None
+
 
 def cookie_is_encoded(data):
     ''' Return True if the argument looks like a encoded cookie.'''
@@ -172,7 +182,7 @@ class MessageHandler(object):
     _STATUS_CODE = 'status_code'
     _STATUS_MSG = 'status_msg'
     _TIMESTAMP = 'timestamp'
-    _DEFAULT_STATUS = -1 # default to error, earn success
+    _DEFAULT_STATUS = -1  # default to error, earn success
     _SUCCESS_CODE = 0
     _AUTH_FAILURE = -2
     _SERVER_ERROR = -5
@@ -237,7 +247,7 @@ class MessageHandler(object):
         """Resets the payload but preserves the current status_code.
         """
         status_code = self.status_code
-        self._payload = dict() 
+        self._payload = dict()
         self.set_status(status_code)
         self.initialize()
 
@@ -246,7 +256,8 @@ class MessageHandler(object):
         status msg to the the relevant msg as defined in _response_codes.
         """
         if status_msg is None:
-            status_msg = self._response_codes.get(status_code, str(status_code))
+            status_msg = self._response_codes.get(status_code,
+                                                  str(status_code))
         if extra_txt:
             status_msg = '%s - %s' % (status_msg, extra_txt)
         self.add_to_payload(self._STATUS_CODE, status_code)
@@ -255,7 +266,7 @@ class MessageHandler(object):
     @property
     def status_code(self):
         return self._payload[self._STATUS_CODE]
-    
+
     @property
     def status_msg(self):
         return self._payload[self._STATUS_MSG]
@@ -292,9 +303,9 @@ class MessageHandler(object):
         """This function handles mapping the request type to a function on
         the request handler.
 
-        It requires a method attribute to indicate which function on the handler
-        should be called. If that function is not supported, call the handlers
-        unsupported function.
+        It requires a method attribute to indicate which function on the
+        handler should be called. If that function is not supported, call the
+        handlers unsupported function.
 
         In the event that an error has already occurred, _finished will be
         set to true before this function call indicating we should render
@@ -304,7 +315,7 @@ class MessageHandler(object):
         """
         self.prepare()
         if not self._finished:
-            mef = self.message.method.lower() # M-E-T-H-O-D man!
+            mef = self.message.method.lower()  # M-E-T-H-O-D man!
 
             # Find function mapped to method on self
             if mef in HTTP_METHODS:
@@ -318,17 +329,21 @@ class MessageHandler(object):
                     self._url_args = []
 
                 if isinstance(self._url_args, dict):
-                    #if the value was optional and not included, filter it out so the functions default takes priority
-                    rendered = fun(**dict((k, v) for k,v in self._url_args.items() if v)) 
+                    ### if the value was optional and not included, filter it
+                    ### out so the functions default takes priority
+                    kwargs = dict((k, v)
+                                  for k, v in self._url_args.items() if v)
+                    rendered = fun(**kwargs)
                 else:
                     rendered = fun(*self._url_args)
+
                 if rendered is None:
                     logging.debug('Handler had no return value: %s' % fun)
                     return ''
             except Exception, e:
                 logging.error(e, exc_info=True)
                 rendered = self.error(e)
-                
+
             self._finished = True
             return rendered
         else:
@@ -340,13 +355,13 @@ class WebMessageHandler(MessageHandler):
 
     Tornado's design inspired this design.
     """
-    _DEFAULT_STATUS = 500 # default to server error
+    _DEFAULT_STATUS = 500  # default to server error
     _SUCCESS_CODE = 200
     _AUTH_FAILURE = 401
     _FORBIDDEN = 403
     _NOT_FOUND = 404
     _SERVER_ERROR = 500
-    
+
     _response_codes = {
         200: 'OK',
         400: 'Bad request',
@@ -360,7 +375,7 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Payload extension
     ###
-    
+
     _HEADERS = 'headers'
 
     def initialize(self):
@@ -410,7 +425,7 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Helpers for accessing request variables
     ###
-    
+
     def get_argument(self, name, default=None, strip=True):
         """Returns the value of the argument with the given name.
 
@@ -429,7 +444,7 @@ class WebMessageHandler(MessageHandler):
     ###
 
     ### Incoming cookie functions
-            
+
     def get_cookie(self, key, default=None, secret=None):
         """Retrieve a cookie from message, if present, else fallback to
         `default` keyword. Accepts a secret key to validate signed cookies.
@@ -438,8 +453,8 @@ class WebMessageHandler(MessageHandler):
         if key in self.message.cookies:
             value = self.message.cookies[key].value
         if secret and value:
-            dec = cookie_decode(value, secret) 
-            return dec[1] if dec and dec[0] == key else None        
+            dec = cookie_decode(value, secret)
+            return dec[1] if dec and dec[0] == key else None
         return value
 
     ### Outgoing cookie functions
@@ -493,7 +508,7 @@ class WebMessageHandler(MessageHandler):
         """
         for key in self.message.cookies.iterkeys():
             self.delete_cookie(key)
-    
+
     ###
     ### Output generation
     ###
@@ -513,7 +528,7 @@ class WebMessageHandler(MessageHandler):
         Allows forcing HTTP status to be 200 regardless of request status
         for cases where payload contains status information.
         """
-        if status_code: 
+        if status_code:
             self.set_status(status_code)
 
         # Some API's send error messages in the payload rather than over
@@ -543,7 +558,7 @@ class JSONMessageHandler(WebMessageHandler):
             self.set_status(status_code)
 
         self.convert_cookies()
-        
+
         self.headers['Content-Type'] = 'application/json'
 
         body = json.dumps(self._payload)
@@ -562,7 +577,7 @@ class JsonSchemaMessageHandler(WebMessageHandler):
 
     @classmethod
     def add_model(self, model):
-        self.manifest[model.__name__.lower()]  = model.for_jsonschema()
+        self.manifest[model.__name__.lower()] = model.for_jsonschema()
 
     def get(self):
         self.set_body(json.dumps(self.manifest.values()))
@@ -575,17 +590,18 @@ class JsonSchemaMessageHandler(WebMessageHandler):
         self.convert_cookies()
         self.headers['Content-Type'] = "application/schema+json"
 
-
         response = http_response(self.body, status_code,
                                  self.status_msg, self.headers)
-        
+
         return response
+
 
 MULTIPLE_ITEM_SEP = ','
 
+
 class AutoAPIBase(JSONMessageHandler):
     model = None
-    queries = None 
+    queries = None
 
     ###
     ### configuring input and output formats
@@ -594,37 +610,53 @@ class AutoAPIBase(JSONMessageHandler):
     def _get_shields_from_postbody(self):
         """ Describes how our incoming data looks
         """
-        items = json.loads(str(self.get_argument('data'))) #ujson doesn't take unicode
+        ### TODO investigate ujson doesn't take unicode
+        items = json.loads(str(self.get_argument('data')))
         shields = [self.model(**item) for item in items]
         return shields
 
-
     def _create_response(self, updated, failed=[], created=[]):
-        """Passed a list of shields and the state they're in, and creates a response
+        """Passed a list of shields and the state they're in, and creates a
+        response
         """
         status = []
-        status.extend([{'status':201, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in created])
-        status.extend([{'status':200, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in updated])
-        status.extend([{'status':400, 'id':str(shield.id), 'href':self.uri_for_shield(shield)} for shield in failed])
 
-        self.add_to_payload('data', [shield.to_json(encode=False) for shield in chain(created, updated, failed)])
+        def process_status(shield_list, status_code):
+            for shield in shield_list:
+                shield_data = {
+                    'status': status_code,
+                     'id': str(shield.id),
+                     'href': self.uri_for_shield(shield)
+                }
+            status.extend(shield_data)
+
+        process_status(created, 201)
+        process_status(updated, 200)
+        process_status(failed, 400)
+
+        ### encode=False prevents double encoding
+        total_data = [shield.to_json(encode=False)
+                      for shield in chain(created, updated, failed)]
+
+        self.add_to_payload('data', total_data)
         self.add_to_payload('multistatus', status)
-
         status_code = self._get_status_code(updated, failed, created)
-        
+
         return self.render(status_code=status_code)
 
-
     ###
-    ### -General Validation and private computation
+    ### General Validation and private computation
     ###
 
     def _get_status_code(self, updated, failed, created=[]):
-        """Creates the status code we should be returning based on our successes and failures
+        """Creates the status code we should be returning based on our
+        successes and failures
         """
-        kinds = reduce(lambda old, new: old + 1 if new else old, [created, updated, failed], 0)
+        check_for_multi = lambda old, new: old + 1 if new else old
+        kinds = reduce(check_for_multi, [created, updated, failed], 0)
+
         if kinds > 1:
-            status_code = 207 #multistatus!
+            status_code = 207  # multistatus!
         else:
             if failed:
                 status_code = 400
@@ -635,8 +667,8 @@ class AutoAPIBase(JSONMessageHandler):
         return status_code
 
     def _pre_alter_validation(self):
-        """ Creates the shield objcts and validates that they're in the right format
-        if they're not, adds the error list to the payload
+        """ Creates the shield objcts and validates that they're in the right
+        format if they're not, adds the error list to the payload
         """
         shields = self._get_shields_from_postbody()
         invalid = self._validate(shields)
@@ -662,13 +694,16 @@ class AutoAPIBase(JSONMessageHandler):
         return invalid
 
     def url_matches_body(self, item_ids, shields):
-        """ We want to make sure that if the request asks for a specific few resources,
-        Those resources and only those resources are in the body
+        """ We want to make sure that if the request asks for a specific few
+        resources, those resources and only those resources are in the body
         """
-        if not item_ids: return True 
+        if not item_ids:
+            return True
+
         for item_id, shield in zip(item_ids, shields):
-            if item_id != str(shield.id): # enforce a good request
+            if item_id != str(shield.id):  # enforce a good request
                 return False
+
         return True
 
     def uri_for_shield(self, shield):
@@ -677,96 +712,89 @@ class AutoAPIBase(JSONMessageHandler):
     ###
     ### HTTP methods
     ###
-    
+
     def get(self, item_ids=""):
         """Handles read - either with a filter (item_ids) or a total list
         """
         try:
-            shields = self.read([v for v in item_ids.split(MULTIPLE_ITEM_SEP) if v])
+            items = item_ids.split(MULTIPLE_ITEM_SEP)
+            if items:
+                shields = self.read(items)
         except FourOhFourException:
             return self.render(status_code=404)
         return self._create_response(shields)
 
-
     def post(self, item_ids=""):
-        """ Handles create if item_ids is missing, else
-        updates the items.
+        """Handles create if item_ids is missing, else updates the items.
 
-        Items should be represented as objects 
-        inside a list, pegged to the global object  -  the global object name defaults to data but can be changed
-        by overriding the _get_shields_from_postbody method
+        Items should be represented as objects inside a list, pegged to the
+        global object - the global object name defaults to data but can be
+        changed by overriding the _get_shields_from_postbody method
+
         e.g.
-        { 'data' : [
-                    {
-                     'mysamplekey1':somesamplevalue,
-                     'mysamplekey2':somesamplevalue,
-                    },
-                    {
-                     'mysamplekey1':somesamplevalue,
-                     'mysamplekey2':somesamplevalue,
-                    },
-                   ]
+        {
+            'data' : [
+                {
+                    'mysamplekey1': somesamplevalue,
+                    'mysamplekey2': somesamplevalue,
+                },
+                {
+                    'mysamplekey1': somesamplevalue,
+                    'mysamplekey2': somesamplevalue,
+                },
+            ]
         }
 
-        This keeps the interface constant if you're passing a single item or a list of items.
-        We only want to deal with sequences!
+        This keeps the interface constant if you're passing a single item or a
+        list of items. We only want to deal with sequences!
         """
         shields, invalid = self._pre_alter_validation()
+
         if invalid:
             return self.render(status_code=400)
+
         if item_ids == "":
             created, updated, failed = self.create(shields)
             return self._create_response(updated, failed, created)
         else:
-            if not self.url_matches_body(item_ids.split(MULTIPLE_ITEM_SEP), shields):
-                #TODO: add error message so client knows why the request failed
+            items = item_ids.split(MULTIPLE_ITEM_SEP)
+
+            ### TODO: add informative error message
+            if not self.url_matches_body(items, shields):
                 return self.render(status_code=400)
 
             successes, failures = self.update(shields)
-
             return self._create_response(successes, failures)
-            
+
     def put(self, item_ids):
-        """ Handles update for 1 or many items.
-        Take the postbody and convert it into a list of shields, and then confirm that matches
-        the item ids passed in.
-
-                Items should be represented as a object
-        inside a list,  in an object with the "data" key.
-        e.g.
-        { 'data' : [
-                    {
-                     'mysamplekey1':somesamplevalue,
-                     'mysamplekey2':somesamplevalue,
-                    },
-                    {
-                     'mysamplekey1':somesamplevalue,
-                     'mysamplekey2':somesamplevalue,
-                    },
-                   ]
-        }
-
-        This keeps the interface constant if you're passing a single item or a list of items.
-        We only want to deal with sequences!
+        """Follows roughly the same logic as `post` but exforces that the items
+        must already exist.
         """
         shields, invalid = self._pre_alter_validation()
+
         if invalid:
             return self.render(status_code=400)
-        if not self.url_matches_body(item_ids.split(MULTIPLE_ITEM_SEP), shields):
-            #TODO: add error message so client knows why the request failed
+
+        ### TODO: add informative error message
+        items = item_ids.split(MULTIPLE_ITEM_SEP)
+
+        if not self.url_matches_body(items, shields):
             return self.render(status_code=400)
+
         successes, failures = self.update(shields)
         return self._create_response(successes, failures)
 
     def delete(self, item_ids):
-        """ Handles delete for 1 or many items. Since this doesn't take a postbody, and just
-        Item ids, pass those on directly to destroy
+        """ Handles delete for 1 or many items. Since this doesn't take a
+        postbody, and just item ids, pass those on directly to destroy
         """
         item_ids = item_ids.split(MULTIPLE_ITEM_SEP)
+
         try:
             successes, failures = self.destroy(item_ids)
         except FourOhFourException:
             return self.render(status_code=404)
+
         status_code = self._get_status_code(successes, failures)
 
         status = []
@@ -777,42 +805,42 @@ class AutoAPIBase(JSONMessageHandler):
         return self.render(status_code=status_code)
 
     ###
-    ### -CRUD operations
-    ### 
+    ### CRUD operations
+    ###
 
     def read(self, include):
-        """Returns a list of shields in the db.
-        takes a list of object ids to include - if that's empty then include everything
+        """Returns a list of shields in the db. Takes a list of object ids to
+        include - if that's empty then include everything.
         """
-        #TODO:Figure out how we want to pagify this or somehow break it down from a single monster rv
+        ### TODO: pagination
         list_of_data = self.queries.read(include)
         if include and not list_of_data:
             raise FourOhFourException
         return [self.model(**data) for data in list_of_data]
 
     def create(self, shields):
-        """Ment for adding items to the database and returns a list of successful creations, updates and failures
-        Such that: 
-        created, updated, failed = self.create(shields)
+        """Meant for adding items to the database and returns a list of
+        successful creations, updates and failures such that:
+
+            created, updated, failed = self.create(shields)
         """
-        return self.queries.create(shields) #lists of status and post-save representation
+        return self.queries.create(shields)
 
     def destroy(self, item_ids):
-        """ Removes the passed ids from the datastore and returns a list of success and failures
-        Such that:
-        success, failure = self.destroy(item_ids)
+        """Removes the passed ids from the datastore and returns a list of
+        success and failures such that:
+
+            success, failure = self.destroy(item_ids)
         """
         return self.queries.destroy(item_ids)
 
     def update(self, shields):
-        """ updates the passed sheilds in the datastore and returns a list of success and failures
-        Such that:
-        successes, failures = self.update(shields)
+        """Updates the passed sheilds in the datastore and returns a list of
+        success and failures such that:
+
+            successes, failures = self.update(shields)
         """
         return self.queries.update(shields)
-
-
-
 
 
 ###
@@ -878,12 +906,12 @@ class Brubeck(object):
 
         # Login url is optional
         self.login_url = login_url
-            
+
         # This must be set to use secure cookies
         self.cookie_secret = cookie_secret
 
         # Any template engine can be used. Brubeck just needs a function that
-        # loads the environment without arguments. 
+        # loads the environment without arguments.
         if callable(template_loader):
             loaded_env = template_loader()
             if loaded_env:
@@ -894,7 +922,7 @@ class Brubeck(object):
     ###
     ### Message routing functions
     ###
-    
+
     def init_routes(self, handler_tuples):
         """Loops over a list of (pattern, handler) tuples and adds them
         to the routing table.
@@ -921,10 +949,10 @@ class Brubeck(object):
             method = list()
         elif not hasattr(method, '__iter__'):
             method = [method]
-            
+
         def decorator(kallable):
-            """Decorates a function by adding it to the routing table and adding
-            code to check the HTTP Method used.
+            """Decorates a function by adding it to the routing table and
+            adding code to check the HTTP Method used.
             """
             def check_method(app, msg, *args):
                 """Create new method which checks the HTTP request type.
@@ -938,7 +966,7 @@ class Brubeck(object):
                     return self.base_handler(app, msg).unsupported()
                 else:
                     return kallable(app, msg, *args)
-                
+
             self.add_route_rule(url_pattern, check_method)
             return check_method
         return decorator
@@ -961,26 +989,29 @@ class Brubeck(object):
             url_check = regex.match(message.path)
 
             if url_check:
-                # `None` will fail, so we have to use at least an empty list
-                # We should try to use named arguments first, and if they're not present
-                # fall back to positional arguments
+                ### `None` will fail, so we have to use at least an empty list
+                ### We should try to use named arguments first, and if they're
+                ### not present fall back to positional arguments
                 url_args = url_check.groupdict() or url_check.groups() or []
 
                 if inspect.isclass(kallable):
-                    # Handler classes must be instantiated
+                    ### Handler classes must be instantiated
                     handler = kallable(self, message)
-                    # Attach url args to handler
+                    ### Attach url args to handler
                     handler._url_args = url_args
                     return handler
                 else:
-                    # Can't instantiate a function
+                    ### Can't instantiate a function
                     if isinstance(url_args, dict):
-                        #if the value was optional and not included, filter it out so the functions default takes priority
-                        handler = lambda: kallable(self, message, **dict((k, v) for k,v in url_args.items() if v))
+                        ### if the value was optional and not included, filter
+                        ### it out so the functions default takes priority
+                        kwargs = dict((k, v) for k, v in url_args.items() if v)
+
+                        handler = lambda: kallable(self, message, **kwargs)
                     else:
                         handler = lambda: kallable(self, message, *url_args)
                     return handler
-            
+
         if handler is None:
             handler = self.base_handler(self, message)
 
@@ -992,12 +1023,13 @@ class Brubeck(object):
         if not JsonSchemaMessageHandler.manifest:
             manifest_pattern = "/manifest.json"
             self.add_route_rule(manifest_pattern, JsonSchemaMessageHandler)
-        
-        pattern = "/" + model_name  + "/((?P<item_ids>[-\w\d%s]+)/|$)" % MULTIPLE_ITEM_SEP
-        self.add_route_rule(pattern, APIClass)
-        JsonSchemaMessageHandler.add_model(model)
 
-        
+        url_prefix = "/" + model_name
+        pattern = "/((?P<item_ids>[-\w\d%s]+)/|$)" % MULTIPLE_ITEM_SEP
+        api_url = ''.join([url_prefix, pattern])
+
+        self.add_route_rule(api_url, APIClass)
+        JsonSchemaMessageHandler.add_model(model)
 
     ###
     ### Application running functions
@@ -1013,7 +1045,7 @@ class Brubeck(object):
         """
         greeting = 'Brubeck v%s online ]-----------------------------------'
         print greeting % version
-        
+
         try:
             while True:
                 request = self.m2conn.recv()
