@@ -388,7 +388,9 @@ class WebMessageHandler(MessageHandler):
         for mef in HTTP_METHODS:
             if callable(getattr(self, mef, False)):
                 supported_methods.append(mef)
-        self.headers["Access-Control-Allow-Methods"] = ", ".join(mef.upper() for mef in supported_methods)
+        allowed_methods = ", ".join(mef.upper() for mef in supported_methods)
+        self.headers["Access-Control-Allow-Methods"] = allowed_methods
+        self.set_status(200)
         return self.render()
 
     def unsupported(self, *args, **kwargs):
