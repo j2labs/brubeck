@@ -717,7 +717,7 @@ class AutoAPIBase(JSONMessageHandler):
         """Handles read - either with a filter (item_ids) or a total list
         """
         try:
-            items = item_ids.split(MULTIPLE_ITEM_SEP)
+            items = [v for v in item_ids.split(MULTIPLE_ITEM_SEP) if v]
             if items:
                 shields = self.read(items)
         except FourOhFourException:
