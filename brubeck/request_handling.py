@@ -281,7 +281,7 @@ class MessageHandler(object):
         self.add_to_payload(self._TIMESTAMP, timestamp)
         self.timestamp = timestamp
 
-    def render(self, status_code=None, **kwargs):
+    def render(self, status_code=None, hide_status=False, **kwargs):
         """Renders entire payload as json dump. Subclass and overwrite this
         function if a different output format is needed. See WebMessageHandler
         as an example.
@@ -357,6 +357,8 @@ class WebMessageHandler(MessageHandler):
     """
     _DEFAULT_STATUS = 500  # default to server error
     _SUCCESS_CODE = 200
+    _UPDATED_CODE = 200
+    _CREATED_CODE = 201
     _AUTH_FAILURE = 401
     _FORBIDDEN = 403
     _NOT_FOUND = 404
@@ -552,8 +554,10 @@ class JSONMessageHandler(WebMessageHandler):
     """This class is virtually the same as the WebMessageHandler with a slight
     change to how payloads are handled to make them more appropriate for
     representing JSON transmissions.
+
+    The `hide_status` flag is used to reduce the payload down to just the data.
     """
-    def render(self, status_code=None, **kwargs):
+    def render(self, status_code=None, hide_status=False, **kwargs):
         if status_code:
             self.set_status(status_code)
 
@@ -561,7 +565,10 @@ class JSONMessageHandler(WebMessageHandler):
 
         self.headers['Content-Type'] = 'application/json'
 
-        body = json.dumps(self._payload)
+        if hide_status and 'data' in self._payload:
+            body = json.dumps(self._payload['data'])
+        else:
+            body = json.dumps(self._payload)
 
         response = http_response(body, self.status_code,
                                  self.status_msg, self.headers)
@@ -603,106 +610,183 @@ class AutoAPIBase(JSONMessageHandler):
     model = None
     queries = None
 
+    _STATUS_CREATED = 201
+    _STATUS_UPDATED = 200
+    _STATUS_FAILED = 400
+
+    _PAYLOAD_DATA = 'data'
+    _PAYLOAD_STATUS = 'status'
+    _PAYLOAD_MULTISTATUS = 'multistatus'
+
     ###
     ### configuring input and output formats
     ###
 
-    def _get_shields_from_postbody(self):
+    def _get_body_data(self):
+        if self.message.content_type == 'application/json':
+            data = self.message.body
+        else:
+            data = self.get_argument('data')
+        return data
+
+
+    def _get_model_from_body(self):
         """ Describes how our incoming data looks
         """
+        data = self._get_body_data()
+        
         ### TODO investigate ujson doesn't take unicode
-        items = json.loads(str(self.get_argument('data')))
+        item_or_items = json.loads(data)
+        if isinstance(item_or_items, list):
+            model_or_models = [self.model(**item) for item in item_or_items]
+        else:
+            model_or_models = self.model(**item_or_items)
+
+        return model_or_models
+
+    def _get_shields_from_postbody(self):
+        """ Describes how our incoming data looks
+
+        TODO s/shields/models/
+        """
+        data = self._get_body_data()
+
+        items = json.loads(data)
         shields = [self.model(**item) for item in items]
         return shields
 
-    def _create_response(self, updated, failed=[], created=[]):
+    def _create_response(self, statuses):
+        if isinstance(statuses, list):
+            response = self._create_multi_status(statuses)
+        else:
+            response = self._create_status(statuses)
+        return response
+
+    def _create_status(self, status, http_200=False, status_dict=None):
+        """Passed a status tuples of the form (status code, processed model),
+        it generates the status structure to carry info about the processing.
+
+        TODO s/shields/models/
+        """
+        status_code, shield = status
+        
+        data = shield.to_json(encode=False)  ### don't double encode
+
+        self.add_to_payload(self._PAYLOAD_DATA, data)
+
+        if http_200:
+            status_code = 200
+
+        return self.render(status_code=status_code)
+
+    #def _create_multi_status(self, updated, failed=[], created=[]):
+    def _create_multi_status(self, statuses):
         """Passed a list of shields and the state they're in, and creates a
         response
+
+        TODO s/shields/models/
         """
-        status = []
+        status_set = []
 
-        def process_status(shield_list, status_code):
-            for shield in shield_list:
-                shield_data = {
-                    'status': status_code,
-                     'id': str(shield.id),
-                     'href': self.uri_for_shield(shield)
-                }
-            status.extend(shield_data)
-
-        process_status(created, 201)
-        process_status(updated, 200)
-        process_status(failed, 400)
+        for status in statuses:
+            status_code, shield = status
+            shield_data = {
+                'status': status_code,
+                'id': str(shield.id),
+                'href': self.uri_for_shield(shield)
+            }
+            status_set.append(shield_data)
 
         ### encode=False prevents double encoding
-        total_data = [shield.to_json(encode=False)
-                      for shield in chain(created, updated, failed)]
+        data = [shield.to_json(encode=False)
+                for shield in map(lambda t: t[1], statuses)]
 
-        self.add_to_payload('data', total_data)
-        self.add_to_payload('multistatus', status)
-        status_code = self._get_status_code(updated, failed, created)
-
+        self.add_to_payload(self._PAYLOAD_DATA, data)
+        status_code = self._get_status_code(statuses)
+        if status_code == 207:
+            self.add_to_payload(self._PAYLOAD_MULTISTATUS, status_set)
+        
         return self.render(status_code=status_code)
 
     ###
     ### General Validation and private computation
     ###
 
-    def _get_status_code(self, updated, failed, created=[]):
+    #def _get_status_code(self, updated, failed, created=[]):
+    def _get_status_code(self, statuses):
         """Creates the status code we should be returning based on our
         successes and failures
         """
-        check_for_multi = lambda old, new: old + 1 if new else old
-        kinds = reduce(check_for_multi, [created, updated, failed], 0)
-
-        if kinds > 1:
+        kinds =  set(map(lambda t: t[0], statuses))
+        
+        if len(kinds) > 1:
             status_code = 207  # multistatus!
         else:
-            if failed:
+            if 'failed' in kinds:
                 status_code = 400
-            elif created:
+            elif 'created' in kinds:
                 status_code = 201
             else:
                 status_code = 200
         return status_code
 
     def _pre_alter_validation(self):
-        """ Creates the shield objcts and validates that they're in the right
+        """Creates the shield objcts and validates that they're in the right
         format if they're not, adds the error list to the payload
         """
-        shields = self._get_shields_from_postbody()
-        invalid = self._validate(shields)
+        model_or_models = self._get_model_from_body()
 
-        if invalid:
-            errors = [{'status':422,
-                       'id':shield.id,
-                       'error':error,
-                       'href':self.uri_for_shield(shield)
-                       } for shield, error in invalid]
-            self.add_to_payload('multistatus', json.dumps(errors))
-        return shields, invalid
-
-    def _validate(self, shields):
-        """ seperates the list of items into valid and invalid shields
-        """
-        invalid = []
-        for shield in shields:
+        def check_invalid(shield):
             try:
                 shield.validate()
+                return True, shield
             except ShieldException, e:
-                invalid.append((shield, e))
-        return invalid
+                error_dict = {
+                    'status_code':422,
+                    'id':shield.id,
+                    'error': 'Bad data',
+                    'href':self.uri_for_shield(shield)
+                }
+                return False, error_dict
 
-    def url_matches_body(self, item_ids, shields):
+        if not isinstance(model_or_models, list):
+            valid, data = check_invalid(model_or_models)
+            if valid:
+                ### Shield, no error
+                return data, None
+            else:
+                self.add_to_payload(self._PAYLOAD_STATUS, json.dumps(data))
+                ### No data, error
+                return None, data
+        else:
+            validated_tuples = map(check_invalid, model_or_models)
+            error_shields = []
+            valid_shields = []
+            for valid, data in validated_tuples:
+                if valid:
+                    valid_shields.append(data)
+                else:
+                    error_shields.append(data)
+                    
+            self.add_to_payload(self._PAYLOAD_MULTISTATUS,
+                                json.dumps(error_shields))
+
+            ### Shields, error data
+            return valid_shields, error_shields
+
+    def url_matches_body(self, ids, shields):
         """ We want to make sure that if the request asks for a specific few
         resources, those resources and only those resources are in the body
         """
-        if not item_ids:
+        if not ids:
             return True
 
-        for item_id, shield in zip(item_ids, shields):
-            if item_id != str(shield.id):  # enforce a good request
-                return False
+        if isinstance(shields, list):
+            for item_id, shield in zip(ids, shields):
+                if item_id != str(shield.id):  # enforce a good request
+                    return False
+        else:
+            return ids != str(shields)
 
         return True
 
@@ -713,19 +797,24 @@ class AutoAPIBase(JSONMessageHandler):
     ### HTTP methods
     ###
 
-    def get(self, item_ids=""):
-        """Handles read - either with a filter (item_ids) or a total list
+    def get(self, ids=""):
+        """Handles read - either with a filter (ids) or a total list
         """
         try:
-            items = [v for v in item_ids.split(MULTIPLE_ITEM_SEP) if v]
-            if items:
-                shields = self.read(items)
+            shield_id_or_ids = [v for v in ids.split(MULTIPLE_ITEM_SEP) if v]
+            shield_or_shields = self.read(shield_id_or_ids)
+            if isinstance(shield_or_shields, list):
+                statuses = [(200, shield) for shield in shield_or_shields]
+            else:
+                statuses = (200, shield_or_shields)
+            #return self._create_response(shield_or_shields)
+            return self._create_response(statuses)
+        
         except FourOhFourException:
             return self.render(status_code=404)
-        return self._create_response(shields)
 
-    def post(self, item_ids=""):
-        """Handles create if item_ids is missing, else updates the items.
+    def post(self, ids=""):
+        """Handles create if ids is missing, else updates the items.
 
         Items should be represented as objects inside a list, pegged to the
         global object - the global object name defaults to data but can be
@@ -753,20 +842,23 @@ class AutoAPIBase(JSONMessageHandler):
         if invalid:
             return self.render(status_code=400)
 
-        if item_ids == "":
-            created, updated, failed = self.create(shields)
-            return self._create_response(updated, failed, created)
+        if ids == "":
+            statuses = self.create(shields)
+            return self._create_response(statuses)
         else:
-            items = item_ids.split(MULTIPLE_ITEM_SEP)
+            if isinstance(shields, list):
+                items = ids
+            else:
+                items = ids.split(MULTIPLE_ITEM_SEP)
 
             ### TODO: add informative error message
             if not self.url_matches_body(items, shields):
                 return self.render(status_code=400)
 
-            successes, failures = self.update(shields)
-            return self._create_response(successes, failures)
+            statuses = self.update(shields)
+            return self._create_response(statuses)
 
-    def put(self, item_ids):
+    def put(self, ids):
         """Follows roughly the same logic as `post` but exforces that the items
         must already exist.
         """
@@ -776,7 +868,7 @@ class AutoAPIBase(JSONMessageHandler):
             return self.render(status_code=400)
 
         ### TODO: add informative error message
-        items = item_ids.split(MULTIPLE_ITEM_SEP)
+        items = ids.split(MULTIPLE_ITEM_SEP)
 
         if not self.url_matches_body(items, shields):
             return self.render(status_code=400)
@@ -784,23 +876,33 @@ class AutoAPIBase(JSONMessageHandler):
         successes, failures = self.update(shields)
         return self._create_response(successes, failures)
 
-    def delete(self, item_ids):
+    def delete(self, ids):
         """ Handles delete for 1 or many items. Since this doesn't take a
         postbody, and just item ids, pass those on directly to destroy
         """
-        item_ids = item_ids.split(MULTIPLE_ITEM_SEP)
+        item_ids = ids.split(MULTIPLE_ITEM_SEP)
 
-        try:
-            successes, failures = self.destroy(item_ids)
-        except FourOhFourException:
-            return self.render(status_code=404)
+        if ids:
+            try:
+                statuses = self.destroy(item_ids)
+            except FourOhFourException:
+                return self.render(status_code=404)
 
-        status_code = self._get_status_code(successes, failures)
+        if isinstance(statuses, list):
+            list_status = self._get_status_code(statuses)
 
-        status = []
-        status.extend([{'status':200, 'id':i} for i in successes])
-        status.extend([{'status':400, 'id':i} for i in failures])
-        self.add_to_payload('multistatus', json.dumps(status))
+            status = []
+            for status_code, shield in statuses:
+                if isinstance(shield, dict):
+                    status.append({'status': status_code, 'id': shield['_id']})
+                else:
+                    status.append({'status': status_code, 'id': shield.id})
+            if list_status == 207:
+                self.add_to_payload(self._PAYLOAD_MULTISTATUS, json.dumps(status))
+        else:
+            status_code, sheild = statuses
+            status = {'status': status_code, 'id': shield.id}
+            self.add_to_payload(self._PAYLOAD_STATUS, json.dumps(status))
 
         return self.render(status_code=status_code)
 
@@ -813,10 +915,13 @@ class AutoAPIBase(JSONMessageHandler):
         include - if that's empty then include everything.
         """
         ### TODO: pagination
-        list_of_data = self.queries.read(include)
-        if include and not list_of_data:
+        query_data = self.queries.read(include)
+        if include and not query_data:
             raise FourOhFourException
-        return [self.model(**data) for data in list_of_data]
+        if isinstance(query_data, list):
+            return [self.model(**data) for status, data in query_data]
+        else:
+            return self.model(**query_data)
 
     def create(self, shields):
         """Meant for adding items to the database and returns a list of
@@ -826,13 +931,13 @@ class AutoAPIBase(JSONMessageHandler):
         """
         return self.queries.create(shields)
 
-    def destroy(self, item_ids):
+    def destroy(self, ids):
         """Removes the passed ids from the datastore and returns a list of
         success and failures such that:
 
-            success, failure = self.destroy(item_ids)
+            success, failure = self.destroy(ids)
         """
-        return self.queries.destroy(item_ids)
+        return self.queries.destroy(ids)
 
     def update(self, shields):
         """Updates the passed sheilds in the datastore and returns a list of
@@ -1025,7 +1130,7 @@ class Brubeck(object):
             self.add_route_rule(manifest_pattern, JsonSchemaMessageHandler)
 
         url_prefix = "/" + model_name
-        pattern = "/((?P<item_ids>[-\w\d%s]+)/|$)" % MULTIPLE_ITEM_SEP
+        pattern = "/((?P<ids>[-\w\d%s]+)/|$)" % MULTIPLE_ITEM_SEP
         api_url = ''.join([url_prefix, pattern])
 
         self.add_route_rule(api_url, APIClass)

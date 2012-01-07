@@ -2,6 +2,11 @@ from request_handling import FourOhFourException
 
 
 class AbstractQueryset(object):
+    _STATUS_UPDATED = 'updated'
+    _STATUS_CREATED = 'created'
+    _STATUS_NOTFOUND = 'not_found'
+    _STATUS_FAILED = 'failed'
+    
     def __init__(self, db_conn=None, api_id='id'):
         self.db_conn = db_conn
         self.api_id = api_id
@@ -11,17 +16,17 @@ class AbstractQueryset(object):
         """
         if not ids:
             return self.read_all()
-        elif len(ids) == 1:
-            return self.read_one(ids[0])
-        else:
+        elif isinstance(ids, list):
             return self.read_many(ids)
+        else:
+            return self.read_one(ids)
 
     def read_all(self):
         """Returns a list of objects in the db
         """
         raise NotImplementedError
 
-    def read_one(self, i):
+    def read_one(self, iid):
         """Returns a single item from the db
         """
         raise NotImplementedError
@@ -34,10 +39,10 @@ class AbstractQueryset(object):
     def create(self, shields):
         """Commits a list of new shields to the database
         """
-        if len(shields) == 1:
-            return self.create_one(shields[0])
-        else:
+        if isinstance(shields, list):
             return self.create_many(shields)
+        else:
+            return self.create_one(shields)
 
     def create_one(self, shield):
         raise NotImplementedError
@@ -46,10 +51,10 @@ class AbstractQueryset(object):
         raise NotImplementedError
 
     def update(self, shields):
-        if len(shields) == 1:
-            return self.update_one(shields[0])
-        else:
+        if isinstance(shields, list):
             return self.update_many(shields)
+        else:
+            return self.update_one(shields)
 
     def update_one(self, shield):
         raise NotImplementedError
@@ -60,12 +65,12 @@ class AbstractQueryset(object):
     def destroy(self, item_ids):
         """ Removes items from the datastore
         """
-        if len(item_ids) == 1:
-            return self.destroy_one(item_ids[0])
-        else:
+        if isinstance(item_ids, list):
             return self.destroy_many(item_ids)
+        else:
+            return self.destroy_one(item_ids)
 
-    def destroy_one(self, i):
+    def destroy_one(self, iid):
         raise NotImplementedError
 
     def destroy_many(self, ids):
@@ -73,49 +78,58 @@ class AbstractQueryset(object):
 
 
 class DictQueryset(AbstractQueryset):
+    def __init__(self, **kw):
+        """Set the db_conn to a dictionary.
+        """
+        super(DictQueryset, self).__init__(db_conn=dict(), **kw)
+    
     def read_all(self):
-        return self.db_conn.itervalues()
+        return self.db_conn.items()
 
-    def read_one(self, i):
-        return self.read_many([i])
+    def read_one(self, iid):
+        #shield_key = str(getattr(shield, self.api_id))
+        if iid in self.db_conn:
+            return (self._STATUS_UPDATED, self.db_conn[iid])
+        else:
+            return (self._STATUS_FAILED, self.db_conn[iid])
 
     def read_many(self, ids):
         try:
-            return [self.db_conn[i] for i in ids]
+            return [self.read_one(iid) for iid in ids]
         except KeyError:
             raise FourOhFourException
 
     def create_one(self, shield):
-        return self.create_many([shield])
+        if shield.id in self.db_conn:
+            status = self._STATUS_UPDATED
+        else:
+            status = self._STATUS_CREATED
+
+        shield_key = str(getattr(shield, self.api_id))
+        self.db_conn[shield_key] = shield.to_python()
+        return (status, shield)
 
     def create_many(self, shields):
-        created, updated = [], []
-        for shield in shields:
-            if shield.id in self.db_conn:
-                updated.append(shield)
-            else:
-                created.append(shield)
-
-            shield_key = str(getattr(shield, self.api_id))
-            self.db_conn[shield_key] = shield.to_python()
-        return created, updated, []
+        statuses = [self.create_one(shield) for shield in shields]
+        return statuses
 
     def update_one(self, shield):
-        return self.update_many([shield])
+        shield_key = str(getattr(shield, self.api_id))
+        self.db_conn[shield_key] = shield.to_python()
+        return (self._STATUS_UPDATED, shield)
 
     def update_many(self, shields):
-        for shield in shields:
-            shield_key = str(getattr(shield, self.api_id))
-            self.db_conn[shield_key] = shield.to_python()
-        return shields, []
+        statuses = [self.update_one(shield) for shield in shields]
+        return statuses
 
     def destroy_one(self, item_id):
-        return self.destroy_many([item_id])
-
-    def destroy_many(self, item_ids):
         try:
-            for i in item_ids:
-                del self.db_conn[i]
+            shield = self.db_conn[item_id]
+            del self.db_conn[item_id]
         except KeyError:
             raise FourOhFourException
-        return item_ids, []
+        return (self._STATUS_UPDATED, shield)
+
+    def destroy_many(self, ids):
+        statuses = [self.destroy_one(iid) for iid in ids]
+        return statuses
