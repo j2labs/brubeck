@@ -802,6 +802,10 @@ class AutoAPIBase(JSONMessageHandler):
     ### HTTP methods
     ###
 
+    ### Section TODO:
+    ### * Cleaner handling of list vs single
+    ### * Clean handling of how status info is or isn't used
+
     def get(self, ids=""):
         """Handles read - either with a filter (ids) or a total list
         """
@@ -914,11 +918,16 @@ class AutoAPIBase(JSONMessageHandler):
     ### CRUD operations
     ###
 
+    ### Section TODO:
+    ### * Pagination
+    ### * Hook in authentication
+    ### * Key filtering (owner / public)
+    ### * Make model instantiation an option
+
     def read(self, ids):
         """Returns a list of shields in the db. Takes a list of object ids to
         include - if that's empty then include everything.
         """
-        ### TODO: pagination
         query_data = self.queries.read(ids)
         
         if ids and not query_data:
