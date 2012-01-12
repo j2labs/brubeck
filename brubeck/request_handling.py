@@ -619,7 +619,7 @@ class AutoAPIBase(JSONMessageHandler):
     _PAYLOAD_MULTISTATUS = 'multistatus'
 
     ###
-    ### configuring input and output formats
+    ### Content Handling
     ###
 
     def _get_body_data(self):
@@ -655,6 +655,13 @@ class AutoAPIBase(JSONMessageHandler):
         shields = [self.model(**item) for item in items]
         return shields
 
+    ###
+    ### Status Generation
+    ###
+
+    def uri_for_shield(self, shield):
+        return str(shield.id)    
+    
     def _create_response(self, statuses):
         if isinstance(statuses, list):
             response = self._create_multi_status(statuses)
@@ -679,7 +686,6 @@ class AutoAPIBase(JSONMessageHandler):
 
         return self.render(status_code=status_code)
 
-    #def _create_multi_status(self, updated, failed=[], created=[]):
     def _create_multi_status(self, statuses):
         """Passed a list of shields and the state they're in, and creates a
         response
@@ -708,11 +714,6 @@ class AutoAPIBase(JSONMessageHandler):
         
         return self.render(status_code=status_code)
 
-    ###
-    ### General Validation and private computation
-    ###
-
-    #def _get_status_code(self, updated, failed, created=[]):
     def _get_status_code(self, statuses):
         """Creates the status code we should be returning based on our
         successes and failures
@@ -729,6 +730,10 @@ class AutoAPIBase(JSONMessageHandler):
             else:
                 status_code = 200
         return status_code
+
+    ###
+    ### Validation
+    ###
 
     def _pre_alter_validation(self):
         """Creates the shield objcts and validates that they're in the right
@@ -807,7 +812,6 @@ class AutoAPIBase(JSONMessageHandler):
                 statuses = [(200, shield) for shield in shield_or_shields]
             else:
                 statuses = (200, shield_or_shields)
-            #return self._create_response(shield_or_shields)
             return self._create_response(statuses)
         
         except FourOhFourException:
@@ -910,13 +914,14 @@ class AutoAPIBase(JSONMessageHandler):
     ### CRUD operations
     ###
 
-    def read(self, include):
+    def read(self, ids):
         """Returns a list of shields in the db. Takes a list of object ids to
         include - if that's empty then include everything.
         """
         ### TODO: pagination
-        query_data = self.queries.read(include)
-        if include and not query_data:
+        query_data = self.queries.read(ids)
+        
+        if ids and not query_data:
             raise FourOhFourException
         if isinstance(query_data, list):
             return [self.model(**data) for status, data in query_data]
