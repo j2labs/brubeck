@@ -1,11 +1,13 @@
 from request_handling import FourOhFourException
 
 
+STATUS_UPDATED = 'updated'
+STATUS_CREATED = 'created'
+STATUS_NOTFOUND = 'not_found'
+STATUS_FAILED = 'failed'
+
+    
 class AbstractQueryset(object):
-    _STATUS_UPDATED = 'updated'
-    _STATUS_CREATED = 'created'
-    _STATUS_NOTFOUND = 'not_found'
-    _STATUS_FAILED = 'failed'
     
     def __init__(self, db_conn=None, api_id='id'):
         self.db_conn = db_conn
@@ -89,9 +91,9 @@ class DictQueryset(AbstractQueryset):
     def read_one(self, iid):
         #shield_key = str(getattr(shield, self.api_id))
         if iid in self.db_conn:
-            return (self._STATUS_UPDATED, self.db_conn[iid])
+            return (STATUS_UPDATED, self.db_conn[iid])
         else:
-            return (self._STATUS_FAILED, self.db_conn[iid])
+            return (STATUS_FAILED, self.db_conn[iid])
 
     def read_many(self, ids):
         try:
@@ -101,9 +103,9 @@ class DictQueryset(AbstractQueryset):
 
     def create_one(self, shield):
         if shield.id in self.db_conn:
-            status = self._STATUS_UPDATED
+            status = STATUS_UPDATED
         else:
-            status = self._STATUS_CREATED
+            status = STATUS_CREATED
 
         shield_key = str(getattr(shield, self.api_id))
         self.db_conn[shield_key] = shield.to_python()
@@ -116,7 +118,7 @@ class DictQueryset(AbstractQueryset):
     def update_one(self, shield):
         shield_key = str(getattr(shield, self.api_id))
         self.db_conn[shield_key] = shield.to_python()
-        return (self._STATUS_UPDATED, shield)
+        return (STATUS_UPDATED, shield)
 
     def update_many(self, shields):
         statuses = [self.update_one(shield) for shield in shields]
@@ -128,7 +130,7 @@ class DictQueryset(AbstractQueryset):
             del self.db_conn[item_id]
         except KeyError:
             raise FourOhFourException
-        return (self._STATUS_UPDATED, shield)
+        return (STATUS_UPDATED, shield)
 
     def destroy_many(self, ids):
         statuses = [self.destroy_one(iid) for iid in ids]

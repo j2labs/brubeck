@@ -398,6 +398,7 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Supported HTTP request methods are mapped to these functions
     ###
+
     def options(self, *args, **kwargs):
         """Default to allowing all of the methods you have defined and public
         """
@@ -565,6 +566,8 @@ class JSONMessageHandler(WebMessageHandler):
 
         self.headers['Content-Type'] = 'application/json'
 
+        print 'self._payload:', self._payload
+
         if hide_status and 'data' in self._payload:
             body = json.dumps(self._payload['data'])
         else:
@@ -662,11 +665,16 @@ class AutoAPIBase(JSONMessageHandler):
     def uri_for_shield(self, shield):
         return str(shield.id)    
     
-    def _create_response(self, statuses):
-        if isinstance(statuses, list):
-            response = self._create_multi_status(statuses)
+    def _create_response(self, status_or_statuses):
+        print '_create_response'
+        print '- statuses t:', type(status_or_statuses)
+        print '- statuses d:', status_or_statuses
+        print
+        
+        if isinstance(status_or_statuses, list):
+            response = self._create_multi_status(status_or_statuses)
         else:
-            response = self._create_status(statuses)
+            response = self._create_status(status_or_statuses)
         return response
 
     def _create_status(self, status, http_200=False, status_dict=None):
@@ -675,6 +683,11 @@ class AutoAPIBase(JSONMessageHandler):
 
         TODO s/shields/models/
         """
+        print '_create_status'
+        print '- status t:', type(status)
+        print '- status d:', status
+        print
+        
         status_code, shield = status
         
         data = shield.to_json(encode=False)  ### don't double encode
@@ -692,6 +705,11 @@ class AutoAPIBase(JSONMessageHandler):
 
         TODO s/shields/models/
         """
+        print '_create_multi_status'
+        print '- statuses t:', type(statuses)
+        print '- statuses d:', statuses
+        print
+
         status_set = []
 
         for status in statuses:
@@ -718,6 +736,10 @@ class AutoAPIBase(JSONMessageHandler):
         """Creates the status code we should be returning based on our
         successes and failures
         """
+        print '_get_status_code'
+        print '- statuses t:', type(statuses)
+        print '- statuses d:', statuses
+        print
         kinds =  set(map(lambda t: t[0], statuses))
         
         if len(kinds) > 1:
@@ -739,6 +761,8 @@ class AutoAPIBase(JSONMessageHandler):
         """Creates the shield objcts and validates that they're in the right
         format if they're not, adds the error list to the payload
         """
+        print '_pre_alter_validation'
+
         model_or_models = self._get_model_from_body()
 
         def check_invalid(shield):
@@ -805,6 +829,7 @@ class AutoAPIBase(JSONMessageHandler):
     ### Section TODO:
     ### * Cleaner handling of list vs single
     ### * Clean handling of how status info is or isn't used
+    ### * Check handling of multiple listed ids
 
     def get(self, ids=""):
         """Handles read - either with a filter (ids) or a total list
