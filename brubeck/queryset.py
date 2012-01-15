@@ -90,12 +90,14 @@ class DictQueryset(AbstractQueryset):
 
     def read_one(self, iid):
         #shield_key = str(getattr(shield, self.api_id))
+        print 'read_one(%s)' % (iid)
         if iid in self.db_conn:
             return (STATUS_UPDATED, self.db_conn[iid])
         else:
             return (STATUS_FAILED, self.db_conn[iid])
 
     def read_many(self, ids):
+        print 'read_many(%s)' % (ids)
         try:
             return [self.read_one(iid) for iid in ids]
         except KeyError:
