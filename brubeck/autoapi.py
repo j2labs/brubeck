@@ -30,10 +30,12 @@ class AutoAPIBase(JSONMessageHandler):
         client.
         """
         if self.message.content_type == 'application/json':
-            one_or_many = self.message.body
+            body = self.message.body
         else:
-            one_or_many = self.get_argument('data')
-        return one_or_many
+            body = self.get_argument('data')
+        if body:
+            body = json.loads(body)
+        return body
 
     def _convert_to_id(self, datum):
         """`datum` in this function is an id that needs to be validated and
@@ -42,8 +44,8 @@ class AutoAPIBase(JSONMessageHandler):
         try:
             converted = self.model.id.validate(datum)
             return (True, converted)
-        except ShieldException, se:
-            return (False, se)
+        except Exception, e:
+            return (False, e)
 
     def _convert_to_model(self, datum):
         """Handles the details of converting some data into a model or
@@ -53,15 +55,15 @@ class AutoAPIBase(JSONMessageHandler):
             converted = self.model(**datum)
             converted.validate()
             return (True, converted)
-        except ShieldException, se:
-            return (False, se)
+        except Exception, e:
+            return (False, e)
 
     ###
     ### Status Generation
     ###
 
     def uri_for_model(self, model):
-        return str(model.id)    
+        return str(model['_id'])
     
     def _create_response(self, status_tuple):
         print '_create_response'
@@ -72,9 +74,9 @@ class AutoAPIBase(JSONMessageHandler):
         (status_code, data) = status_tuple
         
         if isinstance(data, list):
-            response = self._create_multi_status(data)
+            response = self._create_multi_status(status_tuple)
         else:
-            response = self._create_status(data)
+            response = self._create_status(status_tuple)
         return response
 
     def _create_status(self, status, http_200=False, status_dict=None):
@@ -85,7 +87,7 @@ class AutoAPIBase(JSONMessageHandler):
         print '- status t:', type(status)
         print '- status d:', status
         print
-        
+
         status_code, model = status
         
         data = model.to_json(encode=False)  ### don't double encode
@@ -107,21 +109,25 @@ class AutoAPIBase(JSONMessageHandler):
         print
 
         status_set = []
+        (status_code, data) = statuses
 
-        for status in statuses:
+        for status in data:
+            print 'DATA:', data
             status_code, model = status
             model_data = {
                 'status': status_code,
-                'id': str(model.id),
-                'href': self.uri_for_shield(model)
+                'id': str(model['_id']),
+                'href': self.uri_for_model(model)
             }
             status_set.append(model_data)
 
         ### encode=False prevents double encoding
-        data = [shield.to_json(encode=False)
-                for shield in map(lambda t: t[1], statuses)]
+        #data = [shield.to_json(encode=False)
+        #        for shield in map(lambda t: t[1], statuses)]
+        safe_data = [self.model(**datum).to_json(encode=False)
+                     for datum in map(lambda t: t[1], data)]
 
-        self.add_to_payload(self._PAYLOAD_DATA, data)
+        self.add_to_payload(self._PAYLOAD_DATA, safe_data)
         status_code = self._get_status_code(statuses)
         if status_code == 207:
             self.add_to_payload(self._PAYLOAD_MULTISTATUS, status_set)
@@ -136,7 +142,8 @@ class AutoAPIBase(JSONMessageHandler):
         print '- statuses t:', type(statuses)
         print '- statuses d:', statuses
         print
-        kinds =  set(map(lambda t: t[0], statuses))
+        (status_code, data) = statuses
+        kinds =  set(map(lambda t: t[0], data))
         
         if len(kinds) > 1:
             status_code = 207  # multistatus!
@@ -152,52 +159,6 @@ class AutoAPIBase(JSONMessageHandler):
     ###
     ### Validation
     ###
-
-    def _pre_alter_validation(self):
-        """Creates the shield objcts and validates that they're in the right
-        format if they're not, adds the error list to the payload
-        """
-        print '_pre_alter_validation'
-
-        model_or_models = self._get_model_from_body()
-
-        def check_invalid(shield):
-            try:
-                shield.validate()
-                return True, shield
-            except ShieldException:
-                error_dict = {
-                    'status_code': 422,
-                    'id': shield.id,
-                    'error': 'Bad data',
-                    'href': self.uri_for_shield(shield)
-                }
-                return False, error_dict
-
-        if not isinstance(model_or_models, list):
-            valid, data = check_invalid(model_or_models)
-            if valid:
-                ### Shield, no error
-                return data, None
-            else:
-                self.add_to_payload(self._PAYLOAD_STATUS, json.dumps(data))
-                ### No data, error
-                return None, data
-        else:
-            validated_tuples = map(check_invalid, model_or_models)
-            error_shields = []
-            valid_shields = []
-            for valid, data in validated_tuples:
-                if valid:
-                    valid_shields.append(data)
-                else:
-                    error_shields.append(data)
-                    
-            self.add_to_payload(self._PAYLOAD_MULTISTATUS,
-                                json.dumps(error_shields))
-
-            ### Shields, error data
-            return valid_shields, error_shields
 
     def url_matches_body(self, ids, shields):
         """ We want to make sure that if the request asks for a specific few
@@ -263,19 +224,14 @@ class AutoAPIBase(JSONMessageHandler):
             ### Setup environment
             body_data = self._get_body_as_data()
             is_list = isinstance(body_data, list)
-            print 'DATA ::', body_data
             
-            def converter(idd):
-                if idd:
-                    new_id = self._convert_to_id(idd)
-                    print 'NEW ID:', new_id
-                    return new_id
-
+            # Convert arguments
             (valid, data) = self._convert_item_or_list(body_data, is_list,
-                                                       converter)
+                                                       self._convert_to_id)
             print 'Valid: ', valid
             print 'DATA1: ', data
 
+            # CRUD stuff
             if is_list:
                 valid_ids = list()
                 errors_ids = list()
@@ -285,62 +241,48 @@ class AutoAPIBase(JSONMessageHandler):
                         valid_ids.append(idd)
                     else:
                         error_ids.append(idd)
-                print 'QUERIES multi:', self.queries
                 models = self.queries.read(valid_ids)
                 response_data = [(200, model) for model in models]
             else:
-                print 'QUERIES single:', self.queries
                 model = self.queries.read(data)
+                print 'MODEL:', model
                 response_data = (200, model)
             print 'RESP:', response_data
+
+            # Handle status update
+            
             return self._create_response(response_data)
         
         except FourOhFourException:
             return self.render(status_code=404)
         
     def post(self, ids=""):
-        """Handles create if ids is missing, else updates the items.
+        body_data = self._get_body_as_data()
+        is_list = isinstance(body_data, list)
+        print 'body_data:', body_data
 
-        Items should be represented as objects inside a list, pegged to the
-        global object - the global object name defaults to data but can be
-        changed by overriding the _get_shields_from_postbody method
+        # Convert arguments
+        (valid, data) = self._convert_item_or_list(body_data, is_list,
+                                                   self._convert_to_model)
 
-        e.g.
-        {
-            'data' : [
-                {
-                    'mysamplekey1': somesamplevalue,
-                    'mysamplekey2': somesamplevalue,
-                },
-                {
-                    'mysamplekey1': somesamplevalue,
-                    'mysamplekey2': somesamplevalue,
-                },
-            ]
-        }
-
-        This keeps the interface constant if you're passing a single item or a
-        list of items. We only want to deal with sequences!
-        """
-        shields, invalid = self._pre_alter_validation()
-
-        if invalid:
+        if not valid:
             return self.render(status_code=400)
 
+        ### If no ids, we attempt to create the data
         if ids == "":
-            statuses = self.create(shields)
+            statuses = self.queries.create(data)
             return self._create_response(statuses)
         else:
-            if isinstance(shields, list):
+            if isinstance(ids, list):
                 items = ids
             else:
                 items = ids.split(self.application.MULTIPLE_ITEM_SEP)
 
             ### TODO: add informative error message
-            if not self.url_matches_body(items, shields):
+            if not self.url_matches_body(items, data):
                 return self.render(status_code=400)
 
-            statuses = self.update(shields)
+            statuses = self.queries.update(data)
             return self._create_response(statuses)
 
     def put(self, ids):
