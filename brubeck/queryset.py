@@ -1,10 +1,11 @@
 from request_handling import FourOhFourException
 
 
-STATUS_UPDATED = 'updated'
-STATUS_CREATED = 'created'
-STATUS_NOTFOUND = 'not_found'
-STATUS_FAILED = 'failed'
+STATUS_OK = 'OK'
+STATUS_UPDATED = 'Updated'
+STATUS_CREATED = 'Created'
+STATUS_NOTFOUND = 'Not Found'
+STATUS_FAILED = 'Failed'
 
     
 class AbstractQueryset(object):
@@ -86,18 +87,15 @@ class DictQueryset(AbstractQueryset):
         super(DictQueryset, self).__init__(db_conn=dict(), **kw)
     
     def read_all(self):
-        return self.db_conn.items()
+        return [(STATUS_OK, datum) for datum in self.db_conn.values()]
 
     def read_one(self, iid):
-        #shield_key = str(getattr(shield, self.api_id))
-        print 'read_one(%s)' % (iid)
         if iid in self.db_conn:
             return (STATUS_UPDATED, self.db_conn[iid])
         else:
             return (STATUS_FAILED, self.db_conn[iid])
 
     def read_many(self, ids):
-        print 'read_many(%s)' % (ids)
         try:
             return [self.read_one(iid) for iid in ids]
         except KeyError:
