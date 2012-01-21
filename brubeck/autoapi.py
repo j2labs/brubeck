@@ -6,6 +6,12 @@ import ujson as json
 
 
 class AutoAPIBase(JSONMessageHandler):
+    """AutoAPIBase generates a JSON REST API for you. *high five!*
+
+    I also read this link for help in propertly defining the behavior of HTTP
+    PUT and POST: http://stackoverflow.com/questions/630453/put-vs-post-in-rest
+    """
+    
     model = None
     queries = None
 
@@ -57,6 +63,163 @@ class AutoAPIBase(JSONMessageHandler):
             return (True, converted)
         except Exception, e:
             return (False, e)
+
+    def _convert_item_or_list(self, body_data, is_list, converter):
+        """This function takes the output of a _get_body* function and checks
+        it against the model for inputs.
+
+        In some cases this is a list of IDs or in others it's a complete
+        document. The details of this are controlled by the `converter`
+        function, provided as the last argument.
+
+        If a list is provided, the output is a boolean and a list of
+        two-tuples, each containing a boolean and the converted datum, as
+        provided by the `converter` function.
+
+        If a single item is provided as input the converter function is called
+        and the output is returned.
+        """
+        if not body_data:
+            return (True, None)
+
+        if is_list:
+            results = list()
+            all_valid = True
+            for idd in body_data:
+                (is_valid, data) = converter(idd)
+                if not is_valid:
+                    all_valid = False
+                results.append((is_valid, data))
+            return (all_valid, results)
+        else:
+            (is_valid, data) = converter(body_data)
+            return (is_valid, data)
+    
+    ###
+    ### HTTP methods
+    ###
+
+    ### Section TODO:
+    ### * Cleaner handling of list vs single
+    ### * Clean handling of how status info is or isn't used
+    ### * Check handling of multiple listed ids
+
+    def get(self, ids=""):
+        """Handles read - either with a filter (ids) or a total list
+        """
+        try:
+            ### Setup environment
+            body_data = self._get_body_as_data()
+            is_list = isinstance(body_data, list)
+            
+            # Convert arguments
+            (valid, data) = self._convert_item_or_list(body_data, is_list,
+                                                       self._convert_to_id)
+            print 'Valid: ', valid
+            print 'DATA1: ', data
+
+            # CRUD stuff
+            if is_list:
+                valid_ids = list()
+                errors_ids = list()
+                for status in data:
+                    (is_valid, idd) = status
+                    if is_valid:
+                        valid_ids.append(idd)
+                    else:
+                        error_ids.append(idd)
+                models = self.queries.read(valid_ids)
+                response_data = [(200, model) for model in models]
+            else:
+                model = self.queries.read(data)
+                print 'MODEL:', model
+                response_data = (200, model)
+            print 'RESP:', response_data
+
+            # Handle status update
+            
+            return self._create_response(response_data)
+        
+        except FourOhFourException:
+            return self.render(status_code=404)
+        
+    def post(self, ids=""):
+        body_data = self._get_body_as_data()
+        is_list = isinstance(body_data, list)
+        print 'body_data:', body_data
+
+        # Convert arguments
+        (valid, data) = self._convert_item_or_list(body_data, is_list,
+                                                   self._convert_to_model)
+
+        if not valid:
+            return self.render(status_code=400)
+
+        ### If no ids, we attempt to create the data
+        if ids == "":
+            statuses = self.queries.create(data)
+            return self._create_response(statuses)
+        else:
+            if isinstance(ids, list):
+                items = ids
+            else:
+                items = ids.split(self.application.MULTIPLE_ITEM_SEP)
+
+            ### TODO: add informative error message
+            if not self.url_matches_body(items, data):
+                return self.render(status_code=400)
+
+            statuses = self.queries.update(data)
+            return self._create_response(statuses)
+
+    def put(self, ids):
+        """Follows roughly the same logic as `post` but exforces that the items
+        must already exist.
+        """
+        shields, invalid = self._pre_alter_validation()
+
+        if invalid:
+            return self.render(status_code=400)
+
+        ### TODO: add informative error message
+        items = ids.split(self.application.MULTIPLE_ITEM_SEP)
+
+        if not self.url_matches_body(items, shields):
+            return self.render(status_code=400)
+
+        successes, failures = self.update(shields)
+        return self._create_response(successes, failures)
+
+    def delete(self, ids):
+        """ Handles delete for 1 or many items. Since this doesn't take a
+        postbody, and just item ids, pass those on directly to destroy
+        """
+        item_ids = ids.split(self.application.MULTIPLE_ITEM_SEP)
+
+        if ids:
+            try:
+                statuses = self.destroy(item_ids)
+            except FourOhFourException:
+                return self.render(status_code=404)
+
+        if isinstance(statuses, list):
+            list_status = self._get_status_code(statuses)
+
+            status = []
+            for status_code, shield in statuses:
+                if isinstance(shield, dict):
+                    status.append({'status': status_code, 'id': shield['_id']})
+                else:
+                    status.append({'status': status_code, 'id': shield.id})
+            if list_status == 207:
+                self.add_to_payload(self._PAYLOAD_MULTISTATUS, json.dumps(status))
+        else:
+            status_code, sheild = statuses
+            status = {'status': status_code, 'id': shield.id}
+            self.add_to_payload(self._PAYLOAD_STATUS, json.dumps(status))
+
+        return self.render(status_code=status_code)
+        
 
     ###
     ### Status Generation
@@ -176,169 +339,3 @@ class AutoAPIBase(JSONMessageHandler):
 
         return True
 
-    ###
-    ### HTTP methods
-    ###
-
-    ### Section TODO:
-    ### * Cleaner handling of list vs single
-    ### * Clean handling of how status info is or isn't used
-    ### * Check handling of multiple listed ids
-
-    def _convert_item_or_list(self, body_data, is_list, converter):
-        """This function takes the output of a _get_body* function and checks
-        it against the model for inputs.
-
-        In some cases this is a list of IDs or in others it's a complete
-        document. The details of this are controlled by the `converter`
-        function, provided as the last argument.
-
-        If a list is provided, the output is a boolean and a list of
-        two-tuples, each containing a boolean and the converted datum, as
-        provided by the `converter` function.
-
-        If a single item is provided as input the converter function is called
-        and the output is returned.
-        """
-        if not body_data:
-            return (True, None)
-
-        if is_list:
-            results = list()
-            all_valid = True
-            for idd in body_data:
-                (is_valid, data) = converter(idd)
-                if not is_valid:
-                    all_valid = False
-                results.append((is_valid, data))
-            return (all_valid, results)
-        else:
-            (is_valid, data) = converter(body_data)
-            return (is_valid, data)
-    
-
-    def get(self, ids=""):
-        """Handles read - either with a filter (ids) or a total list
-        """
-        try:
-            ### Setup environment
-            body_data = self._get_body_as_data()
-            is_list = isinstance(body_data, list)
-            
-            # Convert arguments
-            (valid, data) = self._convert_item_or_list(body_data, is_list,
-                                                       self._convert_to_id)
-            print 'Valid: ', valid
-            print 'DATA1: ', data
-
-            # CRUD stuff
-            if is_list:
-                valid_ids = list()
-                errors_ids = list()
-                for status in data:
-                    (is_valid, idd) = status
-                    if is_valid:
-                        valid_ids.append(idd)
-                    else:
-                        error_ids.append(idd)
-                models = self.queries.read(valid_ids)
-                response_data = [(200, model) for model in models]
-            else:
-                model = self.queries.read(data)
-                print 'MODEL:', model
-                response_data = (200, model)
-            print 'RESP:', response_data
-
-            # Handle status update
-            
-            return self._create_response(response_data)
-        
-        except FourOhFourException:
-            return self.render(status_code=404)
-        
-    def post(self, ids=""):
-        body_data = self._get_body_as_data()
-        is_list = isinstance(body_data, list)
-        print 'body_data:', body_data
-
-        # Convert arguments
-        (valid, data) = self._convert_item_or_list(body_data, is_list,
-                                                   self._convert_to_model)
-
-        if not valid:
-            return self.render(status_code=400)
-
-        ### If no ids, we attempt to create the data
-        if ids == "":
-            statuses = self.queries.create(data)
-            return self._create_response(statuses)
-        else:
-            if isinstance(ids, list):
-                items = ids
-            else:
-                items = ids.split(self.application.MULTIPLE_ITEM_SEP)
-
-            ### TODO: add informative error message
-            if not self.url_matches_body(items, data):
-                return self.render(status_code=400)
-
-            statuses = self.queries.update(data)
-            return self._create_response(statuses)
-
-    def put(self, ids):
-        """Follows roughly the same logic as `post` but exforces that the items
-        must already exist.
-        """
-        shields, invalid = self._pre_alter_validation()
-
-        if invalid:
-            return self.render(status_code=400)
-
-        ### TODO: add informative error message
-        items = ids.split(self.application.MULTIPLE_ITEM_SEP)
-
-        if not self.url_matches_body(items, shields):
-            return self.render(status_code=400)
-
-        successes, failures = self.update(shields)
-        return self._create_response(successes, failures)
-
-    def delete(self, ids):
-        """ Handles delete for 1 or many items. Since this doesn't take a
-        postbody, and just item ids, pass those on directly to destroy
-        """
-        item_ids = ids.split(self.application.MULTIPLE_ITEM_SEP)
-
-        if ids:
-            try:
-                statuses = self.destroy(item_ids)
-            except FourOhFourException:
-                return self.render(status_code=404)
-
-        if isinstance(statuses, list):
-            list_status = self._get_status_code(statuses)
-
-            status = []
-            for status_code, shield in statuses:
-                if isinstance(shield, dict):
-                    status.append({'status': status_code, 'id': shield['_id']})
-                else:
-                    status.append({'status': status_code, 'id': shield.id})
-            if list_status == 207:
-                self.add_to_payload(self._PAYLOAD_MULTISTATUS, json.dumps(status))
-        else:
-            status_code, sheild = statuses
-            status = {'status': status_code, 'id': shield.id}
-            self.add_to_payload(self._PAYLOAD_STATUS, json.dumps(status))
-
-        return self.render(status_code=status_code)
-
-    ###
-    ### CRUD operations
-    ###
-
-    ### Section TODO:
-    ### * Pagination
-    ### * Hook in authentication
-    ### * Key filtering (owner / public)
-    ### * Make model instantiation an option
