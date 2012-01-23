@@ -1,12 +1,5 @@
 from request_handling import FourOhFourException
 
-
-STATUS_OK = 'OK'
-STATUS_UPDATED = 'Updated'
-STATUS_CREATED = 'Created'
-STATUS_NOTFOUND = 'Not Found'
-STATUS_FAILED = 'Failed'
-
     
 class AbstractQueryset(object):
     """The design of the `AbstractQueryset` attempts to map RESTful calls
@@ -27,6 +20,12 @@ class AbstractQueryset(object):
     Mongo, Redis, etc should be easy to implement while providing everything
     necessary for a proper REST API.
     """
+
+    MSG_OK = 'OK'
+    MSG_UPDATED = 'Updated'
+    MSG_CREATED = 'Created'
+    MSG_NOTFOUND = 'Not Found'
+    MSG_FAILED = 'Failed'
     
     def __init__(self, db_conn=None, api_id='id'):
         self.db_conn = db_conn
@@ -135,9 +134,9 @@ class DictQueryset(AbstractQueryset):
         
     def create_one(self, shield):
         if shield.id in self.db_conn:
-            status = STATUS_UPDATED
+            status = self.MSG_UPDATED
         else:
-            status = STATUS_CREATED
+            status = self.MSG_CREATED
 
         shield_key = str(getattr(shield, self.api_id))
         self.db_conn[shield_key] = shield.to_python()
@@ -150,15 +149,18 @@ class DictQueryset(AbstractQueryset):
     ### Read Functions
 
     def read_all(self):
-        return [(STATUS_OK, datum) for datum in self.db_conn.values()]
+        print 'read_all'
+        return [(self.MSG_OK, datum) for datum in self.db_conn.values()]
 
     def read_one(self, iid):
+        print 'read_one'
         if iid in self.db_conn:
-            return (STATUS_UPDATED, self.db_conn[iid])
+            return (self.MSG_UPDATED, self.db_conn[iid])
         else:
-            return (STATUS_FAILED, self.db_conn[iid])
+            return (self.MSG_FAILED, self.db_conn[iid])
 
     def read_many(self, ids):
+        print 'read_many'
         try:
             return [self.read_one(iid) for iid in ids]
         except KeyError:
@@ -169,7 +171,7 @@ class DictQueryset(AbstractQueryset):
     def update_one(self, shield):
         shield_key = str(getattr(shield, self.api_id))
         self.db_conn[shield_key] = shield.to_python()
-        return (STATUS_UPDATED, shield)
+        return (self.MSG_UPDATED, shield)
 
     def update_many(self, shields):
         statuses = [self.update_one(shield) for shield in shields]
@@ -183,7 +185,7 @@ class DictQueryset(AbstractQueryset):
             del self.db_conn[item_id]
         except KeyError:
             raise FourOhFourException
-        return (STATUS_UPDATED, shield)
+        return (self.MSG_UPDATED, shield)
 
     def destroy_many(self, ids):
         statuses = [self.destroy_one(iid) for iid in ids]
