@@ -15,11 +15,6 @@ class AutoAPIBase(JSONMessageHandler):
     model = None
     queries = None
 
-    #_STATUS_CREATED = 201  # self._CREATED_CODE
-    #_STATUS_UPDATED = 200  # self._UPDATED_CODE
-    #_STATUS_FAILED = 400    # self._FAILED_CODE
-    #_STATUS_ERROR = 500    # self._SERVER_ERROR
-
     _PAYLOAD_DATA = 'data'
     _PAYLOAD_STATUS = 'status'
     _PAYLOAD_MULTISTATUS = 'multistatus'
@@ -48,7 +43,7 @@ class AutoAPIBase(JSONMessageHandler):
         converted to it's native type.
         """
         try:
-            converted = self.model.id.validate(datum)
+            converted = self.model.id.validate(datum)  # interface might change
             return (True, converted)
         except Exception, e:
             return (False, e)
@@ -103,18 +98,19 @@ class AutoAPIBase(JSONMessageHandler):
         return str(model['_id'])
     
     #def _create_response(self, status_tuple):
-    def _process_response(self, status_tuple):
-        print '_create_response'
-        print '- statuses t:', type(status_tuple)
-        print '- statuses d:', status_tuple
+    def _generate_response(self, status_data):
+        print '_generate_response'
+        print '- statuses type:', type(status_data)
+        print '- statuses data:', status_data
         print
-
-        (status_code, data) = status_tuple
+        #(status_code, data) = status_
         
-        if isinstance(data, list):
-            response = self._add_multi_status(status_tuple)
+        if isinstance(status_data, list):
+            response = self._add_multi_status(status_data)
         else:
-            response = self._add_status(status_tuple)
+            response = self._add_status(status_data)
+
+        print 'RETURNING:\n', response
         return response
 
     #def _create_status(self, status, http_200=False, status_dict=None):
@@ -122,9 +118,9 @@ class AutoAPIBase(JSONMessageHandler):
         """Passed a status tuples of the form (status code, processed model),
         it generates the status structure to carry info about the processing.
         """
-        print '_create_status'
-        print '- status t:', type(status)
-        print '- status d:', status
+        print '_add_status'
+        print '- status TYPE:', type(status)
+        print '- status DATA:', status
         print
 
         status_code, model = status
@@ -143,16 +139,16 @@ class AutoAPIBase(JSONMessageHandler):
         """Passed a list of shields and the state they're in, and creates a
         response
         """
-        print '_create_multi_status'
-        print '- statuses t:', type(statuses)
-        print '- statuses d:', statuses
+        print '_add_multi_status'
+        print '- statuses TYPE:', type(statuses)
+        print '- statuses DATA:', statuses
         print
 
         status_set = []
-        (status_code, data) = statuses
+        #(status_code, data) = statuses
 
-        for status in data:
-            print 'DATA:', data
+        for status in statuses:
+            print 'DATA:', status
             status_code, model = status
             model_data = {
                 'status': status_code,
@@ -165,7 +161,7 @@ class AutoAPIBase(JSONMessageHandler):
         #data = [shield.to_json(encode=False)
         #        for shield in map(lambda t: t[1], statuses)]
         safe_data = [self.model(**datum).to_json(encode=False)
-                     for datum in map(lambda t: t[1], data)]
+                     for datum in map(lambda t: t[1], statuses)]
 
         self.add_to_payload(self._PAYLOAD_DATA, safe_data)
         status_code = self._get_status_code(statuses)
@@ -175,25 +171,34 @@ class AutoAPIBase(JSONMessageHandler):
         return self.render(status_code=status_code)
 
     def _get_status_code(self, statuses):
-        """Creates the status code we should be returning based on our
-        successes and failures
+        """Creates the status code returned at the HTTP level, based on our
+        successes and failures. If multiple results are found, a 207 status
+        code is used.
         """
         print '_get_status_code'
         print '- statuses t:', type(statuses)
         print '- statuses d:', statuses
         print
-        (status_code, data) = statuses
-        kinds =  set(map(lambda t: t[0], data))
+        #(status_code, data) = statuses
+        kinds =  set(map(lambda t: t[0], statuses))
+        print 'KINDS:', kinds
         
         if len(kinds) > 1:
             status_code = 207  # multistatus!
         else:
-            if 'failed' in kinds:
-                status_code = 400
-            elif 'created' in kinds:
-                status_code = 201
+            print self._UPDATED_CODE
+
+            if self.queries.MSG_FAILED in kinds:
+                status_code = self._FAILED_CODE
+            elif self.queries.MSG_CREATED in kinds:
+                status_code = self._CREATED_CODE
+            elif self.queries.MSG_UPDATED in kinds:
+                status_code = self._UPDATED_CODE
+            elif self.queries.MSG_OK in kinds:
+                status_code = self._SUCCESS_CODE
             else:
-                status_code = 200
+                status_code = self._SERVER_ERROR
+
         return status_code
 
     ###
@@ -250,16 +255,19 @@ class AutoAPIBase(JSONMessageHandler):
                     else:
                         error_ids.append(idd)
                 models = self.queries.read(valid_ids)
-                response_data = [(200, model) for model in models]
+                print 'MODELS: ', models
+                #response_data = [(200, model) for model in models]
+                response_data = models
             else:
-                model = self.queries.read(data)
-                print 'MODEL:', model
-                response_data = (200, model)
+                datum_tuple = self.queries.read(data)
+                print 'MODELS: ', datum_tuple
+                #response_data = [(200, datum[1]) for datum in datum_tuple]
+                response_data = datum_tuple
             print 'RESP:', response_data
 
             # Handle status update
             
-            return self._process_response(response_data)
+            return self._generate_response(response_data)
         
         except FourOhFourException:
             return self.render(status_code=404)
@@ -279,7 +287,7 @@ class AutoAPIBase(JSONMessageHandler):
         ### If no ids, we attempt to create the data
         if ids == "":
             statuses = self.queries.create(data)
-            return self._process_response(statuses)
+            return self._generate_response(statuses)
         else:
             if isinstance(ids, list):
                 items = ids
@@ -291,7 +299,7 @@ class AutoAPIBase(JSONMessageHandler):
                 return self.render(status_code=400)
 
             statuses = self.queries.update(data)
-            return self._process_response(statuses)
+            return self._generate_response(statuses)
 
     def put(self, ids):
         """Follows roughly the same logic as `post` but exforces that the items
@@ -309,7 +317,7 @@ class AutoAPIBase(JSONMessageHandler):
             return self.render(status_code=400)
 
         successes, failures = self.update(shields)
-        return self._process_response(successes, failures)
+        return self._generate_response(successes, failures)
 
     def delete(self, ids):
         """ Handles delete for 1 or many items. Since this doesn't take a
