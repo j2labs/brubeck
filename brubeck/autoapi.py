@@ -106,8 +106,10 @@ class AutoAPIBase(JSONMessageHandler):
         #(status_code, data) = status_
         
         if isinstance(status_data, list):
+            print 'LIST, SON'
             response = self._add_multi_status(status_data)
         else:
+            print 'NOT A LIST. WHATEVER.'
             response = self._add_status(status_data)
 
         print 'RETURNING:\n', response
@@ -136,8 +138,15 @@ class AutoAPIBase(JSONMessageHandler):
 
     #def _create_multi_status(self, statuses):
     def _add_multi_status(self, statuses):
-        """Passed a list of shields and the state they're in, and creates a
-        response
+        """Multi status results are when a list of inputs are being iterated
+        over. The status data is then inserted into the items themselves and an
+        aggregate is used for the HTTP code.
+
+        If all items have the same status this status is used to create the
+        HTTP status code is. If multiple status codes are found, a 207 is
+        returned at the HTTP level.
+
+        In all cases, the documents
         """
         print '_add_multi_status'
         print '- statuses TYPE:', type(statuses)
@@ -150,6 +159,7 @@ class AutoAPIBase(JSONMessageHandler):
         for status in statuses:
             print 'DATA:', status
             status_code, model = status
+            http_code = self._get_status_code(status)
             model_data = {
                 'status': status_code,
                 'id': str(model['_id']),
@@ -175,10 +185,6 @@ class AutoAPIBase(JSONMessageHandler):
         successes and failures. If multiple results are found, a 207 status
         code is used.
         """
-        print '_get_status_code'
-        print '- statuses t:', type(statuses)
-        print '- statuses d:', statuses
-        print
         #(status_code, data) = statuses
         kinds =  set(map(lambda t: t[0], statuses))
         print 'KINDS:', kinds
@@ -196,9 +202,12 @@ class AutoAPIBase(JSONMessageHandler):
                 status_code = self._UPDATED_CODE
             elif self.queries.MSG_OK in kinds:
                 status_code = self._SUCCESS_CODE
+            elif len(kinds) == 0:
+                status_code = self._SUCCESS_CODE
             else:
                 status_code = self._SERVER_ERROR
 
+        print 'RETURNING CODE:', status_code
         return status_code
 
     ###
