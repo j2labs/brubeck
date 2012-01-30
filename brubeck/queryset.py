@@ -149,18 +149,15 @@ class DictQueryset(AbstractQueryset):
     ### Read Functions
 
     def read_all(self):
-        print 'read_all'
         return [(self.MSG_OK, datum) for datum in self.db_conn.values()]
 
     def read_one(self, iid):
-        print 'read_one'
         if iid in self.db_conn:
             return (self.MSG_UPDATED, self.db_conn[iid])
         else:
-            return (self.MSG_FAILED, self.db_conn[iid])
+            return (self.MSG_FAILED, iid)
 
     def read_many(self, ids):
-        print 'read_many'
         try:
             return [self.read_one(iid) for iid in ids]
         except KeyError:
