@@ -224,6 +224,11 @@ class MessageHandler(object):
         """
         pass
 
+    def on_finish(self):
+        """Called after the message handling method. Counterpart to prepare
+        """
+        pass
+
     @property
     def db_conn(self):
         """Short hand to put database connection in easy reach of handlers
@@ -313,41 +318,44 @@ class MessageHandler(object):
 
         In all cases, generating a response for mongrel2 is attempted.
         """
-        self.prepare()
-        if not self._finished:
-            mef = self.message.method.lower()  # M-E-T-H-O-D man!
+        try:
+            self.prepare()
+            if not self._finished:
+                mef = self.message.method.lower()  # M-E-T-H-O-D man!
 
-            # Find function mapped to method on self
-            if mef in HTTP_METHODS:
-                fun = getattr(self, mef, self.unsupported)
-            else:
-                fun = self.unsupported
-
-            # Call the function we settled on
-            try:
-                if not hasattr(self, '_url_args') or self._url_args is None:
-                    self._url_args = []
-
-                if isinstance(self._url_args, dict):
-                    ### if the value was optional and not included, filter it
-                    ### out so the functions default takes priority
-                    kwargs = dict((k, v)
-                                  for k, v in self._url_args.items() if v)
-                    rendered = fun(**kwargs)
+                # Find function mapped to method on self
+                if mef in HTTP_METHODS:
+                    fun = getattr(self, mef, self.unsupported)
                 else:
-                    rendered = fun(*self._url_args)
+                    fun = self.unsupported
 
-                if rendered is None:
-                    logging.debug('Handler had no return value: %s' % fun)
-                    return ''
-            except Exception, e:
-                logging.error(e, exc_info=True)
-                rendered = self.error(e)
+                # Call the function we settled on
+                try:
+                    if not hasattr(self, '_url_args') or self._url_args is None:
+                        self._url_args = []
 
-            self._finished = True
-            return rendered
-        else:
-            return self.render()
+                    if isinstance(self._url_args, dict):
+                        ### if the value was optional and not included, filter it
+                        ### out so the functions default takes priority
+                        kwargs = dict((k, v)
+                                      for k, v in self._url_args.items() if v)
+                        rendered = fun(**kwargs)
+                    else:
+                        rendered = fun(*self._url_args)
+
+                    if rendered is None:
+                        logging.debug('Handler had no return value: %s' % fun)
+                        return ''
+                except Exception, e:
+                    logging.error(e, exc_info=True)
+                    rendered = self.error(e)
+
+                self._finished = True
+                return rendered
+            else:
+                return self.render()
+        finally:
+            self.on_finish()
 
 
 class WebMessageHandler(MessageHandler):
