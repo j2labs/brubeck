@@ -359,6 +359,7 @@ class WebMessageHandler(MessageHandler):
     _SUCCESS_CODE = 200
     _UPDATED_CODE = 200
     _CREATED_CODE = 201
+    _MULTI_CODE = 207
     _FAILED_CODE = 400
     _AUTH_FAILURE = 401
     _FORBIDDEN = 403
@@ -566,8 +567,6 @@ class JSONMessageHandler(WebMessageHandler):
         self.convert_cookies()
 
         self.headers['Content-Type'] = 'application/json'
-
-        print 'self._payload:', self._payload
 
         if hide_status and 'data' in self._payload:
             body = json.dumps(self._payload['data'])
