@@ -793,8 +793,6 @@ class Brubeck(object):
         pattern = "/((?P<ids>[-\w\d%s]+)(/)*|$)" % self.MULTIPLE_ITEM_SEP
         api_url = ''.join([url_prefix, pattern])
 
-        print "API URL:", api_url
-
         self.add_route_rule(api_url, APIClass)
         JsonSchemaMessageHandler.add_model(model)
 
