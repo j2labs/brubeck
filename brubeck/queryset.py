@@ -138,7 +138,7 @@ class DictQueryset(AbstractQueryset):
         else:
             status = self.MSG_CREATED
 
-        shield_key = str(getattr(shield, self.api_id))
+        shield_key = str(getattr(shield, self.api_id)) 
         self.db_conn[shield_key] = shield.to_python()
         return (status, shield)
 
@@ -152,6 +152,7 @@ class DictQueryset(AbstractQueryset):
         return [(self.MSG_OK, datum) for datum in self.db_conn.values()]
 
     def read_one(self, iid):
+        iid = str(iid)  # TODO Should be cleaner
         if iid in self.db_conn:
             return (self.MSG_UPDATED, self.db_conn[iid])
         else:

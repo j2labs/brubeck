@@ -7,7 +7,6 @@ import ujson as json
 
 class AutoAPIBase(JSONMessageHandler):
     """AutoAPIBase generates a JSON REST API for you. *high five!*
-
     I also read this link for help in propertly defining the behavior of HTTP
     PUT and POST: http://stackoverflow.com/questions/630453/put-vs-post-in-rest
     """
@@ -218,13 +217,13 @@ class AutoAPIBase(JSONMessageHandler):
     def get(self, ids=""):
         """Handles read - either with a filter (ids) or a total list
         """
+        
         try:
             ### Setup environment
-            body_data = self._get_body_as_data()
-            is_list = isinstance(body_data, list)
+            is_list = isinstance(ids, list)
             
             # Convert arguments
-            (valid, data) = self._convert_item_or_list(body_data, is_list,
+            (valid, data) = self._convert_item_or_list(ids, is_list,
                                                        self._convert_to_id)
 
             # CRUD stuff
@@ -251,6 +250,7 @@ class AutoAPIBase(JSONMessageHandler):
     def post(self, ids=""):
         body_data = self._get_body_as_data()
         is_list = isinstance(body_data, list)
+        print 'BODY DATA:', body_data        
 
         # Convert arguments
         (valid, data) = self._convert_item_or_list(body_data, is_list,
@@ -282,6 +282,7 @@ class AutoAPIBase(JSONMessageHandler):
         """
         body_data = self._get_body_as_data()
         is_list = isinstance(body_data, list)
+        print 'BODY DATA:', body_data
 
         # Convert arguments
         (valid, data) = self._convert_item_or_list(body_data, is_list,
@@ -305,6 +306,8 @@ class AutoAPIBase(JSONMessageHandler):
         """
         body_data = self._get_body_as_data()
         is_list = isinstance(body_data, list)
+        crud_statuses = list()
+        print 'BODY DATA:', body_data
 
         # Convert arguments
         (valid, data) = self._convert_item_or_list(body_data, is_list,
