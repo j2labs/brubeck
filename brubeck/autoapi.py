@@ -149,7 +149,9 @@ class AutoAPIBase(JSONMessageHandler):
         return (http_status_code, data)
 
     def _generate_response(self, status_data):
-        """Parses status data and generates the full HTTP response.
+        """Parses crud data and generates the full HTTP response. The idea here
+        is to translate the results of some crud operation into something
+        appropriate for HTTP.
 
         `status_data` is ambiguously named because it might be a list and it
         might be a single item. This will likely be altered when the crud
@@ -250,7 +252,6 @@ class AutoAPIBase(JSONMessageHandler):
     def post(self, ids=""):
         body_data = self._get_body_as_data()
         is_list = isinstance(body_data, list)
-        print 'BODY DATA:', body_data        
 
         # Convert arguments
         (valid, data) = self._convert_item_or_list(body_data, is_list,
@@ -282,7 +283,6 @@ class AutoAPIBase(JSONMessageHandler):
         """
         body_data = self._get_body_as_data()
         is_list = isinstance(body_data, list)
-        print 'BODY DATA:', body_data
 
         # Convert arguments
         (valid, data) = self._convert_item_or_list(body_data, is_list,
@@ -307,7 +307,6 @@ class AutoAPIBase(JSONMessageHandler):
         body_data = self._get_body_as_data()
         is_list = isinstance(body_data, list)
         crud_statuses = list()
-        print 'BODY DATA:', body_data
 
         # Convert arguments
         (valid, data) = self._convert_item_or_list(body_data, is_list,
