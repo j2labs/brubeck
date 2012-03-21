@@ -39,7 +39,8 @@ class OwnedModelMixin(EmbeddedDocument):
     """
     owner_id = UUIDField(required=True)
     owner_username = StringField(max_length=30, required=True)
-    meta = {'mixin': True}
+    class Meta:
+        mixin = True
 
 
 class OwnedHandlerMixin:
@@ -62,7 +63,8 @@ class StreamedModelMixin(EmbeddedDocument):
     """
     created_at = MillisecondField(default=0)
     updated_at = MillisecondField(default=0)
-    meta = {'mixin': True}
+    class Meta: 
+        mixin = True
 
 
 class StreamedHandlerMixin:
