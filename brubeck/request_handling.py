@@ -616,7 +616,7 @@ class Brubeck(object):
     def __init__(self, mongrel2_pair=None, handler_tuples=None, pool=None,
                  no_handler=None, base_handler=None, template_loader=None,
                  log_level=logging.INFO, login_url=None, db_conn=None,
-                 cookie_secret=None,
+                 cookie_secret=None, api_base_url=None,
                  *args, **kwargs):
         """Brubeck is a class for managing connections to Mongrel2 servers
         while providing an asynchronous system for managing message handling.
@@ -670,6 +670,12 @@ class Brubeck(object):
 
         # Login url is optional
         self.login_url = login_url
+
+        # API base url is optional
+        if api_base_url is None:
+            self.api_base_url = '/'
+        else:
+            self.api_base_url = api_base_url
 
         # This must be set to use secure cookies
         self.cookie_secret = cookie_secret
@@ -781,14 +787,18 @@ class Brubeck(object):
 
         return handler
 
-    def register_api(self, APIClass):
+    def register_api(self, APIClass, prefix=None):
         model, model_name = APIClass.model, APIClass.model.__name__.lower()
 
         if not JsonSchemaMessageHandler.manifest:
             manifest_pattern = "/manifest.json"
             self.add_route_rule(manifest_pattern, JsonSchemaMessageHandler)
 
-        url_prefix = "/" + model_name
+        if prefix is None:
+            url_prefix = self.api_base_url + model_name
+        else:
+            url_prefix = prefix
+
         # TODO inspect url pattern for holes
         pattern = "/((?P<ids>[-\w\d%s]+)(/)*|$)" % self.MULTIPLE_ITEM_SEP
         api_url = ''.join([url_prefix, pattern])
