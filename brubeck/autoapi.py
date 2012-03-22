@@ -15,26 +15,25 @@ class AutoAPIBase(JSONMessageHandler):
     queries = None
 
     _PAYLOAD_DATA = 'data'
-    _PAYLOAD_STATUS = 'status'
-    _PAYLOAD_MULTISTATUS = 'multistatus'
 
     ###
     ### Input Handling
     ###
 
-    ### Section TODO:
-    ### * investigate unicode handling bug in ujson
-
     def _get_body_as_data(self):
         """Returns the body data based on the content_type requested by the
         client.
         """
+        ### Locate body data by content type
         if self.message.content_type == 'application/json':
             body = self.message.body
         else:
             body = self.get_argument('data')
+
+        ### Load found JSON into Python structure
         if body:
             body = json.loads(body)
+
         return body
 
     def _convert_to_id(self, datum):
@@ -98,18 +97,22 @@ class AutoAPIBase(JSONMessageHandler):
         used for HTTP.
         """
         if self.queries.MSG_FAILED == crud_status:
-            status_code = self._FAILED_CODE
+            return self._FAILED_CODE
+        
         elif self.queries.MSG_CREATED == crud_status:
-            status_code = self._CREATED_CODE
+            return self._CREATED_CODE
+        
         elif self.queries.MSG_UPDATED == crud_status:
-            status_code = self._UPDATED_CODE
+            return self._UPDATED_CODE
+        
         elif self.queries.MSG_OK == crud_status:
-            status_code = self._SUCCESS_CODE
+            return self._SUCCESS_CODE
+        
         elif len(crud_status) == 0:
-            status_code = self._SUCCESS_CODE
+            return self._SUCCESS_CODE
+        
         else:
-            status_code = self._SERVER_ERROR
-        return status_code
+            return self._SERVER_ERROR
 
     def _make_presentable(self, datum):
         """This function takes either a model instance or a dictionary
