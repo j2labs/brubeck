@@ -22,9 +22,7 @@ class MakoRendering(WebMessageHandler):
     def render_template(self, template_file,
                         _status_code=WebMessageHandler._SUCCESS_CODE,
                         **context):
-        mako_env = self.application.template_env
-        template = mako_env.get_template(template_file)
-        body = template.render(**context or {})
+        body = self.application.render_template(template_file, **context or {})
         self.set_body(body, status_code=_status_code)
         return self.render()
 
@@ -64,9 +62,7 @@ class Jinja2Rendering(WebMessageHandler):
                         **context):
         """Renders payload as a jinja template
         """
-        jinja_env = self.application.template_env
-        template = jinja_env.get_template(template_file)
-        body = template.render(**context or {})
+        body = self.application.render_template(template_file, **context or {})
         self.set_body(body, status_code=_status_code)
         return self.render()
 
@@ -109,9 +105,7 @@ class TornadoRendering(WebMessageHandler):
                         **context):
         """Renders payload as a tornado template
         """
-        tornado_env = self.application.template_env
-        template = tornado_env.load(template_file)
-        body = template.generate(**context or {})
+        body = self.application.render_template(template_file, **context or {})
         self.set_body(body, status_code=_status_code)
         return self.render()
 

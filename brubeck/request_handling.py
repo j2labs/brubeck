@@ -682,10 +682,26 @@ class Brubeck(object):
 
         # Any template engine can be used. Brubeck just needs a function that
         # loads the environment without arguments.
+        #
+        # It then creates a function that renders templates with the given
+        # environment and attaches it to self.
         if callable(template_loader):
             loaded_env = template_loader()
             if loaded_env:
                 self.template_env = loaded_env
+
+                # Create template rendering function
+                def render_template(template_file, **context):
+                    """Renders template using provided template environment.
+                    """
+                    if hasattr(self, 'template_env'):
+                        t_env = self.template_env
+                        template = t_env.get_template(template_file)
+                        body = template.render(**context or {})
+                    return body
+
+                # Attach it to brubeck app (self)
+                setattr(self, 'render_template', render_template)
             else:
                 raise ValueError('template_env failed to load.')
 
@@ -805,6 +821,7 @@ class Brubeck(object):
 
         self.add_route_rule(api_url, APIClass)
         JsonSchemaMessageHandler.add_model(model)
+
 
     ###
     ### Application running functions
