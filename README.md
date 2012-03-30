@@ -38,7 +38,7 @@ Brubeck gets by with a little help from its friends:
 
 Please also see this completely unscientific comparison of Brubeck and Tornado:
 
-* [500 concurrent connections for 10 seconds](https://gist.github.com/882555)
+* [500 concurrent connections for 10 seconds](https://gist.github.com/2252671)
 
 
 # Complete Example: Listsurf
