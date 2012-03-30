@@ -21,7 +21,7 @@ TEST_BODY_OBJECT_HANDLER = file(dir + 'test_body_object_handler.txt','r').read()
 ##
 HTTP_RESPONSE_OBJECT_ROOT =      'HTTP/1.1 200 OK\r\nContent-Length: ' + str(len(TEST_BODY_OBJECT_HANDLER)) + '\r\n\r\n' + TEST_BODY_OBJECT_HANDLER
 HTTP_RESPONSE_METHOD_ROOT =      'HTTP/1.1 200 OK\r\nContent-Length: ' + str(len(TEST_BODY_METHOD_HANDLER)) + '\r\n\r\n' + TEST_BODY_METHOD_HANDLER
-HTTP_RESPONSE_JSON_OBJECT_ROOT = 'HTTP/1.1 200 OK\r\nContent-Length: 90\r\n\r\n{"status_code":200,"status_msg":"OK","message":"Take five dude","timestamp":1320456118809}'
+HTTP_RESPONSE_JSON_OBJECT_ROOT = 'HTTP/1.1 200 OK\r\nContent-Length: 90\r\nContent-Type: application/json\r\n\r\n{"status_code":200,"status_msg":"OK","message":"Take five dude","timestamp":1320456118809}'
 
 HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE = 'HTTP/1.1 200 OK\r\nSet-Cookie: key=value\r\nContent-Length: ' + str(len(TEST_BODY_OBJECT_HANDLER)) + '\r\n\r\n' + TEST_BODY_OBJECT_HANDLER
 
