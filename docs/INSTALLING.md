@@ -28,6 +28,9 @@ Mongrel2 is also painless to setup.
 
     $ cd ~/Desktop/mongrel2
     $ make  ## for mac ports use: make macports
+    ## Mongrel 2 requires sqlite3 and dev libraries of sqlite3
+    $ sudo apt-get install sqlite3
+    $ sudo apt-get install libsqlite3-dev
     $ sudo make install
 
 There are a few compile options available at the bottom of Mongrel2's `Makefile`. Take a look if the code above doesn't compile successfully.
