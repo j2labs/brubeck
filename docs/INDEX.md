@@ -28,19 +28,25 @@ __Listsurf__ is a simple to way to save links. Yeah... another delicious clone!
 
 It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating, [Eventlet](http://eventlet.net) for coroutines and stores data in [MongoDB](http://mongodb.org).
 
-* [Listsurf on GitHub](https://github.com/j2labs/listsurf)
+* [Listsurf Code](https://github.com/j2labs/listsurf)
 
-__Readify__ is a more elaborate form of Listsurf. User's have profiles, you can mark things as *liked*, *archived* or delete. The links can also be tagged for easy finding. This project also splits the API out from the Web system into two separte processes, each reading from a single Mongrel2.
+__Readify__ is a more elaborate form of Listsurf.
 
-* [Readify](https://github.com/j2labs/readify)
+User's have profiles, you can mark things as liked, archived (out of your stream, kept) or you can delete them. The links can also be tagged for easy finding. This project also splits the API out from the Web system into two separte processes, each reading from a single Mongrel2.
 
-__SpotiChat__ is a Spotify app that provides chat for users listening to the same song in Spotify. The chat is handled via persistent coroutines that sleep until an incoming message arrives. Built with [Redis](http://redis.io).
+* [Readify Code](https://github.com/j2labs/readify)
 
-* [SpotiChat](https://github.com/sethmurphy/SpotiChat-Server)
+__SpotiChat__ is a chat app for spotify user.
 
-__no.js__ is a javascript-free chat system. Works in IE4!
+SpotiChat provides chat for users listening to the same song with Spotify. The chat is handled via request handlers that go to sleep until incoming messages need to be distributed to connect clients. The messages are backed by [Redis](http://redis.io) too.
 
-* [No.js](https://github.com/talos/no.js)
+* [SpotiChat Code](https://github.com/sethmurphy/SpotiChat-Server)
+
+__no.js__ is a javascript-free chat system.
+
+It works by using the old META Refresh trick, combined with long-polling. It even works in IE4! 
+
+* [No.js Code](https://github.com/talos/no.js)
 
 
 # Contact Us
