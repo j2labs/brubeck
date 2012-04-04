@@ -54,3 +54,5 @@ It works by using the old META Refresh trick, combined with long-polling. It eve
 If you discover bugs or want to suggest features, please use our [issue tracker](https://github.com/j2labs/brubeck/issues).
 
 Also consider joining our mailing list: [brubeck-dev](http://groups.google.com/group/brubeck-dev).
+
+Some of us hang out in #brubeck on freenode too.

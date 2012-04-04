@@ -9,6 +9,22 @@ The Brubeck model resembles what companies build when they operate at large scal
 * Built-in distributed load balancing
 
 
+## Features
+
+Brubeck gets by with a little help from its friends:
+
+* [Mongrel2](http://mongrel2.org): lean & fast, asynchronous web serving
+* [DictShield](https://github.com/j2labs/dictshield): data modeling & validation with no database opinions
+* [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
+* [Gevent](http://gevent.org): non-blocking I/O, coroutines & implicit scheduling, mostly in C.
+* [Eventlet](http://eventlet.net): like gevent but written mostly in Python.
+
+Please also see this completely unscientific comparison of Brubeck and Tornado:
+
+* [500 concurrent connections for 10 seconds](https://gist.github.com/2252671)
+
+
+
 ## Example: Hello World
 
 This is a whole Brubeck application. 
@@ -26,28 +42,31 @@ This is a whole Brubeck application.
     app.run()
 
 
-## Features
-
-Brubeck gets by with a little help from its friends:
-
-* [Mongrel2](http://mongrel2.org): lean & fast, asynchronous web serving
-* [DictShield](https://github.com/j2labs/dictshield): data modeling & validation with no database opinions
-* [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
-* [Eventlet](http://eventlet.net): non-blocking I/O, coroutines & implicit scheduling
-* [Gevent](http://gevent.org): like eventlet, but uses `libevent`
-
-Please also see this completely unscientific comparison of Brubeck and Tornado:
-
-* [500 concurrent connections for 10 seconds](https://gist.github.com/2252671)
-
-
-# Complete Example: Listsurf
+## Complete Examples
 
 __Listsurf__ is a simple to way to save links. Yeah... another delicious clone!
 
 It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating, [Eventlet](http://eventlet.net) for coroutines and stores data in [MongoDB](http://mongodb.org).
 
-* [Listsurf on GitHub](https://github.com/j2labs/listsurf)
+* [Listsurf Code](https://github.com/j2labs/listsurf)
+
+__Readify__ is a more elaborate form of Listsurf.
+
+User's have profiles, you can mark things as liked, archived (out of your stream, kept) or you can delete them. The links can also be tagged for easy finding. This project also splits the API out from the Web system into two separte processes, each reading from a single Mongrel2.
+
+* [Readify Code](https://github.com/j2labs/readify)
+
+__SpotiChat__ is a chat app for spotify user.
+
+SpotiChat provides chat for users listening to the same song with Spotify. The chat is handled via request handlers that go to sleep until incoming messages need to be distributed to connect clients. The messages are backed by [Redis](http://redis.io) too.
+
+* [SpotiChat Code](https://github.com/sethmurphy/SpotiChat-Server)
+
+__no.js__ is a javascript-free chat system.
+
+It works by using the old META Refresh trick, combined with long-polling. It even works in IE4! 
+
+* [No.js Code](https://github.com/talos/no.js)
 
 
 # Closer Look At The Code
@@ -114,14 +133,14 @@ That looks like this:
 
 ## Templates
 
-Brubeck currently supports [Jinja2](http://jinja.pocoo.org/) or [Tornado](http://www.tornadoweb.org/documentation#templates) templates.
+Brubeck currently supports [Jinja2](http://jinja.pocoo.org/), [Tornado](http://www.tornadoweb.org/documentation#templates), [Mako](http://www.makotemplates.org/) or [Pystache](https://github.com/defunkt/pystache) templates.
 
-Template support is contained in `brubeck.templates` as rendering mixins. Each Mixin will attach a `render_template` function to your handler and overwrite the default `render_error` to produce templated errors messages.
+Template support is contained in `brubeck.templates` as rendering handlers. Each handler will attach a `render_template` function to your handler and overwrite the default `render_error` to produce templated errors messages.
 
 Using a template system is then as easy as calling `render_template` with the template filename and some context, just like you're used to.
 
 
-### Jinja2
+### Jinja2 Example
 
 Using Jinja2 template looks like this.
 
@@ -138,22 +157,10 @@ Using Jinja2 template looks like this.
 * [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/jinja2)
 
 
-### Tornado
-
-Tornado templates are supported by the TornadoRendering mixin. The code looks virtually the same to keep mixing template systems lightweight.
-
-    from brubeck.templating import TornadoRendering
-    
-    class DemoHandler(WebMessageHandler, TornadoRendering):
-        ...
-
-* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py)
-* [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/tornado)
-
-
 ### Template Loading
 
-In addition to using a rendering mixin, you need to provide the path to your templates.
+In addition to using a rendering handler, you need to provide the path to your
+templates.
 
 That looks like this:
 
@@ -164,16 +171,9 @@ That looks like this:
         ...
     }
 
-Using a function here keeps the config lightweight.
-
-
-### Custom Rendering
-
-If you have something else in mind, you'll be glad to know `template_loader` can be any callable that loads a rendering environment. Brubeck calls this during initialization and attaches the output to `self.application.template_env`.
-
-The current convention is for handlers to provide a `render_template` and `render_error` function. These functions typically use `self.application.template_env` to render request specific data.
-
-* [brubeck.templating](https://github.com/j2labs/brubeck/blob/master/brubeck/templating.py#L1)
+Using a function here keeps the config lightweight and flexible.
+`template_loader` needs to be some function that returns an environment. The
+details of how that works are up to you, if you want to change it.
 
 
 ## Auth
@@ -209,7 +209,7 @@ The `User` model in brubeck.auth will probably serve as a good basis for your ne
 * [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py)
 
 
-### Database Connections
+## Database Connections
 
 Database connectivity is provided in the form of a `db_conn` member on the `MessageHandler` instances when a `db_conn` flag is passed to the Brubeck instance.
 
@@ -231,7 +231,7 @@ Query code then looks like this with the database connection as the first argume
     user = load_user(self.db_conn, username='jd')
 
 
-### Secure Cookies
+## Secure Cookies
 
 If you need a session to persist, you can use Brubeck's secure cookies to track users.
 
