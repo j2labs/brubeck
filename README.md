@@ -9,7 +9,7 @@ The Brubeck model resembles what companies build when they operate at large scal
 * Built-in distributed load balancing
 
 
-## Features
+# Features
 
 Brubeck gets by with a little help from its friends:
 
@@ -24,8 +24,12 @@ Please also see this completely unscientific comparison of Brubeck and Tornado:
 * [500 concurrent connections for 10 seconds](https://gist.github.com/2252671)
 
 
+# Examples
 
-## Example: Hello World
+Building a Brubeck app is essentially to write a MessageHander, open a connection to Mongrel2 and call `run()` on a Brubeck instance.
+
+
+## Hello World
 
 This is a whole Brubeck application. 
 
