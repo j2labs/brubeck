@@ -22,13 +22,25 @@ This is a whole Brubeck application.
     app.run()
 
 
-# Complete Example: Listsurf
+# Complete Examples
 
 __Listsurf__ is a simple to way to save links. Yeah... another delicious clone!
 
 It serves as a basic demonstration of what a complete site looks like when you build with Brubeck. It has authentication with secure cookies, offers a JSON API, uses [Jinja2](http://jinja.pocoo.org/) for templating, [Eventlet](http://eventlet.net) for coroutines and stores data in [MongoDB](http://mongodb.org).
 
 * [Listsurf on GitHub](https://github.com/j2labs/listsurf)
+
+__Readify__ is a more elaborate form of Listsurf. User's have profiles, you can mark things as *liked*, *archived* or delete. The links can also be tagged for easy finding. This project also splits the API out from the Web system into two separte processes, each reading from a single Mongrel2.
+
+* [Readify](https://github.com/j2labs/readify)
+
+__SpotiChat__ is a Spotify app that provides chat for users listening to the same song in Spotify. The chat is handled via persistent coroutines that sleep until an incoming message arrives. Built with [Redis](http://redis.io).
+
+* [SpotiChat](https://github.com/sethmurphy/SpotiChat-Server)
+
+__no.js__ is a javascript-free chat system. Works in IE4!
+
+* [No.js](https://github.com/talos/no.js)
 
 
 # Contact Us
