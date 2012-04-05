@@ -17,7 +17,9 @@ class WebsocketHandler(WebMessageHandler):
         frame = ws_frame.build()
         return frame
                                   
-                                  
+# test using http://isr.nu/ws/WebSocketTest.htm and point to the server at 
+# ws://127.0.0.1:6767/websockets
+
 config = {
     'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
     'handler_tuples': [(r'^/websockets', WebsocketHandler)],
