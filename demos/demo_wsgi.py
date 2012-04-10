@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import sys
-sys.path = ["/home/steve/brub/brubeck/"] + sys.path
+sys.path = ["/home/tomb/brubeck/"] + sys.path
 from brubeck.request_handling import Brubeck, WebMessageHandler
 
 class DemoHandler(WebMessageHandler):
     def get(self):
         name = self.get_argument('name', 'dude')
         self.set_body('Take five, %s!' % name)
-        return self.render()
+        return self.wsgi_render()
 
 config = {
 #    'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
@@ -32,5 +32,5 @@ if __name__ == "__main__":
         return ret
 
     httpd = make_server('', 8001, app.receive_wsgi_req)
-    print "Serving on port 8000..."
+    print "Serving on port 8001..."
     httpd.serve_forever()

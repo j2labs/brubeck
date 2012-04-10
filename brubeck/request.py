@@ -1,3 +1,10 @@
+import cgi
+import json
+import Cookie
+import logging
+import re
+
+from mongrel2 import to_unicode, to_bytes, parse_netstring
 
 class Request(object):
     """Word.
@@ -95,7 +102,7 @@ class Request(object):
         print "\n".join(x)
         conn_id = None
         sender = "WSGI_server"
-        path = environ['PATH']
+        path = environ['PATH_INFO']
         body = ""
         if "CONTENT_LENGTH" in environ and environ["CONTENT_LENGTH"]:
             body = environ["wsgi.input"].read(int(environ['CONTENT_LENGTH']))
@@ -103,6 +110,18 @@ class Request(object):
             del environ["wsgi.input"]
         #setting headers to environ dict with no manipulation
         headers = environ
+        # normalize request dict
+        if 'REQUEST_METHOD' in headers:
+            headers['METHOD'] = headers['REQUEST_METHOD']
+        if 'QUERY_STRING' in headers:
+            headers['QUERY'] = headers['QUERY_STRING']
+        if 'CONTENT_TYPE' in headers:
+            headers['content-type'] = headers['CONTENT_TYPE']
+        headers['version'] = 1.1  #TODO: hardcoded!
+        if 'HTTP_COOKIE' in headers:
+            headers['cookie'] = headers['HTTP_COOKIE']
+        if 'HTTP_CONNECTION' in headers:
+            headers['connection'] = headers['HTTP_CONNECTION']
         return Request(sender, conn_id, path, headers, body)
 
     def is_disconnect(self):

@@ -90,7 +90,6 @@ def http_response(body, code, status, headers):
 
     return HTTP_FORMAT % payload
 
-
 def _lscmp(a, b):
     """Compares two strings in a cryptographically safe way
     """
@@ -129,6 +128,19 @@ def result_handler(application, message, response):
     print 'result_handler called'
     application.m2conn.reply(message, response)
 
+###
+### WSGI Message handling coroutines
+###
+
+def wsgi_route_message(application, message):
+    """This is the first of the three coroutines called. It looks at the
+    message, determines which handler will be used to process it, and
+    spawns a coroutine to run that handler.
+
+    The application is responsible for handling misconfigured routes.
+    """
+    handler = application.route_message(message)
+    return handler
 
 ###
 ### Me not *take* cookies, me *eat* the cookies.
@@ -530,6 +542,34 @@ class WebMessageHandler(MessageHandler):
             cookie_str = '\nSet-Cookie: '.join(cookie_vals)
             self.headers['Set-Cookie'] = cookie_str
 
+    def wsgi_render(self, status_code=None, http_200=False, **kwargs):
+        """Renders payload and prepares the payload for a successful HTTP
+        response.
+
+        Allows forcing HTTP status to be 200 regardless of request status
+        for cases where payload contains status information.
+        """
+        if status_code:
+            self.set_status(status_code)
+
+        # Some API's send error messages in the payload rather than over
+        # HTTP. Not necessarily ideal, but supported.
+        status_code = self.status_code
+        if http_200:
+            status_code = 200
+
+        self.convert_cookies()
+
+        logging.info('%s %s %s (%s)' % (status_code, self.message.method,
+                                        self.message.path,
+                                        self.message.remote_addr))
+        r = {
+                'body' : self.body,
+                'status' : str(status_code) + ' ' + self.status_msg,
+                'headers' : [(k, v) for k,v in self.headers.items()]
+                }
+        return r
+
     def render(self, status_code=None, http_200=False, **kwargs):
         """Renders payload and prepares the payload for a successful HTTP
         response.
@@ -807,7 +847,11 @@ class Brubeck(object):
 
     def receive_wsgi_req(self, environ, start_response):
         request = Request.parse_wsgi_request(environ)
-        coro_spawn(route_message, self, request)
+        handler = wsgi_route_message(self, request)
+        response = handler()
+        start_response(response['status'], response['headers'])
+        return [response['body']]
+
 
     def run(self):
         """This method turns on the message handling system and puts Brubeck
