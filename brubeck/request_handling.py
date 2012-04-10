@@ -43,7 +43,7 @@ except ImportError:
         raise EnvironmentError('Y U NO INSTALL CONCURRENCY?!')
 
 
-from . import version
+#from . import version
 
 import re
 import time
@@ -54,9 +54,12 @@ import base64
 import hmac
 import cPickle as pickle
 from itertools import chain
-
+import os, sys
+print os.getcwd()
+print sys.path
 from mongrel2 import Mongrel2Connection, to_bytes, to_unicode
 from dictshield.base import ShieldException
+from request import Request
 
 import ujson as json
 
@@ -123,6 +126,7 @@ def result_handler(application, message, response):
     """The request has been processed and this is called to do any post
     processing and then send the data back to mongrel2.
     """
+    print 'result_handler called'
     application.m2conn.reply(message, response)
 
 
@@ -643,7 +647,8 @@ class Brubeck(object):
             (pull_addr, pub_addr) = mongrel2_pair
             self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
         else:
-            raise ValueError('No mongrel2 connection possible.')
+            #raise ValueError('No mongrel2 connection possible.')
+            print 'using wsgi because no mongrel2 pair provided'
 
         # Class based route lists should be handled this way.
         # It is also possible to use `add_route`, a decorator provided by a
@@ -800,6 +805,10 @@ class Brubeck(object):
     ### Application running functions
     ###
 
+    def receive_wsgi_req(self, environ, start_response):
+        request = Request.parse_wsgi_request(environ)
+        coro_spawn(route_message, self, request)
+
     def run(self):
         """This method turns on the message handling system and puts Brubeck
         in a never ending loop waiting for messages.
@@ -809,7 +818,7 @@ class Brubeck(object):
         still getting the goodness of asynchronous and nonblocking I/O.
         """
         greeting = 'Brubeck v%s online ]-----------------------------------'
-        print greeting % version
+       # print greeting % version
 
         try:
             while True:
