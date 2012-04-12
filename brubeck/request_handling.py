@@ -129,20 +129,6 @@ def result_handler(application, message, response):
     application.m2conn.reply(message, response)
 
 ###
-### WSGI Message handling coroutines
-###
-
-def wsgi_route_message(application, message):
-    """This is the first of the three coroutines called. It looks at the
-    message, determines which handler will be used to process it, and
-    spawns a coroutine to run that handler.
-
-    The application is responsible for handling misconfigured routes.
-    """
-    handler = application.route_message(message)
-    return handler
-
-###
 ### Me not *take* cookies, me *eat* the cookies.
 ###
 
@@ -847,7 +833,7 @@ class Brubeck(object):
 
     def receive_wsgi_req(self, environ, start_response):
         request = Request.parse_wsgi_request(environ)
-        handler = wsgi_route_message(self, request)
+        handler = self.route_message(request)
         response = handler()
         start_response(response['status'], response['headers'])
         return [response['body']]
