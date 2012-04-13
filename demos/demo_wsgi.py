@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-sys.path = ["/home/tomb/brubeck/"] + sys.path
+import os
+sys.path = [os.path.dirname(os.path.dirname(os.path.abspath(__file__)))] + sys.path
+print sys.path
 from brubeck.request_handling import Brubeck, WebMessageHandler
 
 class DemoHandler(WebMessageHandler):
