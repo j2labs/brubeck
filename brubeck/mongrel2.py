@@ -7,17 +7,11 @@ import re
 import logging
 import Cookie
 
-from .request import to_bytes, to_unicode
+from request import to_bytes, to_unicode, parse_netstring
 
 ###
 ### Request handling code
 ###
-
-def parse_netstring(ns):
-    length, rest = ns.split(':', 1)
-    length = int(length)
-    assert rest[length] == ',', "Netstring did not end in ','"
-    return rest[:length], rest[length + 1:]
 
 ###
 ### Mongrel2 handling code

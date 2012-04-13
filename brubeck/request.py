@@ -4,7 +4,11 @@ import Cookie
 import logging
 import re
 
-from .mongrel2 import parse_netstring
+def parse_netstring(ns):
+    length, rest = ns.split(':', 1)
+    length = int(length)
+    assert rest[length] == ',', "Netstring did not end in ','"
+    return rest[:length], rest[length + 1:]
 
 def to_bytes(data, enc='utf8'):
     """Convert anything to bytes
@@ -102,8 +106,9 @@ class Request(object):
         headers, rest = parse_netstring(rest)
         body, _ = parse_netstring(rest)
         headers = json.loads(headers)
-
-        return Request(sender, conn_id, path, headers, body)
+        r = Request(sender, conn_id, path, headers, body)
+        r.is_wsgi = False
+        return r
 
     @staticmethod
     def parse_wsgi_request(environ):
@@ -134,7 +139,9 @@ class Request(object):
             headers['cookie'] = headers['HTTP_COOKIE']
         if 'HTTP_CONNECTION' in headers:
             headers['connection'] = headers['HTTP_CONNECTION']
-        return Request(sender, conn_id, path, headers, body)
+        r = Request(sender, conn_id, path, headers, body)
+        r.is_wsgi = True
+        return r
 
     def is_disconnect(self):
         if self.headers.get('METHOD') == 'JSON':

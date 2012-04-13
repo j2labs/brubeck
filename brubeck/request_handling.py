@@ -528,34 +528,6 @@ class WebMessageHandler(MessageHandler):
             cookie_str = '\nSet-Cookie: '.join(cookie_vals)
             self.headers['Set-Cookie'] = cookie_str
 
-    def wsgi_render(self, status_code=None, http_200=False, **kwargs):
-        """Renders payload and prepares the payload for a successful HTTP
-        response.
-
-        Allows forcing HTTP status to be 200 regardless of request status
-        for cases where payload contains status information.
-        """
-        if status_code:
-            self.set_status(status_code)
-
-        # Some API's send error messages in the payload rather than over
-        # HTTP. Not necessarily ideal, but supported.
-        status_code = self.status_code
-        if http_200:
-            status_code = 200
-
-        self.convert_cookies()
-
-        logging.info('%s %s %s (%s)' % (status_code, self.message.method,
-                                        self.message.path,
-                                        self.message.remote_addr))
-        r = {
-                'body' : self.body,
-                'status' : str(status_code) + ' ' + self.status_msg,
-                'headers' : [(k, v) for k,v in self.headers.items()]
-                }
-        return r
-
     def render(self, status_code=None, http_200=False, **kwargs):
         """Renders payload and prepares the payload for a successful HTTP
         response.
@@ -574,7 +546,15 @@ class WebMessageHandler(MessageHandler):
 
         self.convert_cookies()
 
-        response = http_response(self.body, status_code,
+        if self.message.is_wsgi:
+            response  = {
+                'body' : self.body,
+                'status' : str(status_code) + ' ' + self.status_msg,
+                'headers' : [(k, v) for k,v in self.headers.items()]
+                }
+        
+        else:
+            response = http_response(self.body, status_code,
                                  self.status_msg, self.headers)
 
         logging.info('%s %s %s (%s)' % (status_code, self.message.method,

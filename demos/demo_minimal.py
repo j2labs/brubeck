@@ -10,7 +10,7 @@ class DemoHandler(WebMessageHandler):
         return self.render()
 
 config = {
-    'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+#    'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
     'handler_tuples': [(r'^/brubeck', DemoHandler)],
 }
 app = Brubeck(**config)
