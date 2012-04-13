@@ -57,9 +57,9 @@ from itertools import chain
 import os, sys
 print os.getcwd()
 print sys.path
-from mongrel2 import Mongrel2Connection, to_bytes, to_unicode
+from mongrel2 import Mongrel2Connection
 from dictshield.base import ShieldException
-from request import Request
+from request import Request, to_bytes, to_unicode
 
 import ujson as json
 

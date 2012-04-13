@@ -4,7 +4,19 @@ import Cookie
 import logging
 import re
 
-from mongrel2 import to_unicode, to_bytes, parse_netstring
+from .mongrel2 import parse_netstring
+
+def to_bytes(data, enc='utf8'):
+    """Convert anything to bytes
+    """
+    return data.encode(enc) if isinstance(data, unicode) else bytes(data)
+
+
+def to_unicode(s, enc='utf8'):
+    """Convert anything to unicode
+    """
+    return s if isinstance(s, unicode) else unicode(str(s), encoding=enc)
+
 
 class Request(object):
     """Word.
