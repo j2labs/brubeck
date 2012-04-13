@@ -10,7 +10,7 @@ class DemoHandler(WebMessageHandler):
     def get(self):
         name = self.get_argument('name', 'dude')
         self.set_body('Take five, %s!' % name)
-        return self.wsgi_render()
+        return self.render()
 
 config = {
 #    'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),

@@ -816,7 +816,7 @@ class Brubeck(object):
         handler = self.route_message(request)
         response = handler()
         start_response(response['status'], response['headers'])
-        return [response['body']]
+        return [str(response['body'])]
 
 
     def run(self):

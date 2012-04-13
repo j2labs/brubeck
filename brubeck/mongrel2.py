@@ -7,7 +7,7 @@ import re
 import logging
 import Cookie
 
-from request import to_bytes, to_unicode, parse_netstring
+from request import to_bytes, to_unicode, parse_netstring, Request
 
 ###
 ### Request handling code
