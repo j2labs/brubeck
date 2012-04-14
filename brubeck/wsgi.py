@@ -1,24 +1,21 @@
-from .request import Request
+from request import Request
+from wsgiref.util import setup_testing_defaults
+from wsgiref.simple_server import make_server
 
 
 def receive_wsgi_req(environ, start_response):
     request = Request.parse_wsgi_request(environ)
     return [request]
 
+
 class WSGIConnection(object):
     """This class defines request handling methods for wsgi implimentations."""
 
-    def __init__(self):
-        pass
+    def __init__(self, port=8000):
+        self.port = port
 
-    def recv(self):
+    def recv(self, environ, start_response):
         """Receives the request from the wsgi server."""
-        pass
-
-if __name__ == "__main__":
-    from wsgiref.util import setup_testing_defaults
-    from wsgiref.simple_server import make_server
-    def simple_app(environ, start_response):
         setup_testing_defaults(environ)
 
         status = '200 OK'
@@ -30,6 +27,8 @@ if __name__ == "__main__":
                for key, value in environ.iteritems()]
         return ret
 
-    httpd = make_server('', 8000, simple_app)
+if __name__ == "__main__":
+    wsgi_conn = WSGIConnection()
+    httpd = make_server('', 8000, wsgi_conn.recv)
     print "Serving on port 8000..."
     httpd.serve_forever()
