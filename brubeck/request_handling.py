@@ -55,9 +55,6 @@ import hmac
 import cPickle as pickle
 from itertools import chain
 import os, sys
-print os.getcwd()
-print sys.path
-from mongrel2 import Mongrel2Connection
 from dictshield.base import ShieldException
 from request import Request, to_bytes, to_unicode
 
@@ -126,7 +123,7 @@ def result_handler(application, message, response):
     processing and then send the data back to mongrel2.
     """
     print 'result_handler called'
-    application.m2conn.reply(message, response)
+    application.msg_conn.reply(message, response)
 
 ###
 ### Me not *take* cookies, me *eat* the cookies.
@@ -631,21 +628,38 @@ class Brubeck(object):
 
     MULTIPLE_ITEM_SEP = ','
 
-    def __init__(self, mongrel2_pair=None, handler_tuples=None, pool=None,
+    def __init__(self, msg_conn=None, handler_tuples=None, pool=None,
                  no_handler=None, base_handler=None, template_loader=None,
                  log_level=logging.INFO, login_url=None, db_conn=None,
                  cookie_secret=None, api_base_url=None,
                  *args, **kwargs):
-        """Brubeck is a class for managing connections to Mongrel2 servers
-        while providing an asynchronous system for managing message handling.
+        """Brubeck is a class for managing connections to webservers. It
+        supports Mongrel2 and WSGI while providing an asynchronous system for
+        managing message handling.
 
-        mongrel2_pair should be a 2-tuple consisting of the pull socket address
-        and the pub socket address for communicating with Mongrel2. Brubeck
-        creates and manages a Mongrel2Connection instance from there.
+        `msg_conn` should be a `connections.Connection` instance.
 
-        handler_tuples is a list of two-tuples. The first item is a regex
+        `handler_tuples` is a list of two-tuples. The first item is a regex
         for matching the URL requested. The second is the class instantiated
         to handle the message.
+
+        `pool` can be an existing coroutine pool, but one will be generated if
+        one isn't provided.
+
+        `base_handler` is a class that Brubeck can rely on for implementing
+        error handling functions.
+
+        `template_loader` is a function that builds the template loading
+        environment.
+
+        `log_level` is a log level mapping to Python's `logging` module's
+        levels.
+
+        `login_url` is the default URL for a login screen.
+
+        `db_conn` is a database connection to be shared in this process
+
+        `cookie_secret` is a string to use for signing secure cookies.
         """
         # All output is sent via logging
         # (while i figure out how to do a good abstraction via zmq)
@@ -654,15 +668,11 @@ class Brubeck(object):
         # Log whether we're using eventlet or gevent.
         logging.info('Using coroutine library: %s' % CORO_LIBRARY)
 
-        # A Mongrel2Connection is currently just a way to manage
-        # the sockets we need to open with a Mongrel2 instance and
-        # identify this particular Brubeck instance as the sender
-        if mongrel2_pair is not None:
-            (pull_addr, pub_addr) = mongrel2_pair
-            self.m2conn = Mongrel2Connection(pull_addr, pub_addr)
+        # Attach the web server connection
+        if msg_conn is not None:
+            self.msg_conn = msg_conn
         else:
-            #raise ValueError('No mongrel2 connection possible.')
-            print 'using wsgi because no mongrel2 pair provided'
+            raise ValueError('No web server connection provided.')
 
         # Class based route lists should be handled this way.
         # It is also possible to use `add_route`, a decorator provided by a
@@ -863,15 +873,7 @@ class Brubeck(object):
         still getting the goodness of asynchronous and nonblocking I/O.
         """
         greeting = 'Brubeck v%s online ]-----------------------------------'
-       # print greeting % version
+        # print greeting % version
 
-        try:
-            while True:
-                request = self.m2conn.recv()
-                if request.is_disconnect():
-                    continue
-                else:
-                    coro_spawn(route_message, self, request)
-        except KeyboardInterrupt, ki:
-            # Put a newline after ^C
-            print '\nBrubeck going down...'
+        handler = lambda msg: coro_spawn(route_message, self, msg)
+        self.msg_conn.recv_forever_ever(handler)
