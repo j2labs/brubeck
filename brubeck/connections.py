@@ -26,7 +26,7 @@ class Connection(object):
     response is necessary.
     """
 
-    def __init__(self, incoming, outgoing):
+    def __init__(self, incoming=None, outgoing=None):
         """The base `__init__()` function configures a unique ID and assigns
         the incoming and outgoing mechanisms to a name.
 
@@ -124,8 +124,6 @@ class Mongrel2Connection(Connection):
         in_sock.connect(pull_addr)
         out_sock.setsockopt(zmq.IDENTITY, self.sender_id)
         out_sock.connect(pub_addr)
-        
-
 
     def recv(self):
         """Receives a raw mongrel2.handler.Request object that you
@@ -140,14 +138,14 @@ class Mongrel2Connection(Connection):
         for incoming jobs. This function should then call super which runs the
         function in a try-except that can be ctrl-c'd.
         """
-        def always_and_forever():
+        def fun_forever():
             while True:
                 request = self.recv()
                 if request.is_disconnect():
                     continue
                 else:
                     handler(request)
-        self._recv_forever_ever(always_and_forever)
+        self._recv_forever_ever(fun_forever)
 
     def send(self, uuid, conn_id, msg):
         """Raw send to the given connection ID at the given uuid, mostly used
@@ -179,3 +177,49 @@ class Mongrel2Connection(Connection):
         """Same as close but does it to a whole bunch of idents at a time.
         """
         self.reply_bulk(uuid, idents, "")
+
+
+###
+### WSGI 
+###
+
+class WSGIConnection(Connection):
+    """
+    """
+
+    def __init__(self, port=6767):
+        super(WSGIConnection, self).__init__()
+        self.port = port
+
+    def recv(self, environ, start_response):
+        """Receives the request from the wsgi server."""
+        setup_testing_defaults(environ)
+        status = '200 OK'
+        headers = [('Content-type', 'text/plain')]
+        start_response(status, headers)
+        ret = ["%s: %s\n" % (key, value)
+               for key, value in environ.iteritems()]
+        return ret 
+
+    def recv_forever_ever(self, handler):
+        """Defines a function that will run the primary connection Brubeck uses
+        for incoming jobs. This function should then call super which runs the
+        function in a try-except that can be ctrl-c'd.
+        """
+        def fun_forever():
+            from brubeck.request_handling import CORO_LIBRARY
+            print "Serving on port %s..." % (self.port)
+            
+            if CORO_LIBRARY == 'gevent':
+                from gevent import wsgi
+                server = wsgi.WSGIServer(('', self.port), handler)
+                server.serve_forever()
+                
+            elif CORO_LIBRARY == 'eventlet':
+                import eventlet
+                server = eventlet.wsgi.server(eventlet.listen(('', self.port)),
+                                              handler)
+                
+        self._recv_forever_ever(fun_forever)
+
+        
