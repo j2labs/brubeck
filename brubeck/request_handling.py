@@ -875,5 +875,7 @@ class Brubeck(object):
         greeting = 'Brubeck v%s online ]-----------------------------------'
         # print greeting % version
 
-        handler = lambda msg: coro_spawn(route_message, self, msg)
+        #handler = lambda msg: coro_spawn(route_message, self, msg)
+        handler = self.receive_wsgi_req
+        
         self.msg_conn.recv_forever_ever(handler)
