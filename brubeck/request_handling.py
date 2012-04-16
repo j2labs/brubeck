@@ -856,11 +856,11 @@ class Brubeck(object):
     ### Application running functions
     ###
 
-    def receive_wsgi_req(self, environ, start_response):
+    def receive_wsgi_req(self, environ, callback):
         request = Request.parse_wsgi_request(environ)
         handler = self.route_message(request)
         response = handler()
-        start_response(response['status'], response['headers'])
+        callback(response['status'], response['headers'])
         return [str(response['body'])]
 
 
