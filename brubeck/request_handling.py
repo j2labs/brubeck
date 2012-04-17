@@ -98,6 +98,21 @@ def _lscmp(a, b):
 ### Message handling coroutines
 ###
 
+### WSGI
+
+def receive_wsgi_req(application, environ, callback):
+    request = Request.parse_wsgi_request(environ)
+    handler = application.route_message(request)
+    print 'WSGI:', handler
+    response = handler()
+    print 'RESPON 1:', response
+    x = callback(response['status'], response['headers'])
+    print 'RESPON 2:', response
+    print 'X:', x
+    return [str(response['body'])]
+
+### Mongrel2
+
 def route_message(application, message):
     """This is the first of the three coroutines called. It looks at the
     message, determines which handler will be used to process it, and
@@ -856,14 +871,6 @@ class Brubeck(object):
     ### Application running functions
     ###
 
-    def receive_wsgi_req(self, environ, callback):
-        request = Request.parse_wsgi_request(environ)
-        handler = self.route_message(request)
-        response = handler()
-        callback(response['status'], response['headers'])
-        return [str(response['body'])]
-
-
     def run(self):
         """This method turns on the message handling system and puts Brubeck
         in a never ending loop waiting for messages.
@@ -876,6 +883,7 @@ class Brubeck(object):
         # print greeting % version
 
         #handler = lambda msg: coro_spawn(route_message, self, msg)
-        handler = self.receive_wsgi_req
+        #handler = lambda msg, *a: route_message(self, msg)
+        handler = lambda msg, *a: receive_wsgi_req(self, msg, *a)
         
         self.msg_conn.recv_forever_ever(handler)
