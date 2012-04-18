@@ -9,10 +9,6 @@ import Cookie
 
 from request import to_bytes, to_unicode, parse_netstring, Request
 
-###
-### Request handling code
-###
-
 
 ###
 ### Connection Classes
@@ -125,15 +121,28 @@ class Mongrel2Connection(Connection):
         out_sock.setsockopt(zmq.IDENTITY, self.sender_id)
         out_sock.connect(pub_addr)
 
-    def recv(self):
-        """Receives a raw mongrel2.handler.Request object that you
-        can then work with.
+    def process_message(self, application, message):
+        """This coroutine looks at the message, determines which handler will
+        be used to process it, and then begins processing.
+        
+        The application is responsible for handling misconfigured routes.
         """
-        msg = self.in_sock.recv()
-        req = Request.parse_msg(msg)
-        return req
+        request = Request.parse_msg(message)
+        if request.is_disconnect():
+            return  # Ignore disconnect msgs. Dont have areason to do otherwise
+        handler = application.route_message(message)
+        if callable(handler):
+            response = handler()
+        application.msg_conn.reply(message, response)
 
-    def recv_forever_ever(self, handler):
+    def recv(self):
+        """Receives a raw mongrel2.handler.Request object that you from the
+        zeromq socket and return whatever is found.
+        """
+        zmq_msg = self.in_sock.recv()
+        return zmq_msg
+
+    def recv_forever_ever(self, application):
         """Defines a function that will run the primary connection Brubeck uses
         for incoming jobs. This function should then call super which runs the
         function in a try-except that can be ctrl-c'd.
@@ -141,10 +150,7 @@ class Mongrel2Connection(Connection):
         def fun_forever():
             while True:
                 request = self.recv()
-                if request.is_disconnect():
-                    continue
-                else:
-                    handler(request)
+                self.process_message(application, request)
         self._recv_forever_ever(fun_forever)
 
     def send(self, uuid, conn_id, msg):
@@ -191,6 +197,13 @@ class WSGIConnection(Connection):
         super(WSGIConnection, self).__init__()
         self.port = port
 
+    def process_message(self, application, environ, callback):
+        request = Request.parse_wsgi_request(environ)
+        handler = application.route_message(request)
+        response = handler()
+        x = callback(response['status'], response['headers'])
+        return [str(response['body'])]
+
     def recv(self, environ, start_response):
         """Receives the request from the wsgi server."""
         setup_testing_defaults(environ)
@@ -201,7 +214,7 @@ class WSGIConnection(Connection):
                for key, value in environ.iteritems()]
         return ret 
 
-    def recv_forever_ever(self, handler):
+    def recv_forever_ever(self, application):
         """Defines a function that will run the primary connection Brubeck uses
         for incoming jobs. This function should then call super which runs the
         function in a try-except that can be ctrl-c'd.
@@ -209,16 +222,19 @@ class WSGIConnection(Connection):
         def fun_forever():
             from brubeck.request_handling import CORO_LIBRARY
             print "Serving on port %s..." % (self.port)
+
+            def proc_msg(environ, callback):
+                return self.process_message(application, environ, callback)
             
             if CORO_LIBRARY == 'gevent':
                 from gevent import wsgi
-                server = wsgi.WSGIServer(('', self.port), handler)
+                server = wsgi.WSGIServer(('', self.port), proc_msg)
                 server.serve_forever()
                 
             elif CORO_LIBRARY == 'eventlet':
                 import eventlet
                 server = eventlet.wsgi.server(eventlet.listen(('', self.port)),
-                                              handler)
+                                              proc_msg)
                 
         self._recv_forever_ever(fun_forever)
 

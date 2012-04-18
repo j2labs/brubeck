@@ -43,7 +43,7 @@ except ImportError:
         raise EnvironmentError('Y U NO INSTALL CONCURRENCY?!')
 
 
-#from . import version
+from . import version
 
 import re
 import time
@@ -100,45 +100,14 @@ def _lscmp(a, b):
 
 ### WSGI
 
-def receive_wsgi_req(application, environ, callback):
+def receive_wsgi_message(application, environ, callback):
     request = Request.parse_wsgi_request(environ)
     handler = application.route_message(request)
-    print 'WSGI:', handler
     response = handler()
-    print 'RESPON 1:', response
     x = callback(response['status'], response['headers'])
-    print 'RESPON 2:', response
-    print 'X:', x
     return [str(response['body'])]
 
 ### Mongrel2
-
-def route_message(application, message):
-    """This is the first of the three coroutines called. It looks at the
-    message, determines which handler will be used to process it, and
-    spawns a coroutine to run that handler.
-
-    The application is responsible for handling misconfigured routes.
-    """
-    handler = application.route_message(message)
-    coro_spawn(request_handler, application, message, handler)
-
-
-def request_handler(application, message, handler):
-    """Coroutine for handling the request itself. It simply returns the request
-    path in reverse for now.
-    """
-    if callable(handler):
-        response = handler()
-        coro_spawn(result_handler, application, message, response)
-
-
-def result_handler(application, message, response):
-    """The request has been processed and this is called to do any post
-    processing and then send the data back to mongrel2.
-    """
-    print 'result_handler called'
-    application.msg_conn.reply(message, response)
 
 ###
 ### Me not *take* cookies, me *eat* the cookies.
@@ -871,6 +840,13 @@ class Brubeck(object):
     ### Application running functions
     ###
 
+    def recv_forever_ever(self):
+        """Helper function for starting the link between Brubeck and the
+        message processing provided by `msg_conn`.
+        """
+        mc = self.msg_conn
+        mc.recv_forever_ever(self)
+
     def run(self):
         """This method turns on the message handling system and puts Brubeck
         in a never ending loop waiting for messages.
@@ -880,10 +856,6 @@ class Brubeck(object):
         still getting the goodness of asynchronous and nonblocking I/O.
         """
         greeting = 'Brubeck v%s online ]-----------------------------------'
-        # print greeting % version
+        print greeting % version
 
-        #handler = lambda msg: coro_spawn(route_message, self, msg)
-        #handler = lambda msg, *a: route_message(self, msg)
-        handler = lambda msg, *a: receive_wsgi_req(self, msg, *a)
-        
-        self.msg_conn.recv_forever_ever(handler)
+        self.recv_forever_ever()
