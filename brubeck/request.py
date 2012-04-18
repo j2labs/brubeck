@@ -114,9 +114,6 @@ class Request(object):
     def parse_wsgi_request(environ):
         """Static method for constructing Request instance out of environ
         dict from wsgi server."""
-        x = [repr((k,v)) for k,v in environ.items()]
-        x.sort()
-        print "\n".join(x)
         conn_id = None
         sender = "WSGI_server"
         path = environ['PATH_INFO']
