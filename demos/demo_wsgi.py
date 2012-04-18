@@ -2,8 +2,6 @@
 
 import sys
 import os
-sys.path = [os.path.dirname(os.path.dirname(os.path.abspath(__file__)))] + sys.path
-print sys.path
 from brubeck.request_handling import Brubeck, WebMessageHandler
 from brubeck.connections import WSGIConnection
 
