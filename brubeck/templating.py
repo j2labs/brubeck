@@ -127,25 +127,11 @@ def load_mustache_env(template_dir, *args, **kwargs):
     anything until the caller is ready.
     """
     def loader():
-        return MustacheEnvironment(template_dir)
-
-    return loader
-
-class MustacheEnvironment(object):
-    """
-    An environment to render mustache templates.
-    """
-    def __init__(self, template_dirs):
         import pystache
 
-        self.pystache = pystache
-        self.template_dirs = template_dirs
+        return pystache.Renderer(search_dirs=[template_dir])
 
-    def render(self, template_file, context):
-        view = self.pystache.View(context=context)
-        view.template_name = template_file
-        view.template_path = self.template_dirs
-        return view.render()
+    return loader
 
 
 class MustacheRendering(WebMessageHandler):
@@ -163,7 +149,9 @@ class MustacheRendering(WebMessageHandler):
         Renders payload as a mustache template
         """
         mustache_env = self.application.template_env
-        body = mustache_env.render(template_file, context or {})
+
+        template = mustache_env.load_template(template_file)
+        body = mustache_env.render(template, context or {})
 
         self.set_body(body, status_code=_status_code)
         return self.render()
