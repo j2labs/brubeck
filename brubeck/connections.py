@@ -1,5 +1,3 @@
-from .request_handling import zmq
-
 import ujson as json
 from uuid import uuid4
 import cgi
@@ -89,18 +87,48 @@ class Connection(object):
 
 
 ###
-### Mongrel2
+### ZeroMQ
 ###
 
-CTX = zmq.Context()
-MAX_IDENTS = 100
+def load_zmq():
+    """This function exists to determine where zmq should come from and then
+    cache that decision at the module level.
+    """
+    if not hasattr(load_zmq, '_zmq'):
+        from request_handling import CORO_LIBRARY
+        if CORO_LIBRARY == 'gevent':
+            from gevent_zeromq import zmq
+        elif CORO_LIBRARY == 'eventlet':
+            from eventlet.green import zmq
+        load_zmq._zmq = zmq
 
+    return load_zmq._zmq
+
+
+def load_zmq_ctx():
+    """This function exists to contain the namespace requirements of generating
+    a zeromq context, while keeping the context at the module level. If other
+    parts of the system need zeromq, they should use this function for access
+    to the existing context.
+    """
+    if not hasattr(load_zmq_ctx, '_zmq_ctx'):
+        zmq = load_zmq()
+        zmq_ctx = zmq.Context()
+        load_zmq_ctx._zmq_ctx = zmq_ctx
+        
+    return load_zmq_ctx._zmq_ctx
+
+
+###
+### Mongrel2
+###
 
 class Mongrel2Connection(Connection):
     """This class is an abstraction for how Brubeck sends and receives
     messages. This abstraction makes it possible for something other than
     Mongrel2 to be used easily.
     """
+    MAX_IDENTS = 100
 
     def __init__(self, pull_addr, pub_addr):
         """sender_id = uuid.uuid4() or anything unique
@@ -110,8 +138,11 @@ class Mongrel2Connection(Connection):
         The class encapsulates socket type by referring to it's pull socket
         as in_sock and it's publish socket as out_sock.
         """
-        in_sock = CTX.socket(zmq.PULL)
-        out_sock = CTX.socket(zmq.PUB)
+        zmq = load_zmq()
+        ctx = load_zmq_ctx()
+        
+        in_sock = ctx.socket(zmq.PULL)
+        out_sock = ctx.socket(zmq.PUB)
 
         super(Mongrel2Connection, self).__init__(in_sock, out_sock)
         self.in_addr = pull_addr
@@ -130,10 +161,10 @@ class Mongrel2Connection(Connection):
         request = Request.parse_msg(message)
         if request.is_disconnect():
             return  # Ignore disconnect msgs. Dont have areason to do otherwise
-        handler = application.route_message(message)
+        handler = application.route_message(request)
         if callable(handler):
             response = handler()
-        application.msg_conn.reply(message, response)
+        application.msg_conn.reply(request, response)
 
     def recv(self):
         """Receives a raw mongrel2.handler.Request object that you from the
