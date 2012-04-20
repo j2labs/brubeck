@@ -16,7 +16,6 @@ try:
     from gevent import monkey
     monkey.patch_all()
     from gevent import pool
-    from gevent_zeromq import zmq
 
     coro_pool = pool.Pool
 
@@ -30,7 +29,6 @@ except ImportError:
     try:
         import eventlet
         eventlet.patcher.monkey_patch(all=True)
-        from eventlet.green import zmq
 
         coro_pool = eventlet.GreenPool
 
