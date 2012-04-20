@@ -5,7 +5,7 @@ import sys
 import brubeck
 from handlers.method_handlers import simple_handler_method
 from brubeck.request_handling import Brubeck, WebMessageHandler, JSONMessageHandler
-from brubeck.mongrel2 import to_bytes, Request
+from brubeck.connections import to_bytes, Request
 from brubeck.request_handling import(
     cookie_encode, cookie_decode,
     cookie_is_encoded, http_response
@@ -26,8 +26,9 @@ from brubeck.request_handling import FourOhFourException
 
 ##TestDocument
 class TestDoc(Document):
-    id = StringField(required=True, id_field=True)
     data = StringField()
+    class Meta:
+        id_field = StringField
 
 ###
 ### Tests for ensuring that the autoapi returns good data
