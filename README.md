@@ -11,15 +11,17 @@ The Brubeck model resembles what companies build when they operate at large scal
 
 # Features
 
-Brubeck gets by with a little help from its friends:
+Brubeck gets by with a little help from its friends. You can group some of them nicely together as pools of choices. 
 
-* [Mongrel2](http://mongrel2.org): lean & fast, asynchronous web serving
-* [DictShield](https://github.com/j2labs/dictshield): data modeling & validation with no database opinions
-* [ZeroMQ](http://zeromq.org): fast messaging & supports most languages
-* [Gevent](http://gevent.org): non-blocking I/O, coroutines & implicit scheduling, mostly in C.
-* [Eventlet](http://eventlet.net): like gevent but written mostly in Python.
+* [DictShield](https://github.com/j2labs/dictshield): Databaseless modeling
+* [ZeroMQ](http://zeromq.org) (optional): Fast, language-agnostic messaging system.
+* Coroutines + an implicit eventloop provided by [Gevent](http://gevent.org) or [Eventlet](http://eventlet.net)
+* Web Serving provided by [Mongrel2](http://mongrel2.org) or WSGI
 
-Please also see this completely unscientific comparison of Brubeck and Tornado:
+
+## Food For Thought
+
+Please check out this completely unscientific comparison of Brubeck, backed by Gevent, and Tornado:
 
 * [500 concurrent connections for 10 seconds](https://gist.github.com/2252671)
 
@@ -35,16 +37,17 @@ This is a whole Brubeck application.
 
     class DemoHandler(WebMessageHandler):
         def get(self):
-            self.set_body('Hello world')
+            self.set_body('Take five')
             return self.render()
+    
+    options = {
+        'handler_tuples': [(r'^/', DemoHandler)],
+        'msg_conn': WSGIConnection(port=6767),
+    }
 
-    urls = [(r'^/', DemoHandler)]
-    mongrel2_pair = ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998')
-
-    app = Brubeck(mongrel2_pair=mongrel2_pair,
-                  handler_tuples=urls)
+    app = Brubeck(**options)
     app.run()
-
+    
 
 ## Complete Examples
 
