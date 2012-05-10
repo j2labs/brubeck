@@ -27,48 +27,48 @@ Instructions coming soon.
 
 To deploy to Heroku your app needs to be configured to use WSGI, which you'll see in the snippet below, and y
 
-1. Install [Heroku Toolbelt](https://toolbelt.herokuapp.com/)
+Install [Heroku Toolbelt](https://toolbelt.herokuapp.com/)
 
-2. Prepare the project directory
+Prepare the project directory
 
 	$ mkdir herokuapp && cd herokuapp
 
-3. Initialize our git repo and pull Brubeck in
+Initialize our git repo and pull Brubeck in
 
 	$ git init
 	$ git submodule add git://github.com/j2labs/brubeck.git brubeck
 	$ git submodule init
 	$ git submodule update
 
-4. Initialize our Heroku app
+Initialize our Heroku app
 
 	$ heroku login
 	$ heroku create --stack cedar
 
-5. Set up the environment
+Set up the environment
 
 	$ virtualenv --distribute venv
 	$ source venv/bin/activate
 	$ pip install dictshield ujson gevent
 	$ pip freeze -l > requirements.txt
-
-6. Create .gitignore.
+ 
+Create .gitignore.
 
     $ cat .gitignore
     venv
 	*.pyc
 			
-7. Create Procfile
+Create Procfile
 
     $ cat Procile
 	web: python app.py
 
-8. Create .env
+Create .env
 
     $ cat .env
 	PYTHONPATH=brubeck
 
-9. Create app.py
+Create app.py
 
 	import os
 
