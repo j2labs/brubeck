@@ -44,3 +44,15 @@ multiple consumers.
         
 
 # Brubeck and ZMQ
+
+Brubeck can uses this system when it communicates with Mongrel2. It can also
+use this to talk to pools of workers, or AMQP servers, or data mining engines.
+
+ZMQ is part of Brubeck's concurrency pool, so working with it is just like
+working with any networked system. Send a message, wait for the response, route
+it to a function to handle it, end of story.
+
+Let's consider a layout. Mongrel2 sends messages to Brubeck, which walks to
+talk to three data sources in parallel. It can send a message to all three and
+then wait for data to return.
+
