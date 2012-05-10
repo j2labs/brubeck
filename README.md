@@ -2,7 +2,18 @@
 
 __Brubeck__ is a flexible Python web framework that aims to make the process of building scalable web services easy.
 
-The [documentation](readme.html) goes into much more detail about Brubeck's design. There, you will find lots of code samples for building request handlers, authentication, rendering templates, managing databases and more.
+Brubeck's design is discussed in depth in the provided documentation. There, you will find lots of code samples for building request handlers, authentication, rendering templates, managing databases and more.
+
+
+## Goals
+
+* __Be Fast__: Brubeck is currently very fast. We intend to keep it that way.
+
+* __Scalable__: Massive scaling capabilities should be available out of the box.
+
+* __Friendly__: Should be easy for Python hackers of any skill level to use.
+
+* __Pluggable__: Brubeck can speak to any language and any database.
 
 
 # Example: Hello World
@@ -21,23 +32,6 @@ This is a whole Brubeck application.
     app = Brubeck(msg_conn=msg_conn,
                   handler_tuples=urls)
     app.run()
-
-
-# Documentation
-
-There are multiple documents describing different features of Brubeck. The
-topics covered are:
-
-* Installing Brubeck
-* Design Request Handlers
-* Rendering Templates
-* Authentication
-* Databaseless Modeling
-* File Uploads
-* QuerySets
-* Using Models To Generate REST APIs
-* Coroutines & Concurrency
-* Deploying Brubeck Apps
 
 
 # Complete Examples
@@ -69,6 +63,13 @@ __no.js__ is a javascript-free chat system.
 It works by using the old META Refresh trick, combined with long-polling. It even works in IE4! 
 
 * [No.js Code](https://github.com/talos/no.js)
+
+
+## Contributors
+
+Brubeck wouldn't be what it is without help from:
+
+[James Dennis](https://github.com/j2labs), [Andrew Gwozdziewycz](https://github.com/apgwoz), [Malcolm Matalka](https://github.com/orbitz/), [Dion Paragas](https://github.com/d1on/), [Duane Griffin](https://github.com/duaneg), [Faruk Akgul](https://github.com/faruken), [Seth Murphy](https://github.com/sethmurphy), [John Krauss](https://github.com/talos), [Ben Beecher](https://github.com/gone), [Jordan Orelli](https://github.com/jordanorelli), [Michael Larsen](https://github.com/mghlarsen), [Moritz](https://github.com/m2w), [Dmitrijs Milajevs](https://github.com/dimazest), [Paul Winkler](https://github.com/slinkp), [Chris McCulloh](https://github.com/st0w), [Nico Mandery](https://github.com/nmandery), [Victor Trac](https://github.com/victortrac)
 
 
 # Contact Us
