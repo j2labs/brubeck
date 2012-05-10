@@ -44,7 +44,7 @@ a database.
 Or maybe we're just gonna store JSON in something.
 
      >>> t.to_json()
-     '{"_types": ["Todo"], "completed": false, "_id": "7e48a600-f599-4a3a-9244-73760841f70e", "_cls": "Todo"}'
+     '{"_types": ["Todo"], "text": "This is some text", "completed": false, "_id": "7e48a600-f599-4a3a-9244-73760841f70e", "_cls": "Todo"}'
      
 It's useful for APIs too, because you can combine one of it's `make_safe`
 functions with whatever access rights the user has. DictShield provides the 
