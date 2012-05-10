@@ -5,6 +5,7 @@ that REST is generally similar to CRUD to provide a mechanism for generating
 APIs from DictShield models.
 
 There are two things that must be consider: 
+
 1. Data Processing
 2. Persistence
 
