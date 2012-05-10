@@ -15,6 +15,6 @@ config = {
     'msg_conn': WSGIConnection(),
     'handler_tuples': [(r'^/brubeck', DemoHandler)],
 }
+
 app = Brubeck(**config)
 app.run()
-
