@@ -49,10 +49,21 @@ Brubeck can uses this system when it communicates with Mongrel2. It can also
 use this to talk to pools of workers, or AMQP servers, or data mining engines.
 
 ZMQ is part of Brubeck's concurrency pool, so working with it is just like
-working with any networked system. Send a message, wait for the response, route
-it to a function to handle it, end of story.
+working with any networked system. When you use Brubeck with Mongrel2, you
+communicate with Mongrel2 over two ZMQ sockets.
 
-Let's consider a layout. Mongrel2 sends messages to Brubeck, which walks to
-talk to three data sources in parallel. It can send a message to all three and
-then wait for data to return.
+There is a PUSH/PULL socket that Mongrel2 uses to send messages to handlers,
+like Brubeck. An added bonus is that PUSH/PULL sockets automatically load balance
+requests between any connected handlers. Add another handler and it is
+automatically part of the round robin queue.
 
+When the handlers are ready to respond, they use a PUB/SUB socket, meaning
+Mongrel2 subscribes to responses from Brubeck handlers. This can be interesting
+for multiple reasons, such as having media served from a single Brubeck handler
+to multiple Mongrel2 frontends. 
+
+Having two sockets allows for an interesting messaging topology between Mongrel2
+and Brubeck. All of ZeroMQ is available to you for communicating with workers too.
+You might enjoy building an image processing system in Scheme and can do so by
+opening a ZeroMQ socket in your Scheme process to connect with a Brubeck socket.
+ZeroMQ is mostly language agnostic.
