@@ -71,8 +71,8 @@ class Request(object):
                 for field in fields:
                     k, sep, v = field.strip().partition("=")
                     if k == "boundary" and v:
-                        arguments = {}
-                        files = {}
+                        self.arguments = {}
+                        self.files = {}
                         self._parse_mime_body(v, self.body, arguments, files)
                         break
                 else:
