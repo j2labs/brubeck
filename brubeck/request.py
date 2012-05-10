@@ -77,7 +77,8 @@ class Request(object):
             footer_length = len(boundary) + 6 
         else:
             footer_length = len(boundary) + 4
-        parts = data[:-footer_length].split("--" + boundary + "\r\n")
+        data = str(data)
+        parts = data[:-footer_length].split("--" + str(boundary) + "\r\n")
         for part in parts:
             if not part:
                 continue
