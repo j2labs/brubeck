@@ -6,7 +6,8 @@ It's easy to upload a file to Brubeck using curl.
     $ cd brubeck/demos
     $ ./demo_multipart.py
     
-If you're using Mongrel2, you'll need to turn that on too.
+If you're using Mongrel2, you'll need to turn that on too. It works fine with
+WSGI too.
 
     $ m2sh load -db the.db -config mongrel2.conf
     $ ms2h start -db the.db -every
