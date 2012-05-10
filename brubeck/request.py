@@ -57,15 +57,96 @@ class Request(object):
                     if values:
                         self.arguments.setdefault(name, []).extend(values)
             # Not ready for this, but soon
-#            elif content_type.startswith("multipart/form-data"):
-#                fields = content_type.split(";")
-#                for field in fields:
-#                    k, sep, v = field.strip().partition("=")
-#                    if k == "boundary" and v:
-#                        self._parse_mime_body(v, data)
-#                        break
-#                else:
-#                    logging.warning("Invalid multipart/form-data")
+            elif self.content_type.startswith("multipart/form-data"):
+                fields = self.content_type.split(";")
+                for field in fields:
+                    k, sep, v = field.strip().partition("=")
+                    if k == "boundary" and v:
+                        self.arguments = {}
+                        self.files = {}
+                        self._parse_mime_body(v, self.body, self.arguments,
+                                              self.files)
+                        break
+                else:
+                    logging.warning("Invalid multipart/form-data")
+
+    def _parse_mime_body(self, boundary, data, arguments, files):
+        if boundary.startswith('"') and boundary.endswith('"'):
+            boundary = boundary[1:-1]
+        if data.endswith("\r\n"):
+            footer_length = len(boundary) + 6 
+        else:
+            footer_length = len(boundary) + 4
+        parts = data[:-footer_length].split("--" + boundary + "\r\n")
+        for part in parts:
+            if not part:
+                continue
+            eoh = part.find("\r\n\r\n")
+            if eoh == -1: 
+                logging.warning("multipart/form-data missing headers")
+                continue
+            #headers = HTTPHeaders.parse(part[:eoh].decode("utf-8"))
+            header_string = part[:eoh].decode("utf-8")
+            headers = dict()
+            last_key = ''
+            for line in header_string.splitlines():
+                if line[0].isspace():
+                    # continuation of a multi-line header
+                    new_part = ' ' + line.lstrip()
+                    headers[last_key] += new_part
+                else:
+                    name, value = line.split(":", 1)
+                    last_key = "-".join([w.capitalize() for w in name.split("-")])
+                    headers[name] = value.strip()
+    
+            disp_header = headers.get("Content-Disposition", "") 
+            disposition, disp_params = self._parse_header(disp_header)
+            if disposition != "form-data" or not part.endswith("\r\n"):
+                logging.warning("Invalid multipart/form-data")
+                continue
+            value = part[eoh + 4:-2]
+            if not disp_params.get("name"):
+                logging.warning("multipart/form-data value missing name")
+                continue
+            name = disp_params["name"]
+            if disp_params.get("filename"):
+                ctype = headers.get("Content-Type", "application/unknown")
+                files.setdefault(name, []).append(dict(
+                    filename=disp_params["filename"], body=value,
+                    content_type=ctype))
+            else:
+                arguments.setdefault(name, []).append(value)
+
+    def _parseparam(self, s):
+        while s[:1] == ';':
+            s = s[1:]
+            end = s.find(';')
+            while end > 0 and (s.count('"', 0, end) - s.count('\\"', 0, end)) % 2:
+                end = s.find(';', end + 1)
+            if end < 0:
+                end = len(s)
+            f = s[:end]
+            yield f.strip()
+            s = s[end:]
+
+    def _parse_header(self, line):
+        """Parse a Content-type like header.
+            
+        Return the main content-type and a dictionary of options.
+        """
+        parts = self._parseparam(';' + line)
+        key = parts.next()
+        pdict = {}
+        for p in parts:
+            i = p.find('=')
+            if i >= 0:
+                name = p[:i].strip().lower()
+                value = p[i + 1:].strip()
+                if len(value) >= 2 and value[0] == value[-1] == '"':
+                    value = value[1:-1]
+                    value = value.replace('\\\\', '\\').replace('\\"', '"')
+                pdict[name] = value
+        return key, pdict    
 
     @property
     def method(self):
