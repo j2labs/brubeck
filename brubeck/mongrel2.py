@@ -73,7 +73,8 @@ class Request(object):
                     if k == "boundary" and v:
                         self.arguments = {}
                         self.files = {}
-                        self._parse_mime_body(v, self.body, arguments, files)
+                        self._parse_mime_body(v, self.body, self.arguments,
+                                              self.files)
                         break
                 else:
                     logging.warning("Invalid multipart/form-data")
@@ -84,7 +85,7 @@ class Request(object):
         if data.endswith("\r\n"):
             footer_length = len(boundary) + 6 
         else:
-            footer_length = len(boundary) + 4 
+            footer_length = len(boundary) + 4
         parts = data[:-footer_length].split("--" + boundary + "\r\n")
         for part in parts:
             if not part:
@@ -104,7 +105,7 @@ class Request(object):
                     headers[last_key] += new_part
                 else:
                     name, value = line.split(":", 1)
-                    last_key = name
+                    last_key = "-".join([w.capitalize() for w in name.split("-")])
                     headers[name] = value.strip()
     
             disp_header = headers.get("Content-Disposition", "") 
