@@ -1,0 +1,144 @@
+<html>
+<head>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        function RealTypeOf(v) {
+          if (typeof(v) == "object") {
+            if (v === null) return "null";
+            if (v.constructor == (new Array).constructor) return "array";
+            if (v.constructor == (new Date).constructor) return "date";
+            if (v.constructor == (new RegExp).constructor) return "regex";
+            return "object";
+          }
+          return typeof(v);
+        }
+
+        function FormatJSON(oData, sIndent) {
+            if (arguments.length < 2) {
+                var sIndent = "";
+            }
+            var sIndentStyle = "    ";
+            var sDataType = RealTypeOf(oData);
+        
+            // open object
+            if (sDataType == "array") {
+                if (oData.length == 0) {
+                    return "[]";
+                }
+                var sHTML = "[";
+            } else {
+                var iCount = 0;
+                $.each(oData, function() {
+                    iCount++;
+                    return;
+                });
+                if (iCount == 0) { // object is empty
+                    return "{}";
+                }
+                var sHTML = "{";
+            }
+        
+            // loop through items
+            var iCount = 0;
+            $.each(oData, function(sKey, vValue) {
+                if (iCount > 0) {
+                    sHTML += ",";
+                }
+                if (sDataType == "array") {
+                    sHTML += ("\n" + sIndent + sIndentStyle);
+                } else {
+                    sHTML += ("\n" + sIndent + sIndentStyle + "\"" + sKey + "\"" + ": ");
+                }
+        
+                // display relevant data type
+                switch (RealTypeOf(vValue)) {
+                    case "array":
+                    case "object":
+                        sHTML += FormatJSON(vValue, (sIndent + sIndentStyle));
+                        break;
+                    case "boolean":
+                    case "number":
+                        sHTML += vValue.toString();
+                        break;
+                    case "null":
+                        sHTML += "null";
+                        break;
+                    case "string":
+                        sHTML += ("\"" + vValue + "\"");
+                        break;
+                    default:
+                        sHTML += ("TYPEOF: " + typeof(vValue));
+                }
+        
+                // loop
+                iCount++;
+            });
+        
+            // close object
+            if (sDataType == "array") {
+                sHTML += ("\n" + sIndent + "]");
+            } else {
+                sHTML += ("\n" + sIndent + "}");
+            }
+        
+            // return
+            return sHTML;
+        }  
+
+        $(document).ready(function(){
+            var url = "http://localhost:6767/todo/"
+            function get_url(){
+                var ids = $(".ids").val()
+                if (ids === ""){
+                    return url
+                }
+                return url + ids + "/"
+            }
+            function update(data){
+                var text = ""
+                for (item in data){
+                    text += "<pre>" + FormatJSON(data[item])+ "</pre>"
+                }
+                $("#content").html(text)
+            }
+            $('.post').click(function(){
+                var url = get_url()
+                data = $(".postbody").val()
+                $.post(url, {data:data}, function(){update([{'status': 200}])});
+            })
+            $('.put').click(function(){
+                var url = get_url()
+                data = $(".postbody").val()
+                $.ajax({url:url, 
+                        type:"PUT",
+                        data:{data:data}, 
+                        success:function(){update([{'status': 200}])}})
+            })
+            $('.get').click(function(){
+                $.get(url, update)
+            })
+            $('.delete').click(function(){
+                var the_url = get_url()
+                if (the_url == url)
+                    return
+                $.ajax(url, "DELETE", update)
+            })
+        });
+    </script>
+</head>
+
+<body>
+    <h2>API Helper</h2>
+    <p>Use the buttons below to submit data to the autoapi with some HTTP method. Try posting the sample document below, then try get. Modify the document, press post again, and then show that two documents come back from pressing get.</p>
+
+    <textarea class="postbody" cols=100 rows=8>{"title":"watch more bsg"}</textarea><br/>
+    <!--<input type"text" class="ids"><br>-->
+    <input type="button" class="post" value="Post">
+    <input type="button" class="put" value="Put">
+    <input type="button" class="get" value="Get">
+    <!--<input type="button" class="delete" value="Delete">-->
+
+    <div id="content">
+    </div>
+</body>
+</html>

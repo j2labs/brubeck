@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import sys
 from brubeck.request_handling import Brubeck, WebMessageHandler
 from brubeck.connections import Mongrel2Connection
+import sys
 
 class DemoHandler(WebMessageHandler):
     def get(self):
