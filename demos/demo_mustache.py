@@ -12,7 +12,7 @@ class DemoHandler(MustacheRendering):
         }
         return self.render_template('success', **context)
 
-app = Brubeck(msg_conn=Mongrel2Connection('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+app = Brubeck(msg_conn=Mongrel2Connection('tcp://127.0.0.1:9999', 'tcp://127.0.0.1:9998'),
               handler_tuples=[(r'^/brubeck', DemoHandler)],
               template_loader=load_mustache_env('./templates/mustache'))
 app.run()

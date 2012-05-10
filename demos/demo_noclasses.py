@@ -3,8 +3,8 @@
 from brubeck.request_handling import Brubeck, http_response
 from brubeck.connections import Mongrel2Connection
 
-app = Brubeck(msg_conn=Mongrel2Connection('ipc://127.0.0.1:9999',
-                                          'ipc://127.0.0.1:9998'))
+app = Brubeck(msg_conn=Mongrel2Connection('tcp://127.0.0.1:9999',
+                                          'tcp://127.0.0.1:9998'))
 
 @app.add_route('^/brubeck', method='GET')
 def foo(application, message):

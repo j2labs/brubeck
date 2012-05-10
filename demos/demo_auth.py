@@ -40,7 +40,7 @@ class DemoHandler(WebMessageHandler, UserHandlingMixin):
 
 
 config = {
-    'msg_conn': Mongrel2Connection('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+    'msg_conn': Mongrel2Connection('tcp://127.0.0.1:9999', 'tcp://127.0.0.1:9998'),
     'handler_tuples': [(r'^/brubeck', DemoHandler)],
 }
 
