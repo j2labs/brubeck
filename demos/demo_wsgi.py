@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-from brubeck.request_handling import Brubeck, WebMessageHandler
-from brubeck.connections import Mongrel2Connection
 import sys
+import os
+from brubeck.request_handling import Brubeck, WebMessageHandler
+from brubeck.connections import WSGIConnection
 
 class DemoHandler(WebMessageHandler):
     def get(self):
@@ -11,9 +12,9 @@ class DemoHandler(WebMessageHandler):
         return self.render()
 
 config = {
-    'msg_conn': Mongrel2Connection('tcp://127.0.0.1:9999',
-                                   'tcp://127.0.0.1:9998'),
+    'msg_conn': WSGIConnection(),
     'handler_tuples': [(r'^/brubeck', DemoHandler)],
 }
+
 app = Brubeck(**config)
 app.run()

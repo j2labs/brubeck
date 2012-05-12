@@ -5,7 +5,7 @@ import sys
 import brubeck
 from handlers.method_handlers import simple_handler_method
 from brubeck.request_handling import Brubeck, WebMessageHandler, JSONMessageHandler
-from brubeck.mongrel2 import to_bytes, Request
+from brubeck.connections import to_bytes, Request, WSGIConnection
 from brubeck.request_handling import(
     cookie_encode, cookie_decode,
     cookie_is_encoded, http_response
@@ -45,7 +45,8 @@ class TestRequestHandling(unittest.TestCase):
     def setUp(self):
         """ will get run for each test """
         config = {
-            'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998')
+            'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+            'msg_conn': WSGIConnection()
         }
         self.app = Brubeck(**config)
     ##

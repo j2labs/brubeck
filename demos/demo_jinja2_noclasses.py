@@ -2,12 +2,12 @@
 
 
 from brubeck.request_handling import Brubeck, http_response
-from brubeck.templating import  load_jinja2_env
-from brubeck.templating import Jinja2Rendering
+from brubeck.connections import Mongrel2Connection
+from brubeck.templating import  load_jinja2_env, Jinja2Rendering
 
 
-app = Brubeck(mongrel2_pair=('ipc://127.0.0.1:9999',
-                             'ipc://127.0.0.1:9998'),
+app = Brubeck(msg_conn=Mongrel2Connection('tcp://127.0.0.1:9999',
+                                          'tcp://127.0.0.1:9998'),
               template_loader=load_jinja2_env('./templates/jinja2'))
 
 

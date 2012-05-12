@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from brubeck.request_handling import Brubeck, http_response
+from brubeck.connections import Mongrel2Connection
 
-app = Brubeck(mongrel2_pair=('ipc://127.0.0.1:9999',  # PULL requests <- M2
-                             'ipc://127.0.0.1:9998')) # PUB responses -> M2
+app = Brubeck(msg_conn=Mongrel2Connection('tcp://127.0.0.1:9999',
+                                          'tcp://127.0.0.1:9998'))
 
 @app.add_route('^/brubeck', method='GET')
 def foo(application, message):

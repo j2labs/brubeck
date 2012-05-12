@@ -3,6 +3,7 @@
 
 from brubeck.request_handling import Brubeck, WebMessageHandler
 from brubeck.templating import load_jinja2_env, Jinja2Rendering
+from brubeck.connections import Mongrel2Connection
 import sys
 import datetime
 import time
@@ -22,16 +23,16 @@ class DemoHandler(Jinja2Rendering):
 class FeedHandler(WebMessageHandler):
     def get(self):
         try:
-            eventlet.sleep(5) # simple way to demo long polling :)
+            eventlet.sleep(2) # simple way to demo long polling :)
         except:
-            gevent.sleep(5)
+            gevent.sleep(2)
         self.set_body('The current time is: %s' % datetime.datetime.now(),
                       headers={'Content-Type': 'text/plain'})
         return self.render()
 
 
 config = {
-    'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+    'msg_conn': Mongrel2Connection('tcp://127.0.0.1:9999', 'tcp://127.0.0.1:9998'),
     'handler_tuples': [(r'^/$', DemoHandler),
                        (r'^/feed', FeedHandler)],
     'template_loader': load_jinja2_env('./templates/longpolling'),

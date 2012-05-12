@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-import sys
-import logging
 from brubeck.request_handling import Brubeck, WebMessageHandler
+from brubeck.connections import Mongrel2Connection
 from brubeck.models import User
 from brubeck.auth import authenticated, UserHandlingMixin
+import sys
+import logging
 
 ### Hardcode a user for the demo
 demo_user = User.create_user('jd', 'foo')
@@ -39,7 +40,7 @@ class DemoHandler(WebMessageHandler, UserHandlingMixin):
 
 
 config = {
-    'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+    'msg_conn': Mongrel2Connection('tcp://127.0.0.1:9999', 'tcp://127.0.0.1:9998'),
     'handler_tuples': [(r'^/brubeck', DemoHandler)],
 }
 

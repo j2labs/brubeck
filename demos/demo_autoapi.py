@@ -29,7 +29,7 @@ from brubeck.request_handling import Brubeck
 from brubeck.autoapi import AutoAPIBase
 from brubeck.queryset import DictQueryset
 from brubeck.templating import Jinja2Rendering, load_jinja2_env
-
+from brubeck.connections import Mongrel2Connection
 
 from dictshield.document import Document
 from dictshield.fields import (StringField,
@@ -45,6 +45,8 @@ class Todo(Document):
     deleted = BooleanField(default=False)
     archived = BooleanField(default=False)
     title = StringField(required=True)
+    class Meta:
+        id_options = {'auto_fill': True}
 
 
 ### Todo API
@@ -76,9 +78,9 @@ handler_tuples = [
 
 # Application config
 config = {
-    'mongrel2_pair': ('ipc://127.0.0.1:9999', 'ipc://127.0.0.1:9998'),
+    'msg_conn': Mongrel2Connection('tcp://127.0.0.1:9999', 'tcp://127.0.0.1:9998'),
     'handler_tuples': handler_tuples,
-    'template_loader': load_jinja2_env('./templates/apiable'),
+    'template_loader': load_jinja2_env('./templates/autoapi'),
 }
 
 # Instantiate app instance
