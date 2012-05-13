@@ -233,7 +233,9 @@ class RedisQueryset(AbstractQueryset):
         shield_value = self._value(shield)
         
         if self.db_conn.hexists(self.api_id, shield.id):
-            return (self.MSG_EXISTS, shield)
+#            return (self.MSG_EXISTS, shield)
+            self.db_conn.hset(self.api_id, shield.id, shield_value)
+            return (self.MSG_UPDATED, shield)
 
         self.db_conn.hset(self.api_id, shield.id, shield_value)
         return (self.MSG_CREATED, shield)
