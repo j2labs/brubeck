@@ -220,7 +220,6 @@ class RedisQueryset(AbstractQueryset):
         return shield.to_json()
 
     def _readvalue(self, value):
-        print value
         if self.compress:
             try:
                 compressed_value = zlib.decompress(value)
