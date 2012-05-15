@@ -62,7 +62,7 @@ import ujson as json
 ### Common helpers
 ###
 
-HTTP_METHODS = ['get', 'post', 'put', 'delete', 'websocket',
+HTTP_METHODS = ['get', 'post', 'put', 'delete',
                 'head', 'options', 'trace', 'connect']
 
 HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
