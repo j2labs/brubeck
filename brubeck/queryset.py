@@ -5,7 +5,6 @@ import redis
 import ujson as json
 
 
-
 class AbstractQueryset(object):
     """The design of the `AbstractQueryset` attempts to map RESTful calls
     directly to CRUD calls. It also attempts to be compatible with a single
@@ -31,7 +30,6 @@ class AbstractQueryset(object):
     MSG_CREATED = 'Created'
     MSG_NOTFOUND = 'Not Found'
     MSG_FAILED = 'Failed'
-    MSG_EXISTS = 'Exists'
 
     def __init__(self, db_conn=None, api_id='id'):
         self.db_conn = db_conn
@@ -199,11 +197,11 @@ class RedisQueryset(AbstractQueryset):
 
     Redis connection uses the redis-py api located here:
     https://github.com/andymccurdy/redis-py
-
     """
     # TODO: - catch connection exceptions?
     #       - set Redis EXPIRE and self.expires
-    #       - use ultrajson
+    #       - confirm that the correct status is being returned in 
+    #         each circumstance
     def __init__(self, compress=False, compress_level=1, **kw):
         """The Redis connection wiil be passed in **kw and is used below
         as self.db_conn.
@@ -223,7 +221,7 @@ class RedisQueryset(AbstractQueryset):
                 compressed_value = zlib.decompress(value)
                 return json.loads(zlib.decompress(value))
             except Exception as e:
-                # TODO: log exception
+                # value is 0 or None from a Redis return value
                 return value
         if value:
             return json.loads(value)
@@ -240,15 +238,12 @@ class RedisQueryset(AbstractQueryset):
     def create_one(self, shield):
         shield_value = self._setvalue(shield)
         shield_key = str(getattr(shield, self.api_id))        
-        if self.db_conn.hexists(self.api_id, shield_key):
-            self.db_conn.hset(self.api_id, shield_key, shield_value)
-            return (self.MSG_UPDATED, shield)
-
-        self.db_conn.hset(self.api_id, shield_key, shield_value)
-        return (self.MSG_CREATED, shield)
+        result = self.db_conn.hset(self.api_id, shield_key, shield_value)
+        if result:
+            return (self.MSG_CREATED, shield)
+        return (self.MSG_UPDATED, shield)
 
     def create_many(self, shields):
-
         message_handler = self._message_factory(self.MSG_UPDATED, self.MSG_CREATED)
         pipe = self.db_conn.pipeline()
         [pipe.hset(self.api_id, str(getattr(shield, self.api_id)), self._setvalue(shield)) for shield in shields]
@@ -262,10 +257,10 @@ class RedisQueryset(AbstractQueryset):
         return [(self.MSG_OK, self._readvalue(datum)) for datum in self.db_conn.hgetall(self.api_id).values()]
 
     def read_one(self, shield_id):
-        if self.db_conn.hexists(self.api_id, shield_id):
-            return (self.MSG_OK, self._readvalue(self.db_conn.hget(self.api_id, shield_id)))
-        else:
-            return (self.MSG_FAILED, shield_id)
+        result = self.db_conn.hget(self.api_id, shield_id)
+        if result:
+            return (self.MSG_OK, self._readvalue(result))
+        return (self.MSG_FAILED, shield_id)
 
     def read_many(self, shield_ids):
         message_handler = self._message_factory(self.MSG_FAILED, self.MSG_OK)
@@ -276,10 +271,10 @@ class RedisQueryset(AbstractQueryset):
         return zip(imap(message_handler, results), map(self._readvalue, results))
 
     ### Update Functions
+
     def update_one(self, shield):
         shield_key = str(getattr(shield, self.api_id))
         message_handler = self._message_factory(self.MSG_UPDATED, self.MSG_CREATED)
-        
         status = message_handler(self.db_conn.hset(self.api_id, shield_key, self._setvalue(shield)))
         return (status, shield)
 
@@ -294,17 +289,16 @@ class RedisQueryset(AbstractQueryset):
     ### Destroy Functions
 
     def destroy_one(self, shield_id):
-        # TODO: set watcher to delete atomically
         pipe = self.db_conn.pipeline()
-        if self.db_conn.hexists(self.api_id, shield_id):
-            value = self.db_conn.hget(self.api_id, shield_id)
-            self.db_conn.hdel(self.api_id, shield_id)
-            return (self.MSG_UPDATED, self._readvalue(value))
+        pipe.hget(self.api_id, shield_id)
+        pipe.hdel(self.api_id, shield_id)
+        result = pipe.execute()
+        if result[1]:
+            return (self.MSG_UPDATED, self._readvalue(result[0]))
         raise FourOhFourException
 
-
     def destroy_many(self, ids):
-        # TODO: how to handle missing fields, currently returning self.MSG_NOTFOUND
+        # TODO: how to handle missing fields, currently returning self.MSG_FAILED
         message_handler = self._message_factory(self.MSG_FAILED, self.MSG_UPDATED)
         pipe = self.db_conn.pipeline()
         [pipe.hget(self.api_id, _id) for _id in ids]
@@ -312,6 +306,5 @@ class RedisQueryset(AbstractQueryset):
         [pipe.hdel(self.api_id, _id) for _id in ids]
         delete_results = pipe.execute()
         pipe.reset()
-        # missing data in values_results will be possibly decompressed so return the value of 0
         return zip(imap(message_handler, delete_results), map(self._readvalue, values_results))
 
