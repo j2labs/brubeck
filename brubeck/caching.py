@@ -30,7 +30,6 @@ class BaseCacheStore(object):
         save set dirty to False.
         """
         cache_item = {
-            'key_id': key,
             'data': data,
             'expire': expire,
         }
@@ -45,8 +44,8 @@ class BaseCacheStore(object):
                 data = self._cache_store[key]
 
                 # It's an in memory cache, so we must manage
-                if data.get('expire', None) and data['expire'] > time.time():
-                    return data
+                if not data.get('expire', None) or data['expire'] > time.time():
+                    return data['data']
             return None
         except:
             return None
