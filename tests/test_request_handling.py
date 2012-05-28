@@ -151,7 +151,8 @@ class TestRequestHandling(unittest.TestCase):
     ##
     def test_web_request_handling_with_object(self):
         self.setup_route_with_object()
-        response = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
+        result = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
+        response = http_response(result['body'], result['status_code'], result['status_msg'], result['headers'])
         self.assertEqual(FIXTURES.HTTP_RESPONSE_OBJECT_ROOT, response)
 
     def test_web_request_handling_with_method(self):
@@ -161,22 +162,26 @@ class TestRequestHandling(unittest.TestCase):
 
     def test_json_request_handling_with_object(self):
         self.app.add_route_rule(r'^/$',SimpleJSONHandlerObject)
-        response = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
+        result = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
+        response = http_response(result['body'], result['status_code'], result['status_msg'], result['headers'])
         self.assertEqual(FIXTURES.HTTP_RESPONSE_JSON_OBJECT_ROOT, response)
 
     def test_request_with_cookie_handling_with_object(self):
         self.app.add_route_rule(r'^/$',CookieWebHandlerObject)
-        response = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT_WITH_COOKIE))
+        result = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT_WITH_COOKIE))
+        response = http_response(result['body'], result['status_code'], result['status_msg'], result['headers'])
         self.assertEqual(FIXTURES.HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE, response)
 
     def test_request_with_cookie_response_with_cookie_handling_with_object(self):
         self.app.add_route_rule(r'^/$',CookieWebHandlerObject)
-        response = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT_WITH_COOKIE))
+        result = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT_WITH_COOKIE))
+        response = http_response(result['body'], result['status_code'], result['status_msg'], result['headers'])
         self.assertEqual(FIXTURES.HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE, response)
 
     def test_request_without_cookie_response_with_cookie_handling_with_object(self):
         self.app.add_route_rule(r'^/$',CookieAddWebHandlerObject)
-        response = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
+        result = route_message(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
+        response = http_response(result['body'], result['status_code'], result['status_msg'], result['headers'])
         self.assertEqual(FIXTURES.HTTP_RESPONSE_OBJECT_ROOT_WITH_COOKIE, response)
 
     def test_build_http_response(self):
@@ -186,12 +191,16 @@ class TestRequestHandling(unittest.TestCase):
     def test_handler_initialize_hook(self):
         ## create a handler that sets the expected body(and headers) in the initialize hook
         handler = InitializeHookWebHandlerObject(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
-        self.assertEqual(handler(), FIXTURES.HTTP_RESPONSE_OBJECT_ROOT)
+        result = handler()
+        response = http_response(result['body'], result['status_code'], result['status_msg'], result['headers'])
+        self.assertEqual(response, FIXTURES.HTTP_RESPONSE_OBJECT_ROOT)
 
     def test_handler_prepare_hook(self):
         # create a handler that sets the expected body in the prepare hook
         handler = PrepareHookWebHandlerObject(self.app, Request.parse_msg(FIXTURES.HTTP_REQUEST_ROOT))
-        self.assertEqual(handler(), FIXTURES.HTTP_RESPONSE_OBJECT_ROOT)
+        result = handler()
+        response = http_response(result['body'], result['status_code'], result['status_msg'], result['headers'])
+        self.assertEqual(response, FIXTURES.HTTP_RESPONSE_OBJECT_ROOT)
 
     ##
     ## some simple helper functions to setup a route """
