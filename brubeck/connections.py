@@ -6,6 +6,7 @@ import logging
 import Cookie
 
 from request import to_bytes, to_unicode, parse_netstring, Request
+from request_handling import http_response
 
 
 ###
@@ -162,9 +163,12 @@ class Mongrel2Connection(Connection):
         if request.is_disconnect():
             return  # Ignore disconnect msgs. Dont have areason to do otherwise
         handler = application.route_message(request)
-        if callable(handler):
-            response = handler()
-        application.msg_conn.reply(request, response)
+        result = handler()
+
+        http_content = http_response(result['body'], result['status_code'],
+                                     result['status_msg'], result['headers'])
+
+        application.msg_conn.reply(request, http_content)
 
     def recv(self):
         """Receives a raw mongrel2.handler.Request object that you from the
@@ -231,19 +235,13 @@ class WSGIConnection(Connection):
     def process_message(self, application, environ, callback):
         request = Request.parse_wsgi_request(environ)
         handler = application.route_message(request)
-        response = handler()
-        x = callback(response['status'], response['headers'])
-        return [str(response['body'])]
+        result = handler()
+        
+        wsgi_status = ' '.join([str(result['status_code']), result['status_msg']])
+        headers = [(k, v) for k,v in result['headers'].items()]
+        callback(str(wsgi_status), headers)
 
-    def recv(self, environ, start_response):
-        """Receives the request from the wsgi server."""
-        setup_testing_defaults(environ)
-        status = '200 OK'
-        headers = [('Content-type', 'text/plain')]
-        start_response(status, headers)
-        ret = ["%s: %s\n" % (key, value)
-               for key, value in environ.iteritems()]
-        return ret 
+        return [result['body']]
 
     def recv_forever_ever(self, application):
         """Defines a function that will run the primary connection Brubeck uses

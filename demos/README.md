@@ -101,7 +101,7 @@ Whatever matches `(\w+)` will be the value of the `name` argument below.
 The third handler defined is not a class.  This handler is defined as a function.  And notice that it also has a `name` argument tacked on.
 
     def name_handler(application, message, name):
-        return http_response('Take five, %s!' % (name), 200, 'OK', {})
+        return render('Take five, %s!' % (name), 200, 'OK', {})
 
 We then map all three URL's to the relevant handlers and instantiate a `Brubeck` instance.  
 
@@ -113,7 +113,7 @@ The `add_route` decorator is now available to us on the Brubeck instance (`app`)
 
     @app.add_route('^/deco/(?P<name>\w+)$', method='GET')
     def new_name_handler(application, message, name):
-        return http_response('Take five, %s!' % (name), 200, 'OK', {})
+        return render('Take five, %s!' % (name), 200, 'OK', {})
 
 Then we turn it on by calling `run()` and all four URL's can answer requests.  Try this one: [http://localhost:6767/class/james](http://localhost:6767/class/james).  Or this one: [http://localhost:6767/fun/james](http://localhost:6767/fun/james).  Or this one: [http://localhost:6767/deco/james](http://localhost:6767/deco/james).
 

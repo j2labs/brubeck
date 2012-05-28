@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 
-from brubeck.request_handling import Brubeck, http_response
+from brubeck.request_handling import Brubeck, render
 from brubeck.connections import Mongrel2Connection
 from brubeck.templating import  load_jinja2_env, Jinja2Rendering
 
@@ -18,7 +18,7 @@ def index(application, message):
         'name': name,
     }
     body = application.render_template('success.html', **context)
-    return http_response(body, 200, 'OK', {})
+    return render(body, 200, 'OK', {})
 
 
 app.run()

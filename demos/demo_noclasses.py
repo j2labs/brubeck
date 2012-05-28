@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from brubeck.request_handling import Brubeck, http_response
+from brubeck.request_handling import Brubeck, render
 from brubeck.connections import Mongrel2Connection
 
 app = Brubeck(msg_conn=Mongrel2Connection('tcp://127.0.0.1:9999',
@@ -10,6 +10,6 @@ app = Brubeck(msg_conn=Mongrel2Connection('tcp://127.0.0.1:9999',
 def foo(application, message):
     name = message.get_argument('name', 'dude')
     body = 'Take five, %s!' % name
-    return http_response(body, 200, 'OK', {})
+    return render(body, 200, 'OK', {})
         
 app.run()

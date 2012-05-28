@@ -72,6 +72,20 @@ class FourOhFourException(Exception):
     pass
 
 
+###
+### Result Processing
+###
+
+def render(body, status_code, status_msg, headers):
+    payload = {
+        'body': body,
+        'status_code': status_code,
+        'status_msg': status_msg,
+        'headers': headers,
+    }
+    return payload
+
+
 def http_response(body, code, status, headers):
     """Renders arguments into an HTTP response.
     """
@@ -79,10 +93,13 @@ def http_response(body, code, status, headers):
     content_length = 0
     if body is not None:
         content_length = len(to_bytes(body))
+
+    print 'HEADERS:', headers
     headers['Content-Length'] = content_length
     payload['headers'] = "\r\n".join('%s: %s' % (k, v)
                                      for k, v in headers.items())
 
+    print 'HEADERS:', headers
     return HTTP_FORMAT % payload
 
 def _lscmp(a, b):
@@ -91,21 +108,6 @@ def _lscmp(a, b):
     return not sum(0 if x == y else 1
                    for x, y in zip(a, b)) and len(a) == len(b)
 
-
-###
-### Message handling coroutines
-###
-
-### WSGI
-
-def receive_wsgi_message(application, environ, callback):
-    request = Request.parse_wsgi_request(environ)
-    handler = application.route_message(request)
-    response = handler()
-    x = callback(response['status'], response['headers'])
-    return [str(response['body'])]
-
-### Mongrel2
 
 ###
 ### Me not *take* cookies, me *eat* the cookies.
@@ -533,16 +535,7 @@ class WebMessageHandler(MessageHandler):
 
         self.convert_cookies()
 
-        if self.message.is_wsgi:
-            response  = {
-                'body' : self.body,
-                'status' : str(status_code) + ' ' + self.status_msg,
-                'headers' : [(k, v) for k,v in self.headers.items()]
-                }
-        
-        else:
-            response = http_response(self.body, status_code,
-                                 self.status_msg, self.headers)
+        response = render(self.body, status_code, self.status_msg, self.headers)
 
         logging.info('%s %s %s (%s)' % (status_code, self.message.method,
                                         self.message.path,
