@@ -94,12 +94,10 @@ def http_response(body, code, status, headers):
     if body is not None:
         content_length = len(to_bytes(body))
 
-    print 'HEADERS:', headers
     headers['Content-Length'] = content_length
     payload['headers'] = "\r\n".join('%s: %s' % (k, v)
                                      for k, v in headers.items())
 
-    print 'HEADERS:', headers
     return HTTP_FORMAT % payload
 
 def _lscmp(a, b):
