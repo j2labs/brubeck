@@ -563,8 +563,8 @@ class JSONMessageHandler(WebMessageHandler):
         else:
             body = json.dumps(self._payload)
 
-        response = http_response(body, self.status_code,
-                                 self.status_msg, self.headers)
+        response = render(body, self.status_code, self.status_msg,
+                          self.headers)
 
         logging.info('%s %s %s (%s)' % (self.status_code, self.message.method,
                                         self.message.path,
@@ -590,8 +590,8 @@ class JsonSchemaMessageHandler(WebMessageHandler):
         self.convert_cookies()
         self.headers['Content-Type'] = "application/schema+json"
 
-        response = http_response(self.body, status_code,
-                                 self.status_msg, self.headers)
+        response = render(self.body, status_code, self.status_msg,
+                          self.headers)
 
         return response
 
