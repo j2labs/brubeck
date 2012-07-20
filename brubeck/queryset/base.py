@@ -1,4 +1,4 @@
-from request_handling import FourOhFourException
+from brubeck.request_handling import FourOhFourException
 from itertools import imap
 import zlib
 import ujson as json
