@@ -278,10 +278,13 @@ class MessageHandler(object):
         rendered = json.dumps(self._payload)
         return rendered
 
-    def render_error(self, status_code, **kwargs):
-        """Clears the payload before rendering the error status
+    def render_error(self, status_code, error_handler=None, **kwargs):
+        """Clears the payload before rendering the error status.
+        Takes a callable to perform customization before rendering the output.
         """
         self.clear_payload()
+        if error_handler:
+            error_handler()
         self._finished = True
         return self.render(status_code=status_code)
 
