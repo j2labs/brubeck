@@ -37,8 +37,8 @@ except ImportError:
 
         CORO_LIBRARY = 'eventlet'
 
-    except ImportError:  # eventlet or gevent is required.
-        raise EnvironmentError('Y U NO INSTALL CONCURRENCY?!')
+    except ImportError:
+        raise EnvironmentError('You need to install eventlet or gevent')
 
 
 from . import version
