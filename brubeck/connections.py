@@ -241,7 +241,7 @@ class WSGIConnection(Connection):
         headers = [(k, v) for k,v in result['headers'].items()]
         callback(str(wsgi_status), headers)
 
-        return [result['body']]
+        return [to_bytes(result['body'])]
 
     def recv_forever_ever(self, application):
         """Defines a function that will run the primary connection Brubeck uses
@@ -261,10 +261,8 @@ class WSGIConnection(Connection):
                 server.serve_forever()
                 
             elif CORO_LIBRARY == 'eventlet':
-                import eventlet
+                import eventlet.wsgi
                 server = eventlet.wsgi.server(eventlet.listen(('', self.port)),
                                               proc_msg)
                 
         self._recv_forever_ever(fun_forever)
-
-        
