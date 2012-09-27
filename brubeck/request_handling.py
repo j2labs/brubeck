@@ -353,6 +353,7 @@ class WebMessageHandler(MessageHandler):
     _AUTH_FAILURE = 401
     _FORBIDDEN = 403
     _NOT_FOUND = 404
+    _NOT_ALLOWED = 405
     _SERVER_ERROR = 500
 
     _response_codes = {
