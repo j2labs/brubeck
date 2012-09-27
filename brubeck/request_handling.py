@@ -216,6 +216,16 @@ class MessageHandler(object):
         """
         return self.application.db_conn
 
+    @property
+    def supported_methods(self):
+        """List all the HTTP methods you have defined.
+        """
+        supported_methods = []
+        for mef in HTTP_METHODS:
+            if callable(getattr(self, mef, False)):
+                supported_methods.append(mef)
+        return supported_methods
+
     def unsupported(self):
         """Called anytime an unsupported request is made.
         """
@@ -394,17 +404,13 @@ class WebMessageHandler(MessageHandler):
     def options(self, *args, **kwargs):
         """Default to allowing all of the methods you have defined and public
         """
-        supported_methods = []
-        for mef in HTTP_METHODS:
-            if callable(getattr(self, mef, False)):
-                supported_methods.append(mef)
-        allowed_methods = ", ".join(mef.upper() for mef in supported_methods)
-        self.headers["Access-Control-Allow-Methods"] = allowed_methods
+        self.headers["Access-Control-Allow-Methods"] = self.supported_methods
         self.set_status(200)
         return self.render()
 
     def unsupported(self, *args, **kwargs):
-        return self.render_error(self._NOT_FOUND)
+        self.headers['Allow'] = self.supported_methods
+        return self.render_error(self._NOT_ALLOWED)
 
     def redirect(self, url):
         """Clears the payload before rendering the error status
