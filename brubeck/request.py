@@ -236,10 +236,9 @@ class Request(object):
         if not netloc:
             netloc = headers['SERVER_NAME']
             port = headers['SERVER_PORT']
-            if scheme == 'https' and port == '443':
-                port = None
-            elif scheme == 'http' and port == '80':
-                port = None
+            if ((scheme == 'https' and port != '443') or
+                (scheme == 'http' and port != '80')):
+                netloc += ':' + port
         path = headers.get('SCRIPT_NAME', '')
         path += headers.get('PATH_INFO', '')
         query = headers.get('QUERY_STRING', None)
