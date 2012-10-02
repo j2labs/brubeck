@@ -190,7 +190,13 @@ class Request(object):
         headers, rest = parse_netstring(rest)
         body, _ = parse_netstring(rest)
         headers = json.loads(headers)
-        r = Request(sender, conn_id, path, headers, body)
+        # construct url from request
+        scheme = headers.get('URL_SCHEME', 'http')
+        netloc = headers.get('host')
+        path = headers.get('PATH')
+        query = headers.get('QUERY')
+        url = urlparse.SplitResult(scheme, netloc, path, query, None)
+        r = Request(sender, conn_id, path, headers, body, url)
         r.is_wsgi = False
         return r
 
