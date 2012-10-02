@@ -32,7 +32,7 @@ class Request(object):
         self.conn_id = conn_id
         self.headers = headers
         self.body = body
-        self.url = urlparse.urlsplit(url) if isinstance(url, basestring) else url
+        self.url_parts = urlparse.urlsplit(url) if isinstance(url, basestring) else url
 
         if self.method == 'JSON':
             self.data = json.loads(body)
@@ -180,6 +180,10 @@ class Request(object):
                     logging.error('Failed to load cookies')
                     self.clear_all_cookies()
         return self._cookies
+
+    @property
+    def url(self):
+        return self.url_parts.geturl()
 
     @staticmethod
     def parse_msg(msg):
