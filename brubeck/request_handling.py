@@ -412,8 +412,10 @@ class WebMessageHandler(MessageHandler):
         return self.render()
 
     def unsupported(self, *args, **kwargs):
-        self.headers['Allow'] = self.supported_methods
-        return self.render_error(self._NOT_ALLOWED)
+        def allow_header():
+            methods = str.join(', ', map(str.upper, self.supported_methods))
+            self.headers['Allow'] = methods
+        return self.render_error(self._NOT_ALLOWED, error_handler=allow_header)
 
     def error(self, err):
         self.render_error(self._SERVER_ERROR)
