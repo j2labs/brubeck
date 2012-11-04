@@ -61,7 +61,7 @@ def authenticated(method):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
-            return self.render_error(self._AUTH_FAILURE)
+            return self.render_error(self._AUTH_FAILURE, self.auth_error)
         return method(self, *args, **kwargs)
     return wrapper
 
@@ -127,3 +127,8 @@ class UserHandlingMixin(object):
         """Override to determine the current user
         """
         return None
+
+    def auth_error(self):
+        """Override with actions to perform before rendering the error output.
+        """
+        pass
