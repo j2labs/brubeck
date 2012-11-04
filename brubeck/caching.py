@@ -102,10 +102,9 @@ class RedisCacheStore(BaseCacheStore):
         pipe.set(key, data)
         if expire:
             expire_seconds = expire - time.time()
-            print expire_seconds, 'expire_seconds dude'
             assert(expire_seconds > 0)
             pipe.expire(key, int(expire_seconds))
-        print pipe.execute()
+        pipe.execute()
         
     def load(self, key):
         """return the value of `key`. If key
