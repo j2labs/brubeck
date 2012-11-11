@@ -1,6 +1,6 @@
 from brubeck.request_handling import Brubeck, WebMessageHandler, JSONMessageHandler
 
-from fixtures import request_handler_fixtures as FIXTURES
+from tests.fixtures import request_handler_fixtures as FIXTURES
 
 
 
