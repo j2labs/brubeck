@@ -184,7 +184,7 @@ class TestDictQueryset(unittest.TestCase):
         self.assertEqual(shield_to_keep.to_python(), datum)
 
 
-class TestRedisQueryset(unittest.TestCase):
+class TestRedisQueryset(TestQuerySetPrimitives):
     """
     Test RedisQueryset operations.
     """
@@ -216,7 +216,6 @@ class TestRedisQueryset(unittest.TestCase):
             redis_connection = patchedRedis(host='localhost', port=6379, db=0)
             queryset = RedisQueryset(db_conn=redis_connection)
             queryset.create_many([shield0, shield1, shield2])
-            print redis_connection.mock_calls
             expected = [
                 ('pipeline', (), {}),
                 ('pipeline().hset', ('id', 'foo', '{"_types": ["TestDoc"], "id": "foo", "_cls": "TestDoc"}'), {}),
@@ -229,16 +228,19 @@ class TestRedisQueryset(unittest.TestCase):
             for call in zip(expected, redis_connection.mock_calls):
                 self.assertEqual(call[0], call[1])
 
-    # def test__read_all(self):
-    #     shields = self.seed_reads()
-    #     statuses = self.queryset.read_all()
-
-    #     for status, datum in statuses:
-    #         self.assertEqual(self.queryset.MSG_OK, status)
-
-    #     actual = sorted([datum for trash, datum in statuses])
-    #     expected = sorted([shield.to_python() for shield in shields])
-    #     self.assertEqual(expected, actual)
+    def test__read_all(self):
+        with mock.patch('redis.StrictRedis') as patchedRedis:
+            redis_connection = patchedRedis(host='localhost', port=6379, db=0)
+            queryset = RedisQueryset(db_conn=redis_connection)
+            statuses = queryset.read_all()
+            
+            name, args, kwargs = redis_connection.mock_calls[0]
+            self.assertEqual(name, 'hvals')
+            self.assertEqual(args, ('%s' % queryset.api_id,))
+            
+            name, args, kwargs = redis_connection.mock_calls[1]
+            self.assertEqual(name, 'hvals().__iter__')
+            self.assertEqual(args, ())
 
     # def test__read_one(self):
     #     shields = self.seed_reads()
