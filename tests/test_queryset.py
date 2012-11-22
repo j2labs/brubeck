@@ -205,22 +205,18 @@ class TestRedisQueryset(TestQuerySetPrimitives):
             
             name, args, kwargs = redis_connection.mock_calls[0]
             self.assertEqual(name, 'hset')
-            self.assertEqual(args, ('id', 'foo', '{"_types": ["TestDoc"], "id": "foo", "_cls": "TestDoc"}'))
+            self.assertEqual(args, (queryset.api_id, 'foo', '{"_types": ["TestDoc"], "id": "foo", "_cls": "TestDoc"}'))
             
     def test__create_many(self):
-        shield0 = TestDoc(id="foo")
-        shield1 = TestDoc(id="bar")
-        shield2 = TestDoc(id="baz")
-
         with mock.patch('redis.StrictRedis') as patchedRedis:
             redis_connection = patchedRedis(host='localhost', port=6379, db=0)
             queryset = RedisQueryset(db_conn=redis_connection)
-            queryset.create_many([shield0, shield1, shield2])
+            queryset.create_many(self.seed_reads())
             expected = [
                 ('pipeline', (), {}),
-                ('pipeline().hset', ('id', 'foo', '{"_types": ["TestDoc"], "id": "foo", "_cls": "TestDoc"}'), {}),
-                ('pipeline().hset', ('id', 'bar', '{"_types": ["TestDoc"], "id": "bar", "_cls": "TestDoc"}'), {}),
-                ('pipeline().hset', ('id', 'baz', '{"_types": ["TestDoc"], "id": "baz", "_cls": "TestDoc"}'), {}),
+                ('pipeline().hset', (queryset.api_id, 'foo', '{"_types": ["TestDoc"], "id": "foo", "_cls": "TestDoc"}'), {}),
+                ('pipeline().hset', (queryset.api_id, 'bar', '{"_types": ["TestDoc"], "id": "bar", "_cls": "TestDoc"}'), {}),
+                ('pipeline().hset', (queryset.api_id, 'baz', '{"_types": ["TestDoc"], "id": "baz", "_cls": "TestDoc"}'), {}),
                 ('pipeline().execute', (), {}),
                 ('pipeline().execute().__iter__', (), {}),
                 ('pipeline().reset', (), {})
@@ -236,88 +232,133 @@ class TestRedisQueryset(TestQuerySetPrimitives):
             
             name, args, kwargs = redis_connection.mock_calls[0]
             self.assertEqual(name, 'hvals')
-            self.assertEqual(args, ('%s' % queryset.api_id,))
+            self.assertEqual(args, (queryset.api_id,))
             
             name, args, kwargs = redis_connection.mock_calls[1]
             self.assertEqual(name, 'hvals().__iter__')
             self.assertEqual(args, ())
 
-    # def test__read_one(self):
-    #     shields = self.seed_reads()
-    #     for shield in shields:
-    #         status, datum = self.queryset.read_one(shield.id)
-    #         self.assertEqual(self.queryset.MSG_OK, status)
-    #         self.assertEqual(datum, shield.to_python())
-    #     bad_key = 'DOESNTEXIST'
-    #     status, datum = self.queryset.read(bad_key)
-    #     self.assertEqual(bad_key, datum)
-    #     self.assertEqual(self.queryset.MSG_FAILED, status)
+    def test__read_one(self):
+        for _id in ['foo', 'bar', 'baz']:
+            with mock.patch('redis.StrictRedis') as patchedRedis:
+                instance = patchedRedis.return_value
+                instance.hget.return_value = '{"called": "hget"}'
+                redis_connection = patchedRedis(host='localhost', port=6379, db=0)
+                queryset = RedisQueryset(db_conn=redis_connection)
 
-    # def test__read_many(self):
-    #     shields = self.seed_reads()
-    #     expected = [shield.to_python() for shield in shields]
-    #     responses = self.queryset.read_many([s.id for s in shields])
-    #     for status, datum in responses:
-    #         self.assertEqual(self.queryset.MSG_OK, status)
-    #         self.assertTrue(datum in expected)
+                msg, result = queryset.read_one(_id)
+                assert (RedisQueryset.MSG_OK, {'called': 'hget'}) == (msg, result)
 
-    #     bad_ids = [s.id for s in shields]
-    #     bad_ids.append('DOESNTEXIST')
-    #     status, iid = self.queryset.read_many(bad_ids)[-1]
-    #     self.assertEqual(self.queryset.MSG_FAILED, status)
+                name, args, kwargs = redis_connection.mock_calls[0]
+                self.assertEqual(name, 'hget')
+                self.assertEqual(args, (queryset.api_id, _id))
+                self.assertEqual(kwargs, {})
+                
+    def test__read_many(self):
+        with mock.patch('redis.StrictRedis') as patchedRedis:
+            redis_connection = patchedRedis(host='localhost', port=6379, db=0)
+            queryset = RedisQueryset(db_conn=redis_connection)
+            queryset.read_many(['foo', 'bar', 'baz', 'laser', 'beams'])
+            expected = [('pipeline', (), {}),
+                        ('pipeline().hget', (queryset.api_id, 'foo'), {}),
+                        ('pipeline().hget', (queryset.api_id, 'bar'), {}),
+                        ('pipeline().hget', (queryset.api_id, 'baz'), {}),
+                        ('pipeline().hget', (queryset.api_id, 'laser'), {}),
+                        ('pipeline().hget', (queryset.api_id, 'beams'), {}),
+                        ('pipeline().execute', (), {}),
+                        ('pipeline().reset', (), {}),
+                        ('pipeline().execute().__iter__', (), {}),
+                        ('pipeline().execute().__iter__', (), {}),
+                        ('pipeline().execute().__len__', (), {}),
+                        ]
+            for call in zip(expected, redis_connection.mock_calls):
+                assert call[0] == call[1]
 
+    def test_update_one(self):
+        with mock.patch('redis.StrictRedis') as patchedRedis:
+            instance = patchedRedis.return_value
+            redis_connection = patchedRedis(host='localhost', port=6379, db=0)
+            queryset = RedisQueryset(db_conn=redis_connection)
 
-    # def test_update_one(self):
-    #     shields = self.seed_reads()
-    #     test_shield = shields[0]
-    #     test_shield.data = "foob"
-    #     status, datum = self.queryset.update_one(test_shield)
+            original = mock.Mock()
+            doc_instance = original.return_value
+            doc_instance.id = 'foo'
+            doc_instance.to_json.return_value = '{"to": "json"}'
 
-    #     self.assertEqual(self.queryset.MSG_UPDATED, status)
-    #     self.assertEqual('foob', datum['data'])
+            queryset.update_one(doc_instance)
 
-    #     status, datum =  self.queryset.read_one(test_shield.id)
-    #     self.assertEqual('foob', datum['data'])
+            expected = ('hset', ('id', 'foo', '{"to": "json"}'), {})
 
-
-    # def test_update_many(self):
-    #     shields = self.seed_reads()
-    #     for shield in shields:
-    #         shield.data = "foob"
-    #     responses = self.queryset.update_many(shields)
-    #     for status, datum in responses:
-    #         self.assertEqual(self.queryset.MSG_UPDATED, status)
-    #         self.assertEqual('foob', datum['data'])
-    #     for status, datum in self.queryset.read_all():
-    #         self.assertEqual('foob', datum['data'])
-
-
-    # def test_destroy_one(self):
-    #     shields = self.seed_reads()
-    #     test_shield = shields[0]
-    #     status, datum = self.queryset.destroy_one(test_shield.id)
-    #     self.assertEqual(self.queryset.MSG_UPDATED, status)
-
-    #     status, datum = self.queryset.read_one(test_shield.id)
-    #     self.assertEqual(test_shield.id, datum)
-    #     self.assertEqual(self.queryset.MSG_FAILED, status)
+            self.assertEqual(expected, redis_connection.mock_calls[0])
 
 
-    # def test_destroy_many(self):
-    #     shields = self.seed_reads()
-    #     shield_to_keep = shields.pop()
-    #     responses = self.queryset.destroy_many([shield.id for shield in shields])
-    #     for status, datum in responses:
-    #         self.assertEqual(self.queryset.MSG_UPDATED, status)
+    def test_update_many(self):
+        with mock.patch('redis.StrictRedis') as patchedRedis:
+            redis_connection = patchedRedis(host='localhost', port=6379, db=0)
+            queryset = RedisQueryset(db_conn=redis_connection)
+            queryset.update_many(self.seed_reads())
+            expected = [
+                ('pipeline', (), {}),
+                ('pipeline().hset', (queryset.api_id, 'foo', '{"_types": ["TestDoc"], "id": "foo", "_cls": "TestDoc"}'), {}),
+                ('pipeline().hset', (queryset.api_id, 'bar', '{"_types": ["TestDoc"], "id": "bar", "_cls": "TestDoc"}'), {}),
+                ('pipeline().hset', (queryset.api_id, 'baz', '{"_types": ["TestDoc"], "id": "baz", "_cls": "TestDoc"}'), {}),
+                ('pipeline().execute', (), {}),
+                ('pipeline().reset', (), {}),
+                ('pipeline().execute().__iter__', (), {}),
+                ]
 
-    #     responses = self.queryset.read_many([shield.id for shield in shields])
-    #     for status, datum in responses:
-    #         self.assertEqual(self.queryset.MSG_FAILED, status)
+            for call in zip(expected, redis_connection.mock_calls):
+                self.assertEqual(call[0], call[1])
 
-    #     status, datum = self.queryset.read_one(shield_to_keep.id)
-    #     self.assertEqual(self.queryset.MSG_OK, status)
-    #     self.assertEqual(shield_to_keep.to_python(), datum)
+    def test_destroy_one(self):
+        with mock.patch('redis.StrictRedis') as patchedRedis:
+            instance = patchedRedis.return_value
+            instance.pipeline = mock.Mock()
+            pipe_instance = instance.pipeline.return_value
+            pipe_instance.execute.return_value = ('{"success": "hget"}', 1)
 
+            redis_connection = patchedRedis(host='localhost', port=6379, db=0)
+            queryset = RedisQueryset(db_conn=redis_connection)
+            queryset.destroy_one('bar')
+
+            expected = [
+                ('pipeline', (), {}),
+                ('pipeline().hget', ('id', 'bar'), {}),
+                ('pipeline().hdel', ('id', 'bar'), {}),
+                ('pipeline().execute', (), {})
+                ]
+            for call in zip(expected, redis_connection.mock_calls):
+                self.assertEqual(call[0], call[1])
+
+    def test_destroy_many(self):
+        with mock.patch('redis.StrictRedis') as patchedRedis:
+            instance = patchedRedis.return_value
+            instance.pipeline = mock.Mock()
+            pipe_instance = instance.pipeline.return_value
+            shields = self.seed_reads()
+            json_shields = [shield.to_json() for shield in shields]
+            results = json_shields
+            pipe_instance.execute.return_value = results
+            
+            redis_connection = patchedRedis(host='localhost', port=6379, db=0)
+            
+            queryset = RedisQueryset(db_conn=redis_connection)
+
+            queryset.destroy_many([shield.id for shield in shields])
+
+            expected = [('pipeline', (), {}),
+                        ('pipeline().hget', (queryset.api_id, 'foo'), {}),
+                        ('pipeline().hget', (queryset.api_id, 'bar'), {}),
+                        ('pipeline().hget', (queryset.api_id, 'baz'), {}),
+                        ('pipeline().execute', (), {}),
+                        ('pipeline().hdel', (queryset.api_id, 'foo'), {}),
+                        ('pipeline().hdel', (queryset.api_id, 'bar'), {}),
+                        ('pipeline().hdel', (queryset.api_id, 'baz'), {}),
+                        ('pipeline().execute', (), {}),
+                        ('pipeline().reset', (), {})
+                        ]
+            for call in zip(expected, redis_connection.mock_calls):
+                self.assertEqual(call[0], call[1])
 
 ##
 ## This will run our tests
