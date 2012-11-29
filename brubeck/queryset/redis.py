@@ -113,6 +113,7 @@ class RedisQueryset(AbstractQueryset):
         pipe.hget(self.api_id, shield_id)
         pipe.hdel(self.api_id, shield_id)
         result = pipe.execute()
+        pipe.reset()
         if result[1]:
             return (self.MSG_UPDATED, self._readvalue(result[0]))
         return self.MSG_NOTFOUND
