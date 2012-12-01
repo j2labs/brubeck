@@ -2,6 +2,7 @@ import cgi
 import json
 import Cookie
 import logging
+import urlparse
 import re
 
 def parse_netstring(ns):
@@ -25,12 +26,13 @@ def to_unicode(s, enc='utf8'):
 class Request(object):
     """Word.
     """
-    def __init__(self, sender, conn_id, path, headers, body, *args, **kwargs):
+    def __init__(self, sender, conn_id, path, headers, body, url, *args, **kwargs):
         self.sender = sender
         self.path = path
         self.conn_id = conn_id
         self.headers = headers
         self.body = body
+        self.url_parts = urlparse.urlsplit(url) if isinstance(url, basestring) else url
 
         if self.method == 'JSON':
             self.data = json.loads(body)
@@ -179,6 +181,10 @@ class Request(object):
                     self.clear_all_cookies()
         return self._cookies
 
+    @property
+    def url(self):
+        return self.url_parts.geturl()
+
     @staticmethod
     def parse_msg(msg):
         """Static method for constructing a Request instance out of a
@@ -188,7 +194,13 @@ class Request(object):
         headers, rest = parse_netstring(rest)
         body, _ = parse_netstring(rest)
         headers = json.loads(headers)
-        r = Request(sender, conn_id, path, headers, body)
+        # construct url from request
+        scheme = headers.get('URL_SCHEME', 'http')
+        netloc = headers.get('host')
+        path = headers.get('PATH')
+        query = headers.get('QUERY')
+        url = urlparse.SplitResult(scheme, netloc, path, query, None)
+        r = Request(sender, conn_id, path, headers, body, url)
         r.is_wsgi = False
         return r
 
@@ -218,7 +230,20 @@ class Request(object):
             headers['cookie'] = headers['HTTP_COOKIE']
         if 'HTTP_CONNECTION' in headers:
             headers['connection'] = headers['HTTP_CONNECTION']
-        r = Request(sender, conn_id, path, headers, body)
+        # construct url from request
+        scheme = headers['wsgi.url_scheme']
+        netloc = headers.get('HTTP_HOST')
+        if not netloc:
+            netloc = headers['SERVER_NAME']
+            port = headers['SERVER_PORT']
+            if ((scheme == 'https' and port != '443') or
+                (scheme == 'http' and port != '80')):
+                netloc += ':' + port
+        path = headers.get('SCRIPT_NAME', '')
+        path += headers.get('PATH_INFO', '')
+        query = headers.get('QUERY_STRING', None)
+        url = urlparse.SplitResult(scheme, netloc, path, query, None)
+        r = Request(sender, conn_id, path, headers, body, url)
         r.is_wsgi = True
         return r
 

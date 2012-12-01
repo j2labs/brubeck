@@ -216,6 +216,16 @@ class MessageHandler(object):
         """
         return self.application.db_conn
 
+    @property
+    def supported_methods(self):
+        """List all the HTTP methods you have defined.
+        """
+        supported_methods = []
+        for mef in HTTP_METHODS:
+            if callable(getattr(self, mef, False)):
+                supported_methods.append(mef)
+        return supported_methods
+
     def unsupported(self):
         """Called anytime an unsupported request is made.
         """
@@ -278,10 +288,13 @@ class MessageHandler(object):
         rendered = json.dumps(self._payload)
         return rendered
 
-    def render_error(self, status_code, **kwargs):
-        """Clears the payload before rendering the error status
+    def render_error(self, status_code, error_handler=None, **kwargs):
+        """Clears the payload before rendering the error status.
+        Takes a callable to perform customization before rendering the output.
         """
         self.clear_payload()
+        if error_handler:
+            error_handler()
         self._finished = True
         return self.render(status_code=status_code)
 
@@ -394,17 +407,18 @@ class WebMessageHandler(MessageHandler):
     def options(self, *args, **kwargs):
         """Default to allowing all of the methods you have defined and public
         """
-        supported_methods = []
-        for mef in HTTP_METHODS:
-            if callable(getattr(self, mef, False)):
-                supported_methods.append(mef)
-        allowed_methods = ", ".join(mef.upper() for mef in supported_methods)
-        self.headers["Access-Control-Allow-Methods"] = allowed_methods
+        self.headers["Access-Control-Allow-Methods"] = self.supported_methods
         self.set_status(200)
         return self.render()
 
     def unsupported(self, *args, **kwargs):
-        return self.render_error(self._NOT_FOUND)
+        def allow_header():
+            methods = str.join(', ', map(str.upper, self.supported_methods))
+            self.headers['Allow'] = methods
+        return self.render_error(self._NOT_ALLOWED, error_handler=allow_header)
+
+    def error(self, err):
+        self.render_error(self._SERVER_ERROR)
 
     def redirect(self, url):
         """Clears the payload before rendering the error status
