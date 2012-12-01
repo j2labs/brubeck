@@ -6,7 +6,7 @@ import logging
 import Cookie
 
 from request import to_bytes, to_unicode, parse_netstring, Request
-from request_handling import http_response
+from request_handling import http_response, coro_spawn
 
 
 ###
@@ -185,7 +185,7 @@ class Mongrel2Connection(Connection):
         def fun_forever():
             while True:
                 request = self.recv()
-                self.process_message(application, request)
+                coro_spawn(self.process_message, application, request)
         self._recv_forever_ever(fun_forever)
 
     def send(self, uuid, conn_id, msg):
