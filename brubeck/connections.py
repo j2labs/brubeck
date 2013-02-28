@@ -59,7 +59,7 @@ class Connection(object):
         """Function for sending a single message.
         """
         self._unsupported('send')
- 
+
     def reply(self, req, msg):
         """Does a reply based on the given Request object and message.
         """
@@ -116,7 +116,7 @@ def load_zmq_ctx():
         zmq = load_zmq()
         zmq_ctx = zmq.Context()
         load_zmq_ctx._zmq_ctx = zmq_ctx
-        
+
     return load_zmq_ctx._zmq_ctx
 
 
@@ -141,7 +141,7 @@ class Mongrel2Connection(Connection):
         """
         zmq = load_zmq()
         ctx = load_zmq_ctx()
-        
+
         in_sock = ctx.socket(zmq.PULL)
         out_sock = ctx.socket(zmq.PUB)
 
@@ -156,7 +156,7 @@ class Mongrel2Connection(Connection):
     def process_message(self, application, message):
         """This coroutine looks at the message, determines which handler will
         be used to process it, and then begins processing.
-        
+
         The application is responsible for handling misconfigured routes.
         """
         request = Request.parse_msg(message)
@@ -165,10 +165,11 @@ class Mongrel2Connection(Connection):
         handler = application.route_message(request)
         result = handler()
 
-        http_content = http_response(result['body'], result['status_code'],
-                                     result['status_msg'], result['headers'])
+        if result:
+            http_content = http_response(result['body'], result['status_code'],
+                                         result['status_msg'], result['headers'])
 
-        application.msg_conn.reply(request, http_content)
+            application.msg_conn.reply(request, http_content)
 
     def recv(self):
         """Receives a raw mongrel2.handler.Request object that you from the
@@ -221,7 +222,7 @@ class Mongrel2Connection(Connection):
 
 
 ###
-### WSGI 
+### WSGI
 ###
 
 class WSGIConnection(Connection):
@@ -236,7 +237,7 @@ class WSGIConnection(Connection):
         request = Request.parse_wsgi_request(environ)
         handler = application.route_message(request)
         result = handler()
-        
+
         wsgi_status = ' '.join([str(result['status_code']), result['status_msg']])
         headers = [(k, v) for k,v in result['headers'].items()]
         callback(str(wsgi_status), headers)
@@ -254,15 +255,15 @@ class WSGIConnection(Connection):
 
             def proc_msg(environ, callback):
                 return self.process_message(application, environ, callback)
-            
+
             if CORO_LIBRARY == 'gevent':
                 from gevent import wsgi
                 server = wsgi.WSGIServer(('', self.port), proc_msg)
                 server.serve_forever()
-                
+
             elif CORO_LIBRARY == 'eventlet':
                 import eventlet.wsgi
                 server = eventlet.wsgi.server(eventlet.listen(('', self.port)),
                                               proc_msg)
-                
+
         self._recv_forever_ever(fun_forever)
