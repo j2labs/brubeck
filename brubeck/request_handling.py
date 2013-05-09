@@ -53,8 +53,9 @@ import hmac
 import cPickle as pickle
 from itertools import chain
 import os, sys
-from dictshield.base import ShieldException
 from request import Request, to_bytes, to_unicode
+
+from schematics.serialize import for_jsonschema, from_jsonschema
 
 import ujson as json
 
@@ -590,7 +591,7 @@ class JsonSchemaMessageHandler(WebMessageHandler):
 
     @classmethod
     def add_model(self, model):
-        self.manifest[model.__name__.lower()] = model.for_jsonschema()
+        self.manifest[model.__name__.lower()] = for_jsonschema(model)
 
     def get(self):
         self.set_body(json.dumps(self.manifest.values()))

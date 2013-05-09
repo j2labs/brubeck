@@ -31,22 +31,26 @@ from brubeck.queryset import DictQueryset
 from brubeck.templating import Jinja2Rendering, load_jinja2_env
 from brubeck.connections import Mongrel2Connection
 
-from dictshield.document import Document
-from dictshield.fields import (StringField,
-                               BooleanField)
+from schematics.models import Model
+from schematics.types import (UUIDType,
+                              StringType,
+                              BooleanType)
+from schematics.serialize import wholelist
 
 
 ### Todo Model
-class Todo(Document):
-    """Bare minimum for a todo
-    """
+class Todo(Model):
     # status fields
-    completed = BooleanField(default=False)
-    deleted = BooleanField(default=False)
-    archived = BooleanField(default=False)
-    title = StringField(required=True)
-    class Meta:
-        id_options = {'auto_fill': True}
+    id = UUIDType(auto_fill=True)
+    completed = BooleanType(default=False)
+    deleted = BooleanType(default=False)
+    archived = BooleanType(default=False)
+    title = StringType(required=True)
+
+    class Options:
+        roles = {
+            'owner': wholelist(),
+        }
 
 
 ### Todo API

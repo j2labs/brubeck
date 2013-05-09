@@ -2,12 +2,12 @@
 ### DictShield documents
 ###
 
-from dictshield.document import Document
-from dictshield.fields import (StringField,
-                               BooleanField,
-                               URLField,
-                               EmailField,
-                               LongField)
+from schematics.models import Model
+from schematics.types import (StringType,
+                              BooleanType,
+                              URLType,
+                              EmailType,
+                              LongType)
 
 
 import auth
@@ -21,22 +21,23 @@ import re
 ### User Document
 ###
 
-class User(Document):
+class User(Model):
     """Bare minimum to have the concept of a User.
     """
-    username = StringField(max_length=30, required=True)
-    password = StringField(max_length=128)
+    username = StringType(max_length=30, required=True)
+    password = StringType(max_length=128)
 
-    is_active = BooleanField(default=False)
-    last_login = LongField(default=curtime)
-    date_joined = LongField(default=curtime)
-
-    _private_fields = [
-        'password', 'is_active',
-    ]
+    is_active = BooleanType(default=False)
+    last_login = LongType(default=curtime)
+    date_joined = LongType(default=curtime)
 
     username_regex = re.compile('^[A-Za-z0-9._]+$')
     username_min_length = 2
+
+    class Options:
+        roles = {
+            'owner': blacklist('password', 'is_active'),
+        }
 
     def __unicode__(self):
         return u'%s' % (self.username)
@@ -93,7 +94,7 @@ class User(Document):
 ### UserProfile
 ###
 
-class UserProfile(Document, OwnedModelMixin, StreamedModelMixin):
+class UserProfile(Model, OwnedModelMixin, StreamedModelMixin):
     """The basic things a user profile tends to carry. Isolated in separate
     class to keep separate from private data.
     """
@@ -106,16 +107,17 @@ class UserProfile(Document, OwnedModelMixin, StreamedModelMixin):
     #updated_at = MillisecondField()
 
     # identity info
-    name = StringField(max_length=255)
-    email = EmailField(max_length=100)
-    website = URLField(max_length=255)
-    bio = StringField(max_length=100)
-    location_text = StringField(max_length=100)
-    avatar_url = URLField(max_length=255)
+    name = StringType(max_length=255)
+    email = EmailType(max_length=100)
+    website = URLType(max_length=255)
+    bio = StringType(max_length=100)
+    location_text = StringType(max_length=100)
+    avatar_url = URLType(max_length=255)
 
-    _private_fields = [
-        'owner_id',
-    ]
+    class Options:
+        roles = {
+            'owner': blacklist('owner_id'),
+        }
 
     def __init__(self, *args, **kwargs):
         super(UserProfile, self).__init__(*args, **kwargs)

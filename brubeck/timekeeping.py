@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from dateutil.parser import parse
 
-from dictshield.fields import LongField
+from schematics.types import LongType
 
 
 ###
@@ -75,10 +75,10 @@ def prettydate(d):
 
 
 ###
-### Custom DictShield Field
+### Custom Schematics Type
 ###
 
-class MillisecondField(LongField):
+class MillisecondType(LongType):
     """High precision time field.
     """
     def __set__(self, instance, value):

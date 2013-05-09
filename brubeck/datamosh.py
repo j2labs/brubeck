@@ -1,8 +1,8 @@
-from dictshield.document import EmbeddedDocument
-from dictshield.fields.base import UUIDField, StringField
+from schematics.models import Model
+from schematics.types.base import UUIDType, StringType
 
 
-from brubeck.timekeeping import MillisecondField
+from brubeck.timekeeping import MillisecondType
 
 
 """The purpose of the datamosh model is to provide Mixins for building data
@@ -34,13 +34,11 @@ def get_typed_argument(arg_name, default, handler, type_fun):
 ### Ownable Data Mixins
 ###
 
-class OwnedModelMixin(EmbeddedDocument):
+class OwnedModelMixin(Model):
     """This class standardizes the approach to expressing ownership of data
     """
-    owner_id = UUIDField(required=True)
-    owner_username = StringField(max_length=30, required=True)
-    class Meta:
-        mixin = True
+    owner_id = UUIDType(required=True)
+    owner_username = StringType(max_length=30, required=True)
 
 
 class OwnedHandlerMixin:
@@ -57,14 +55,12 @@ class OwnedHandlerMixin:
 ### Streamable Data Handling
 ###
 
-class StreamedModelMixin(EmbeddedDocument):
+class StreamedModelMixin(Model):
     """This class standardizes the way streaming data is handled by adding two
     fields that can be used to sort the list.
     """
-    created_at = MillisecondField(default=0)
-    updated_at = MillisecondField(default=0)
-    class Meta: 
-        mixin = True
+    created_at = MillisecondType(default=0)
+    updated_at = MillisecondType(default=0)
 
 
 class StreamedHandlerMixin:
