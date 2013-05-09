@@ -98,7 +98,7 @@ def load_zmq():
     if not hasattr(load_zmq, '_zmq'):
         from request_handling import CORO_LIBRARY
         if CORO_LIBRARY == 'gevent':
-            from gevent_zeromq import zmq
+            from zmq import green as zmq
         elif CORO_LIBRARY == 'eventlet':
             from eventlet.green import zmq
         load_zmq._zmq = zmq
