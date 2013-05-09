@@ -1,6 +1,5 @@
 from request_handling import JSONMessageHandler, FourOhFourException
-
-from dictshield.base import ShieldException
+from schematics.serialize import to_json, make_safe_json
 
 import ujson as json
 
@@ -120,14 +119,14 @@ class AutoAPIBase(JSONMessageHandler):
         transmitting as payload.
         """
         if isinstance(datum, dict):
-            iid = str(datum.get('_id'))
-            instance = self.model(**datum).to_json(encode=False)
+            iid = str(datum.get('id'))
+            model_instance = self.model(**datum)
+            instance = to_json(model_instance, encode=False)
         else:
             iid = str(datum.id)
-            instance = datum.to_json(encode=False)
+            instance = to_json(datum, encode=False)
 
-        data = self.model.make_json_ownersafe(instance, encode=False)
-        data['id'] = iid  ### External representations use id field 'id'
+        data = make_safe_json(self.model, instance, 'owner', encode=False)
 
         return data
 
