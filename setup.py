@@ -9,4 +9,4 @@ setup(name='brubeck',
       author_email='jdennis@gmail.com',
       url='http://github.com/j2labs/brubeck',
       packages=['brubeck', 'brubeck.queryset'],
-      install_requires=['ujson', 'dictshield'])
+      install_requires=['ujson', 'schematics'])
