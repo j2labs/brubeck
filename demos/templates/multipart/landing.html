@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Welcome{% endblock %}
 {% block body %}
-<form id="myForm" action="/" method="post"> 
-    Name: <input type="text" name="name" /> 
-    Comment: <textarea name="comment"></textarea> 
-    <input type="submit" value="Submit Comment" /> 
+<form action="/add_file" enctype="multipart/form-data" method="post">
+   <input type="file" name="files" >
+   <input type="submit">Submit</input>
 </form>
 {% endblock %}
-

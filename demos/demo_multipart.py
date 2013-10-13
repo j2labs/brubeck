@@ -28,7 +28,6 @@ class UploadHandler(Jinja2Rendering):
         if hasattr(self.message, 'files'):
             print 'FILES:', self.message.files['data'][0]['body']
             im = Image.open(StringIO.StringIO(self.message.files['data'][0]['body']))
-            print 'IM:', im
             im.save('word.png')
         return self.redirect('/')
 
@@ -38,9 +37,8 @@ class UploadHandler(Jinja2Rendering):
 ###
     
 config = {
-    #'msg_conn': WSGIConnection(),
     'msg_conn': Mongrel2Connection("tcp://127.0.0.1:9999", "tcp://127.0.0.1:9998"),
-    'handler_tuples': [(r'^/', UploadHandler)],
+    'handler_tuples': [(r'^/add_file', UploadHandler)],
     'template_loader': load_jinja2_env('./templates/multipart'),
 }
 
