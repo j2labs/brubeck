@@ -1,5 +1,5 @@
 from request_handling import JSONMessageHandler, FourOhFourException
-from schematics.serialize import to_json, make_safe_json
+from schematics.transforms import to_primitive
 
 import ujson as json
 
@@ -121,12 +121,12 @@ class AutoAPIBase(JSONMessageHandler):
         if isinstance(datum, dict):
             iid = str(datum.get('id'))
             model_instance = self.model(**datum)
-            instance = to_json(model_instance, encode=False)
+            instance = to_primitive(model_instance, encode=False)
         else:
             iid = str(datum.id)
-            instance = to_json(datum, encode=False)
+            instance = to_primitive(datum, encode=False)
 
-        data = make_safe_json(self.model, instance, 'owner', encode=False)
+        data = to_primitive(self.model, instance, role='owner')
 
         return data
 

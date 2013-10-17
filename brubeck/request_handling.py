@@ -1,16 +1,6 @@
 #!/usr/bin/env python
 
 
-"""Brubeck is a coroutine oriented zmq message handling framework. I learn by
-doing and this code base represents where my mind has wandered with regard to
-concurrency.
-
-If you are building a message handling system you should import this class
-before anything else to guarantee the eventlet code is run first.
-
-See github.com/j2labs/brubeck for more information.
-"""
-
 ### Attempt to setup gevent
 try:
     from gevent import monkey
@@ -54,8 +44,6 @@ import cPickle as pickle
 from itertools import chain
 import os, sys
 from request import Request, to_bytes, to_unicode
-
-from schematics.serialize import for_jsonschema, from_jsonschema
 
 import ujson as json
 
@@ -586,29 +574,6 @@ class JSONMessageHandler(WebMessageHandler):
         return response
 
 
-class JsonSchemaMessageHandler(WebMessageHandler):
-    manifest = {}
-
-    @classmethod
-    def add_model(self, model):
-        self.manifest[model.__name__.lower()] = for_jsonschema(model)
-
-    def get(self):
-        self.set_body(json.dumps(self.manifest.values()))
-        return self.render(status_code=200)
-
-    def render(self, status_code=None, **kwargs):
-        if status_code:
-            self.set_status(status_code)
-
-        self.convert_cookies()
-        self.headers['Content-Type'] = "application/schema+json"
-
-        response = render(self.body, status_code, self.status_msg,
-                          self.headers)
-
-        return response
-
 ###
 ### Application logic
 ###
@@ -824,10 +789,6 @@ class Brubeck(object):
     def register_api(self, APIClass, prefix=None):
         model, model_name = APIClass.model, APIClass.model.__name__.lower()
 
-        if not JsonSchemaMessageHandler.manifest:
-            manifest_pattern = "/manifest.json"
-            self.add_route_rule(manifest_pattern, JsonSchemaMessageHandler)
-
         if prefix is None:
             url_prefix = self.api_base_url + model_name
         else:
@@ -838,7 +799,6 @@ class Brubeck(object):
         api_url = ''.join([url_prefix, pattern])
 
         self.add_route_rule(api_url, APIClass)
-        JsonSchemaMessageHandler.add_model(model)
 
 
     ###

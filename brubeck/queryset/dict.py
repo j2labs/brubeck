@@ -1,11 +1,11 @@
 from brubeck.queryset.base import AbstractQueryset
-from schematics.serialize import to_python
+from schematics.transforms import to_native
 
 class DictQueryset(AbstractQueryset):
     """This class exists as an example of how one could implement a Queryset.
     This model is an in-memory dictionary and uses the model's id as the key.
 
-    The data stored is the result of calling `to_python()` on the model.
+    The data stored is the result of calling `to_native()` on the model.
     """
     def __init__(self, **kw):
         """Set the db_conn to a dictionary.
@@ -21,7 +21,7 @@ class DictQueryset(AbstractQueryset):
             status = self.MSG_CREATED
 
         shield_key = str(getattr(shield, self.api_id))
-        self.db_conn[shield_key] = to_python(shield)
+        self.db_conn[shield_key] = to_native(shield)
         return (status, shield)
 
     def create_many(self, shields):
@@ -47,7 +47,7 @@ class DictQueryset(AbstractQueryset):
     ### Update Functions
     def update_one(self, shield):
         shield_key = str(getattr(shield, self.api_id))
-        self.db_conn[shield_key] = to_python(shield)
+        self.db_conn[shield_key] = to_native(shield)
         return (self.MSG_UPDATED, shield)
 
     def update_many(self, shields):
