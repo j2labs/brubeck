@@ -1,2 +1,0 @@
-gevent==0.13.6
-gevent_zeromq==0.2.2
