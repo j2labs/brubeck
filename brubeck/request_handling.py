@@ -603,9 +603,6 @@ class Brubeck(object):
         `base_handler` is a class that Brubeck can rely on for implementing
         error handling functions.
 
-        `template_loader` is a function that builds the template loading
-        environment.
-
         `log_level` is a log level mapping to Python's `logging` module's
         levels.
 
@@ -663,30 +660,6 @@ class Brubeck(object):
         # This must be set to use secure cookies
         self.cookie_secret = cookie_secret
 
-        # Any template engine can be used. Brubeck just needs a function that
-        # loads the environment without arguments.
-        #
-        # It then creates a function that renders templates with the given
-        # environment and attaches it to self.
-        if callable(template_loader):
-            loaded_env = template_loader()
-            if loaded_env:
-                self.template_env = loaded_env
-
-                # Create template rendering function
-                def render_template(template_file, **context):
-                    """Renders template using provided template environment.
-                    """
-                    if hasattr(self, 'template_env'):
-                        t_env = self.template_env
-                        template = t_env.get_template(template_file)
-                        body = template.render(**context or {})
-                    return body
-
-                # Attach it to brubeck app (self)
-                setattr(self, 'render_template', render_template)
-            else:
-                raise ValueError('template_env failed to load.')
 
     ###
     ### Message routing functions
