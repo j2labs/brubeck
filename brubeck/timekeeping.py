@@ -72,19 +72,3 @@ def prettydate(d):
         return '1 hour ago'
     else:
         return '{0} hours ago'.format(s / 3600)
-
-
-###
-### Custom Schematics Type
-###
-
-class MillisecondType(LongType):
-    """High precision time field.
-    """
-    def __set__(self, instance, value):
-        """__set__ is overriden to allow accepting date strings as input.
-        dateutil is used to parse strings into milliseconds.
-        """
-        if isinstance(value, (str, unicode)):
-            value = datestring_to_millis(value)
-        instance._data[self.field_name] = value
