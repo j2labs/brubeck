@@ -571,11 +571,10 @@ class Brubeck(object):
     MULTIPLE_ITEM_SEP = ','
 
     def __init__(self, msg_conn=None, handler_tuples=None, pool=None,
-                 no_handler=None, base_handler=None, template_loader=None,
-                 log_level=logging.INFO, login_url=None, db_conn=None,
-                 cookie_secret=None, api_base_url=None,
-                 *args, **kwargs):
-        """Brubeck is a class for managing connections to webservers. It
+                 base_handler=None, log_level=logging.INFO, login_route=None,
+                 db_conn=None, cookie_secret=None, *args, **kwargs):
+        """
+        Brubeck is a class for managing connections to servers. It
         supports Mongrel2 and WSGI while providing an asynchronous system for
         managing message handling.
 
@@ -594,33 +593,24 @@ class Brubeck(object):
         `log_level` is a log level mapping to Python's `logging` module's
         levels.
 
-        `login_url` is the default URL for a login screen.
+        `login_route` is the default route for a login operation.
 
         `db_conn` is a database connection to be shared in this process
 
         `cookie_secret` is a string to use for signing secure cookies.
         """
-        # All output is sent via logging
-        # (while i figure out how to do a good abstraction via zmq)
         logging.basicConfig(level=log_level)
-
-        # Log whether we're using eventlet or gevent.
         logging.info('Using coroutine library: %s' % CORO_LIBRARY)
 
-        # Attach the web server connection
         if msg_conn is not None:
             self.msg_conn = msg_conn
         else:
             raise ValueError('No message connection provided.')
 
-        # Class based route lists should be handled this way.
-        # It is also possible to use `add_route`, a decorator provided by a
-        # brubeck instance, that can extend routing tables.
         self.handler_tuples = handler_tuples
         if self.handler_tuples is not None:
             self.init_routes(handler_tuples)
 
-        # We can accept an existing pool or initialize a new pool
         if pool is None:
             self.pool = coro_pool()
         elif callable(pool):
@@ -628,30 +618,16 @@ class Brubeck(object):
         else:
             raise ValueError('Unable to initialize coroutine pool')
 
-        # Set a base_handler for handling errors (eg. 404 handler)
         self.base_handler = base_handler
         if self.base_handler is None:
             self.base_handler = WebMessageHandler
 
-        # A database connection is optional. The var name is now in place
         self.db_conn = db_conn
 
-        # Login url is optional
-        self.login_url = login_url
-
-        # API base url is optional
-        if api_base_url is None:
-            self.api_base_url = '/'
-        else:
-            self.api_base_url = api_base_url
+        self.login_route = login_route
 
         # This must be set to use secure cookies
         self.cookie_secret = cookie_secret
-
-
-    ###
-    ### Message routing functions
-    ###
 
     def init_routes(self, handler_tuples):
         """Loops over a list of (pattern, handler) tuples and adds them
@@ -719,24 +695,15 @@ class Brubeck(object):
             url_check = regex.match(message.path)
 
             if url_check:
-                ### `None` will fail, so we have to use at least an empty list
-                ### We should try to use named arguments first, and if they're
-                ### not present fall back to positional arguments
                 url_args = url_check.groupdict() or url_check.groups() or []
 
                 if inspect.isclass(kallable):
-                    ### Handler classes must be instantiated
                     handler = kallable(self, message)
-                    ### Attach url args to handler
                     handler._args = url_args
                     return handler
                 else:
-                    ### Can't instantiate a function
                     if isinstance(url_args, dict):
-                        ### if the value was optional and not included, filter
-                        ### it out so the functions default takes priority
                         kwargs = dict((k, v) for k, v in url_args.items() if v)
-
                         handler = lambda: kallable(self, message, **kwargs)
                     else:
                         handler = lambda: kallable(self, message, *url_args)
@@ -746,25 +713,6 @@ class Brubeck(object):
             handler = self.base_handler(self, message)
 
         return handler
-
-    def register_api(self, APIClass, prefix=None):
-        model, model_name = APIClass.model, APIClass.model.__name__.lower()
-
-        if prefix is None:
-            url_prefix = self.api_base_url + model_name
-        else:
-            url_prefix = prefix
-
-        # TODO inspect url pattern for holes
-        pattern = "/((?P<ids>[-\w\d%s]+)(/)*|$)" % self.MULTIPLE_ITEM_SEP
-        api_url = ''.join([url_prefix, pattern])
-
-        self.add_route_rule(api_url, APIClass)
-
-
-    ###
-    ### Application running functions
-    ###
 
     def recv_forever_ever(self):
         """Helper function for starting the link between Brubeck and the
