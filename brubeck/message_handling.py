@@ -611,7 +611,7 @@ class Brubeck(object):
         if msg_conn is not None:
             self.msg_conn = msg_conn
         else:
-            raise ValueError('No web server connection provided.')
+            raise ValueError('No message connection provided.')
 
         # Class based route lists should be handled this way.
         # It is also possible to use `add_route`, a decorator provided by a
