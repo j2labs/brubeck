@@ -176,15 +176,11 @@ class MessageHandler(object):
         self.set_status(status_code)
         self.initialize()
 
-    def set_status(self, status_code, status_msg=None, extra_txt=None):
+    def set_status(self, status_code):
         """Sets the status code of the payload to <status_code> and sets
         status msg to the the relevant msg as defined in _response_codes.
         """
-        if status_msg is None:
-            status_msg = self._response_codes.get(status_code,
-                                                  str(status_code))
-        if extra_txt:
-            status_msg = '%s - %s' % (status_msg, extra_txt)
+        status_msg = self._response_codes.get(status_code, str(status_code))
         self.add_to_payload(self._STATUS_CODE, status_code)
         self.add_to_payload(self._STATUS_MSG, status_msg)
 
@@ -285,10 +281,9 @@ class MessageHandler(object):
 ### Web Message Handling
 ###
 
+HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 HTTP_METHODS = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace',
                 'connect']
-
-HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
 
 
 def http_response(body, code, status, headers):
@@ -381,10 +376,6 @@ class WebMessageHandler(MessageHandler):
         if headers is not None:
             self.headers = headers
 
-    ###
-    ### Supported HTTP request methods are mapped to these functions
-    ###
-
     @property
     def supported_methods(self):
         """List all the HTTP methods you have defined.
@@ -395,6 +386,8 @@ class WebMessageHandler(MessageHandler):
                 supported_methods.append(mef)
         return supported_methods
 
+    ### Rendering Functions
+    
     def options(self, *args, **kwargs):
         """Default to allowing all of the methods you have defined and public
         """
@@ -422,12 +415,9 @@ class WebMessageHandler(MessageHandler):
         self.headers['Location'] = '%s' % url
         return self.render()
 
-    ###
-    ### Helpers for accessing request variables
-    ###
-
     def get_argument(self, name, default=None, strip=True):
-        """Returns the value of the argument with the given name.
+        """
+        Returns the value of the argument with the given name.
 
         If the argument appears in the url more than once, we return the
         last value.
@@ -435,18 +425,16 @@ class WebMessageHandler(MessageHandler):
         return self.message.get_argument(name, default=default, strip=strip)
 
     def get_arguments(self, name, strip=True):
-        """Returns a list of the arguments with the given name.
+        """
+        Returns a list of the arguments with the given name.
         """
         return self.message.get_arguments(name, strip=strip)
 
-    ###
     ### Cookies
-    ###
-
-    ### Incoming cookie functions
 
     def get_cookie(self, key, default=None, secret=None):
-        """Retrieve a cookie from message, if present, else fallback to
+        """
+        Retrieve a cookie from message, if present, else fallback to
         `default` keyword. Accepts a secret key to validate signed cookies.
         """
         value = default
@@ -457,11 +445,11 @@ class WebMessageHandler(MessageHandler):
             return dec[1] if dec and dec[0] == key else None
         return value
 
-    ### Outgoing cookie functions
-
     @property
     def cookies(self):
-        """Lazy creation of response cookies."""
+        """
+        Lazy creation of response cookies.
+        """
         if not hasattr(self, "_cookies"):
             self._cookies = Cookie.SimpleCookie()
         return self._cookies
@@ -509,11 +497,9 @@ class WebMessageHandler(MessageHandler):
         for key in self.message.cookies.iterkeys():
             self.delete_cookie(key)
 
-    ###
-    ### Output generation
-    ###
+    ### Rendering
 
-    def convert_cookies(self):
+    def render_cookies(self):
         """ Resolves cookies into multiline values.
         """
         cookie_vals = [c.OutputString() for c in self.cookies.values()]
@@ -537,7 +523,7 @@ class WebMessageHandler(MessageHandler):
         if http_200:
             status_code = 200
 
-        self.convert_cookies()
+        self.render_cookies()
 
         response = render(self.body, status_code, self.status_msg, self.headers)
 
@@ -558,7 +544,7 @@ class JSONMessageHandler(WebMessageHandler):
         if status_code:
             self.set_status(status_code)
 
-        self.convert_cookies()
+        self.render_cookies()
 
         self.headers['Content-Type'] = 'application/json'
 
