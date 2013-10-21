@@ -5,11 +5,13 @@ import logging
 import urlparse
 import re
 
+
 def parse_netstring(ns):
     length, rest = ns.split(':', 1)
     length = int(length)
     assert rest[length] == ',', "Netstring did not end in ','"
     return rest[:length], rest[length + 1:]
+
 
 def to_bytes(data, enc='utf8'):
     """Convert anything to bytes

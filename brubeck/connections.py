@@ -38,7 +38,6 @@ class Connection(object):
         error_msg = 'Subclass of Connection has not implemented `%s()`' % name
         raise NotImplementedError(error_msg)
 
-
     def recv(self):
         """Receives a raw mongrel2.handler.Request object that you
         can then work with.
