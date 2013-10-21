@@ -5,8 +5,9 @@ import re
 import logging
 import Cookie
 
-from request import to_bytes, to_unicode, parse_netstring, Request
-from request_handling import http_response, coro_spawn
+from messages import (to_bytes, to_unicode, parse_netstring,
+                      Mongrel2Message, WSGIMessage)
+from message_handling import http_response, coro_spawn
 
 
 ###
@@ -95,7 +96,7 @@ def load_zmq():
     cache that decision at the module level.
     """
     if not hasattr(load_zmq, '_zmq'):
-        from request_handling import CORO_LIBRARY
+        from message_handling import CORO_LIBRARY
         if CORO_LIBRARY == 'gevent':
             from zmq import green as zmq
         elif CORO_LIBRARY == 'eventlet':
@@ -158,7 +159,7 @@ class Mongrel2Connection(Connection):
 
         The application is responsible for handling misconfigured routes.
         """
-        request = Request.parse_msg(message)
+        request = Mongrel2Message.parse(message)
         if request.is_disconnect():
             return  # Ignore disconnect msgs. Dont have areason to do otherwise
         handler = application.route_message(request)
@@ -233,7 +234,7 @@ class WSGIConnection(Connection):
         self.port = port
 
     def process_message(self, application, environ, callback):
-        request = Request.parse_wsgi_request(environ)
+        request = WSGIMessage.parse(environ)
         handler = application.route_message(request)
         result = handler()
 
@@ -249,7 +250,7 @@ class WSGIConnection(Connection):
         function in a try-except that can be ctrl-c'd.
         """
         def fun_forever():
-            from brubeck.request_handling import CORO_LIBRARY
+            from brubeck.message_handling import CORO_LIBRARY
             print "Serving on port %s..." % (self.port)
 
             def proc_msg(environ, callback):

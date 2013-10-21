@@ -43,22 +43,9 @@ import hmac
 import cPickle as pickle
 from itertools import chain
 import os, sys
-from request import Request, to_bytes, to_unicode
+from messages import to_bytes, to_unicode
 
 import ujson as json
-
-###
-### Common helpers
-###
-
-HTTP_METHODS = ['get', 'post', 'put', 'delete',
-                'head', 'options', 'trace', 'connect']
-
-HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
-
-
-class FourOhFourException(Exception):
-    pass
 
 
 ###
@@ -73,54 +60,6 @@ def render(body, status_code, status_msg, headers):
         'headers': headers,
     }
     return payload
-
-
-def http_response(body, code, status, headers):
-    """Renders arguments into an HTTP response.
-    """
-    payload = {'code': code, 'status': status, 'body': body}
-    content_length = 0
-    if body is not None:
-        content_length = len(to_bytes(body))
-
-    headers['Content-Length'] = content_length
-    payload['headers'] = "\r\n".join('%s: %s' % (k, v)
-                                     for k, v in headers.items())
-
-    return HTTP_FORMAT % payload
-
-def _lscmp(a, b):
-    """Compares two strings in a cryptographically safe way
-    """
-    return not sum(0 if x == y else 1
-                   for x, y in zip(a, b)) and len(a) == len(b)
-
-
-###
-### Me not *take* cookies, me *eat* the cookies.
-###
-
-def cookie_encode(data, key):
-    """Encode and sign a pickle-able object. Return a (byte) string
-    """
-    msg = base64.b64encode(pickle.dumps(data, -1))
-    sig = base64.b64encode(hmac.new(key, msg).digest())
-    return to_bytes('!') + sig + to_bytes('?') + msg
-
-
-def cookie_decode(data, key):
-    ''' Verify and decode an encoded string. Return an object or None.'''
-    data = to_bytes(data)
-    if cookie_is_encoded(data):
-        sig, msg = data.split(to_bytes('?'), 1)
-        if _lscmp(sig[1:], base64.b64encode(hmac.new(key, msg).digest())):
-            return pickle.loads(base64.b64decode(msg))
-    return None
-
-
-def cookie_is_encoded(data):
-    ''' Return True if the argument looks like a encoded cookie.'''
-    return bool(data.startswith(to_bytes('!')) and to_bytes('?') in data)
 
 
 ###
@@ -149,14 +88,14 @@ class MessageHandler(object):
     that database connection we created in `initialize` to check the username
     and password from a user.
     """
-    _STATUS_CODE = 'status_code'
-    _STATUS_MSG = 'status_msg'
-    _TIMESTAMP = 'timestamp'
-    _DEFAULT_STATUS = -1  # default to error, earn success
     _SUCCESS_CODE = 0
+    _BAD_REQUEST = -1
     _AUTH_FAILURE = -2
+    _NOT_FOUND = -3
+    _NOT_ALLOWED = -4
     _SERVER_ERROR = -5
-
+    _DEFAULT_STATUS = _SERVER_ERROR
+    
     _response_codes = {
         0: 'OK',
         -1: 'Bad request',
@@ -165,6 +104,11 @@ class MessageHandler(object):
         -4: 'Method not allowed',
         -5: 'Server error',
     }
+
+    ### Payload keys
+    _STATUS_CODE = 'status_code'
+    _STATUS_MSG = 'status_msg'
+    _TIMESTAMP = 'timestamp'
 
     def __init__(self, application, message, *args, **kwargs):
         """A MessageHandler is called at two major points, with regard to the
@@ -207,13 +151,9 @@ class MessageHandler(object):
 
     @property
     def supported_methods(self):
-        """List all the HTTP methods you have defined.
+        """List all the methods you have defined.
         """
-        supported_methods = []
-        for mef in HTTP_METHODS:
-            if callable(getattr(self, mef, False)):
-                supported_methods.append(mef)
-        return supported_methods
+        pass
 
     def unsupported(self):
         """Called anytime an unsupported request is made.
@@ -307,24 +247,24 @@ class MessageHandler(object):
                 mef = self.message.method.lower()  # M-E-T-H-O-D man!
 
                 # Find function mapped to method on self
-                if mef in HTTP_METHODS:
+                if mef in self.supported_methods:
                     fun = getattr(self, mef, self.unsupported)
                 else:
                     fun = self.unsupported
 
                 # Call the function we settled on
                 try:
-                    if not hasattr(self, '_url_args') or self._url_args is None:
-                        self._url_args = []
+                    if not hasattr(self, '_args') or self._args is None:
+                        self._args = []
 
-                    if isinstance(self._url_args, dict):
+                    if isinstance(self._args, dict):
                         ### if the value was optional and not included, filter it
                         ### out so the functions default takes priority
                         kwargs = dict((k, v)
-                                      for k, v in self._url_args.items() if v)
+                                      for k, v in self._args.items() if v)
                         rendered = fun(**kwargs)
                     else:
-                        rendered = fun(*self._url_args)
+                        rendered = fun(*self._args)
 
                     if rendered is None:
                         logging.debug('Handler had no return value: %s' % fun)
@@ -341,12 +281,66 @@ class MessageHandler(object):
             self.on_finish()
 
 
+###
+### Web Message Handling
+###
+
+HTTP_METHODS = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace',
+                'connect']
+
+HTTP_FORMAT = "HTTP/1.1 %(code)s %(status)s\r\n%(headers)s\r\n\r\n%(body)s"
+
+
+def http_response(body, code, status, headers):
+    """Renders arguments into an HTTP response.
+    """
+    payload = {'code': code, 'status': status, 'body': body}
+    content_length = 0
+    if body is not None:
+        content_length = len(to_bytes(body))
+
+    headers['Content-Length'] = content_length
+    payload['headers'] = "\r\n".join('%s: %s' % (k, v)
+                                     for k, v in headers.items())
+
+    return HTTP_FORMAT % payload
+
+
+def _lscmp(a, b):
+    """Compares two strings in a cryptographically safe way
+    """
+    return not sum(0 if x == y else 1
+                   for x, y in zip(a, b)) and len(a) == len(b)
+
+
+def cookie_encode(data, key):
+    """Encode and sign a pickle-able object. Return a (byte) string
+    """
+    msg = base64.b64encode(pickle.dumps(data, -1))
+    sig = base64.b64encode(hmac.new(key, msg).digest())
+    return to_bytes('!') + sig + to_bytes('?') + msg
+
+
+def cookie_decode(data, key):
+    ''' Verify and decode an encoded string. Return an object or None.'''
+    data = to_bytes(data)
+    if cookie_is_encoded(data):
+        sig, msg = data.split(to_bytes('?'), 1)
+        if _lscmp(sig[1:], base64.b64encode(hmac.new(key, msg).digest())):
+            return pickle.loads(base64.b64decode(msg))
+    return None
+
+
+def cookie_is_encoded(data):
+    ''' Return True if the argument looks like a encoded cookie.'''
+    return bool(data.startswith(to_bytes('!')) and to_bytes('?') in data)
+
+
 class WebMessageHandler(MessageHandler):
     """A base class for common functionality in a request handler.
 
     Tornado's design inspired this design.
     """
-    _DEFAULT_STATUS = 500  # default to server error
     _SUCCESS_CODE = 200
     _UPDATED_CODE = 200
     _CREATED_CODE = 201
@@ -357,6 +351,7 @@ class WebMessageHandler(MessageHandler):
     _NOT_FOUND = 404
     _NOT_ALLOWED = 405
     _SERVER_ERROR = 500
+    _DEFAULT_STATUS = _SERVER_ERROR    
 
     _response_codes = {
         200: 'OK',
@@ -368,10 +363,7 @@ class WebMessageHandler(MessageHandler):
         500: 'Server error',
     }
 
-    ###
-    ### Payload extension
-    ###
-
+    ### Payload keys
     _HEADERS = 'headers'
 
     def initialize(self):
@@ -392,6 +384,16 @@ class WebMessageHandler(MessageHandler):
     ###
     ### Supported HTTP request methods are mapped to these functions
     ###
+
+    @property
+    def supported_methods(self):
+        """List all the HTTP methods you have defined.
+        """
+        supported_methods = []
+        for mef in HTTP_METHODS:
+            if callable(getattr(self, mef, False)):
+                supported_methods.append(mef)
+        return supported_methods
 
     def options(self, *args, **kwargs):
         """Default to allowing all of the methods you have defined and public
@@ -740,7 +742,7 @@ class Brubeck(object):
                     ### Handler classes must be instantiated
                     handler = kallable(self, message)
                     ### Attach url args to handler
-                    handler._url_args = url_args
+                    handler._args = url_args
                     return handler
                 else:
                     ### Can't instantiate a function
