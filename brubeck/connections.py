@@ -7,7 +7,8 @@ import Cookie
 
 from messages import (to_bytes, to_unicode, parse_netstring,
                       Mongrel2Message, WSGIMessage)
-from message_handling import http_response, coro_spawn
+from . import concurrency
+from .handlers import http_response
 
 
 ###
@@ -96,10 +97,9 @@ def load_zmq():
     cache that decision at the module level.
     """
     if not hasattr(load_zmq, '_zmq'):
-        from message_handling import CORO_LIBRARY
-        if CORO_LIBRARY == 'gevent':
+        if concurrency.CORO_LIBRARY == 'gevent':
             from zmq import green as zmq
-        elif CORO_LIBRARY == 'eventlet':
+        elif concurrency.CORO_LIBRARY == 'eventlet':
             from eventlet.green import zmq
         load_zmq._zmq = zmq
 
@@ -186,7 +186,8 @@ class Mongrel2Connection(Connection):
         def fun_forever():
             while True:
                 request = self.recv()
-                coro_spawn(self.process_message, application, request)
+                concurrency.coro_spawn(self.process_message, application,
+                                       request)
         self._recv_forever_ever(fun_forever)
 
     def send(self, uuid, conn_id, msg):
@@ -250,18 +251,17 @@ class WSGIConnection(Connection):
         function in a try-except that can be ctrl-c'd.
         """
         def fun_forever():
-            from brubeck.message_handling import CORO_LIBRARY
             print "Serving on port %s..." % (self.port)
 
             def proc_msg(environ, callback):
                 return self.process_message(application, environ, callback)
 
-            if CORO_LIBRARY == 'gevent':
+            if concurrency.CORO_LIBRARY == 'gevent':
                 from gevent import wsgi
                 server = wsgi.WSGIServer(('', self.port), proc_msg)
                 server.serve_forever()
 
-            elif CORO_LIBRARY == 'eventlet':
+            elif concurrency.CORO_LIBRARY == 'eventlet':
                 import eventlet.wsgi
                 server = eventlet.wsgi.server(eventlet.listen(('', self.port)),
                                               proc_msg)
