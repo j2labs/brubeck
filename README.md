@@ -15,16 +15,22 @@ Dave Brubeck lived in Wilton, CT, where I (James) grew up.  He, or his son Chris
 
 Take Five is in 5/4 time, but many people who've heard it are not aware.  Our choice to use a concurrency system like gevent feels similar.  We like the way it puts the complexity of concurrency into a simple interface, much like how Take Five gave listeners the complex idea of 5/4 time in a simple melody.
 
+Brubeck, as a project, is an attempt to make the features of asynchronous, non-blocking systems available in a simple interface.  The name is symbolic of our goal to reduce coginitive load without sacrificing capability.
+
 
 # What?
 
-There's plenty of room for help in the backend.  Think of Brubeck as part of the band.  It can speak HTTP or use ZeroMQ and putting SSH in the mix isn't that hard either, though it's not included by default.
+There's plenty of room for help in the world of servers.  Think of Brubeck as part of the band.  It can speak HTTP or use ZeroMQ.  There will soon be a module for SSH in the mix too.
 
 We know there are lots of opinions out there and lots of people with the right way to do whatever.  We like to think we're just jamming too.
 
+# Who
+
 Brubeck's first line of code came from Brooklyn, NY, but it's current code base comes from around the world.
+
+[Hacker School](https://www.hackerschool.com/) students (myself included) have contributed significantly to Brubeck.
 
 
 # When
 
-I'm moving as fast as I can!
+We're moving as fast as we can!
