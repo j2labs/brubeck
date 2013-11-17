@@ -1,3 +1,5 @@
+from . import messages
+
 import time
 import logging
 import Cookie
@@ -247,7 +249,7 @@ def http_response(body, code, status, headers):
     payload = {'code': code, 'status': status, 'body': body}
     content_length = 0
     if body is not None:
-        content_length = len(to_bytes(body))
+        content_length = len(messages.to_bytes(body))
 
     headers['Content-Length'] = content_length
     payload['headers'] = "\r\n".join('%s: %s' % (k, v)
@@ -268,14 +270,14 @@ def cookie_encode(data, key):
     """
     msg = base64.b64encode(pickle.dumps(data, -1))
     sig = base64.b64encode(hmac.new(key, msg).digest())
-    return to_bytes('!') + sig + to_bytes('?') + msg
+    return messages.to_bytes('!') + sig + messages.to_bytes('?') + msg
 
 
 def cookie_decode(data, key):
     ''' Verify and decode an encoded string. Return an object or None.'''
-    data = to_bytes(data)
+    data = messages.to_bytes(data)
     if cookie_is_encoded(data):
-        sig, msg = data.split(to_bytes('?'), 1)
+        sig, msg = data.split(messages.to_bytes('?'), 1)
         if _lscmp(sig[1:], base64.b64encode(hmac.new(key, msg).digest())):
             return pickle.loads(base64.b64decode(msg))
     return None
@@ -283,7 +285,8 @@ def cookie_decode(data, key):
 
 def cookie_is_encoded(data):
     ''' Return True if the argument looks like a encoded cookie.'''
-    return bool(data.startswith(to_bytes('!')) and to_bytes('?') in data)
+    return bool(data.startswith(messages.to_bytes('!')) and \
+                messages.to_bytes('?') in data)
 
 
 class WebMessageHandler(MessageHandler):
