@@ -1,6 +1,6 @@
 from . import concurrency
 from . import version
-from .handlers import WebMessageHandler, render
+from . import handlers
 
 import re
 import time
@@ -70,7 +70,7 @@ class Brubeck(object):
 
         self.base_handler = base_handler
         if self.base_handler is None:
-            self.base_handler = WebMessageHandler
+            self.base_handler = handlers.WebMessageHandler
 
         self.db_conn = db_conn
 
