@@ -1,6 +1,8 @@
-from . import concurrency
-from . import version
-from . import handlers
+from .. import concurrency
+from .. import version
+from .. import handlers
+from ..plugins import Pluggable
+from ..messages import to_bytes, to_unicode
 
 import re
 import time
@@ -12,7 +14,6 @@ import hmac
 import cPickle as pickle
 from itertools import chain
 import os, sys
-from messages import to_bytes, to_unicode
 
 import ujson as json
 
@@ -21,39 +22,12 @@ import ujson as json
 ### Application logic
 ###
 
-class Brubeck(object):
+class Server(object, Pluggable):
 
-    MULTIPLE_ITEM_SEP = ','
-
-    def __init__(self, msg_conn=None, handler_tuples=None, pool=None,
-                 base_handler=None, log_level=logging.INFO, login_route=None,
-                 db_conn=None, cookie_secret=None, *args, **kwargs):
-        """
-        Brubeck is a class for managing connections to servers. It
-        supports Mongrel2 and WSGI while providing an asynchronous system for
-        managing message handling.
-
-        `msg_conn` should be a `connections.Connection` instance.
-
-        `handler_tuples` is a list of two-tuples. The first item is a regex
-        for matching the URL requested. The second is the class instantiated
-        to handle the message.
-
-        `pool` can be an existing coroutine pool, but one will be generated if
-        one isn't provided.
-
-        `base_handler` is a class that Brubeck can rely on for implementing
-        error handling functions.
-
-        `log_level` is a log level mapping to Python's `logging` module's
-        levels.
-
-        `login_route` is the default route for a login operation.
-
-        `db_conn` is a database connection to be shared in this process
-
-        `cookie_secret` is a string to use for signing secure cookies.
-        """
+    def __init__(self, msg_conn=None, handlers=None, pool=None,
+                 default_handler=None, log_level=logging.INFO, db=None,
+                 plugins=None, *args, **kwargs):
+        
         logging.basicConfig(level=log_level)
         logging.info('Using coroutine library: %s' % concurrency.CORO_LIBRARY)
 
@@ -62,22 +36,21 @@ class Brubeck(object):
         else:
             raise ValueError('No message connection provided.')
 
-        self.handler_tuples = handler_tuples
-        if self.handler_tuples is not None:
-            self.init_routes(handler_tuples)
+        if handlers is not None:
+            self.init_routes(handlers)
 
-        self.pool = concurrency.init_pool()
+        self.pool = pool
+        if not pool:
+            self.pool = concurrency.init_pool()
 
-        self.base_handler = base_handler
-        if self.base_handler is None:
-            self.base_handler = handlers.WebMessageHandler
+        self.default_handler = default_handler
+        if self.default_handler is None:
+            self.default_handler = handlers.MessageHandler
 
-        self.db_conn = db_conn
+        self.db = db
 
-        self.login_route = login_route
-
-        # This must be set to use secure cookies
-        self.cookie_secret = cookie_secret
+        if plugins:
+            map(self.activate_plugin, plugins)
 
     def init_routes(self, handler_tuples):
         """Loops over a list of (pattern, handler) tuples and adds them
@@ -119,7 +92,7 @@ class Brubeck(object):
                     INCEPTION
                 """
                 if msg.method not in method:
-                    return self.base_handler(app, msg).unsupported()
+                    return self.default_handler(app, msg).unsupported()
                 else:
                     return kallable(app, msg, *args)
 
@@ -128,39 +101,27 @@ class Brubeck(object):
         return decorator
 
     def route_message(self, message):
-        """Factory function that instantiates a request handler based on
-        path requested.
-
-        If a class that implements `__call__` is used, the class should
-        implement an `__init__` that receives two arguments: a brubeck instance
-        and the message to be handled. The return value of this call is a
-        callable class that is ready to be executed in a follow up coroutine.
-
-        If a function is used (eg with the decorating routing pattern) a
-        closure is created around the two arguments. The return value of this
-        call is a function ready to be executed in a follow up coroutine.
-        """
         handler = None
         for (regex, kallable) in self._routes:
-            url_check = regex.match(message.path)
+            route_check = regex.match(message.path)
 
-            if url_check:
-                url_args = url_check.groupdict() or url_check.groups() or []
+            if route_check:
+                route_args = route_check.groupdict() or route_check.groups() or []
 
                 if inspect.isclass(kallable):
                     handler = kallable(self, message)
-                    handler._args = url_args
+                    handler._args = route_args
                     return handler
                 else:
-                    if isinstance(url_args, dict):
-                        kwargs = dict((k, v) for k, v in url_args.items() if v)
+                    if isinstance(route_args, dict):
+                        kwargs = dict((k, v) for k, v in route_args.items() if v)
                         handler = lambda: kallable(self, message, **kwargs)
                     else:
-                        handler = lambda: kallable(self, message, *url_args)
+                        handler = lambda: kallable(self, message, *route_args)
                     return handler
 
         if handler is None:
-            handler = self.base_handler(self, message)
+            handler = self.default_handler(self, message)
 
         return handler
 
@@ -183,3 +144,10 @@ class Brubeck(object):
         print greeting % version
 
         self.recv_forever_ever()
+
+
+class WebServer(Server):
+    def __init__(self, cookie_secret=None, login_route=None, **kw):
+        self.cookie_secret = cookie_secret
+        self.login_route = login_route
+        super(WebServer, self).__init__(**kw)
