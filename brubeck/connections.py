@@ -1,3 +1,8 @@
+from .messages import (to_bytes, to_unicode, parse_netstring,
+                       Mongrel2Message, WSGIMessage)
+from . import concurrency
+from .handlers.web import http_render
+
 import ujson as json
 from uuid import uuid4
 import cgi
@@ -5,10 +10,6 @@ import re
 import logging
 import Cookie
 
-from messages import (to_bytes, to_unicode, parse_netstring,
-                      Mongrel2Message, WSGIMessage)
-from . import concurrency
-from .handlers import http_response
 
 
 ###
@@ -166,8 +167,8 @@ class Mongrel2Connection(Connection):
         result = handler()
 
         if result:
-            http_content = http_response(result['body'], result['status_code'],
-                                         result['status_msg'], result['headers'])
+            http_content = http_render(result['body'], result['status_code'],
+                                       result['status_msg'], result['headers'])
 
             application.msg_conn.reply(request, http_content)
 
